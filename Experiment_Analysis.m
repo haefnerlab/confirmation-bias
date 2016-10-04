@@ -1,51 +1,61 @@
-function Experiment_Analysis(subjectID, automatic, preliminary, phase, manual, median, version, difference, directory)
+function Experiment_Analysis(opts)
 % EXPERIMENT_ANALYSIS Analyze psychometric and psychophysical kernel for a
 % particular subject by creating a series of figures.
 %
-%   EXPERIMENT_ANALYSIS(subjectID, automatic, preliminary, phase, manual,
-%   median, version, difference, directory)
+%   EXPERIMENT_ANALYSIS(opts) takes a single struct argument 'opts' with
+%   the following fields. The 'subjectID' field is required.
 %
-% subjectID determines the subject to retrieve the data from. Ex. '01', 'Matthew', etc, etc,...
+%   opts.subjectID [string] - the subject to retrieve the data from. Ex.
+%   '01', 'Matthew', etc, etc,...
 %
-% automatic determines if the data  being analyzed will be auditory or
-% visual. Ex. 0 = visual bar task, 1 = auditory click task
+%   opts.automatic [0-1] - if the data  being analyzed will be auditory or
+%   visual. Ex. 0 = visual bar task, 1 = auditory click task
 %
-% preliminary determines if we want to skip the analysis of the preliminary
-% phase data or the test data. Ex. 0 = skip the preliminary analysis,
-% 1 = skip the test analysis, 2 = don't skip either analysis
+%   opts.preliminary [0-1] - if we want to skip the analysis of the
+%   preliminary data.
 %
-% phase determines if we are analyzing the volume or ratio phase.
-% Ex. 0 = volume/contrast, 1 = ratio
+%   opts.phase [0-2] - if we are analyzing the volume or ratio phase. 0 =
+%   skip the preliminary analysis, 1 = skip the test analysis, 2 = don't
+%   skip either analysis phase
 %
-% manual determines if we are analyzing manually saved data or not.
-% Ex. 0 = automatically saved test data, 1 = manually saved test data
+%   opts.manual [0-1] - if we are analyzing manually saved data or not. Ex.
+%   0 = automatically saved test data, 1 = manually saved test data
 %
-% median determines if we want to analyse test data above median 0, below median 1 or analyse the entire test data 2.
+%   opts.median [0-2] - if we want to analyse test data above median 0,
+%   below median 1 or analyse the entire test data 2.
 %
-% version determines if the weights of the Ideal observer (or manually chosen weights) will be plotted
-% on the graphs along with the weights of the data beign analyzed.
-% Ex. 0 = no ideal weights plotted, 1 = yes plot the ideal weights
+%   opts.version [0-1] - if the weights of the Ideal observer (or manually
+%   chosen weights) will be plotted on the graphs along with the weights of
+%   the data beign analyzed. Ex. 0 = no ideal weights plotted, 1 = yes plot
+%   the ideal weights
 %
-% difference dictates how we graph the difference in the weights for the left and right side
-% 0 means we directly subtract the right weights from the left weights
-% 1 means we take the difference in the flash/click rates and feed that difference into the regression model and graph that output with errorbars
+%   opts.difference [0-1] - how we graph the difference in the weights for
+%   the left and right side. 0 means we directly subtract the right weights
+%   from the left weights. 1 means we take the difference in the
+%   flash/click rates and feed that difference into the regression model
+%   and graph that output with errorbars
 %
-% directory allows this code to be able to create and save files of the subject data on any computer
+%   opts.directory [string path] - allows this code to be able to create
+%   and save files of the subject data on any computer
 
+% Set defaults
 
-if ~exist('automatic','var') || ~exist('version','var')  % Check for missing arguments
-    automatic = 0;
-    preliminary = 0;
-    version = 0;
-    directory = '/Users/bcs206/Documents/Summer/';
-end
+if ~isfield(opts, 'opts.subjectID'),   error('opts.subjectID is required'); end
+if ~isfield(opts, 'automatic'),   opts.automatic =   0; end
+if ~isfield(opts, 'preliminary'), opts.preliminary = 0; end
+if ~isfield(opts, 'phase'),       opts.phase =       0; end
+if ~isfield(opts, 'manual'),      opts.manual =      0; end
+if ~isfield(opts, 'median'),      opts.median =      0; end
+if ~isfield(opts, 'version'),     opts.version =     0; end
+if ~isfield(opts, 'difference'),  opts.difference =  0; end
+if ~isfield(opts, 'directory'),   opts.directory =   '../'; end
 
 %% Analyze Visual Data
-if automatic == 0
-    if preliminary == 1 || preliminary == 2
+if opts.automatic == 0
+    if opts.preliminary == 1 || opts.preliminary == 2
         %load the preliminary visual data
-        if phase == 0
-            prelimFile = [directory 'RawData/' subjectID '-VisualDataContrast.mat'];
+        if opts.phase == 0
+            prelimFile = [opts.directory 'RawData/' opts.subjectID '-VisualDataContrast.mat'];
             if ~exist(prelimFile, 'file')
                 disp(strcat('ERROR! Missing File: ', prelimFile));  % Return an error message for missing file
                 disp(strcat('Maybe the Preliminary phase is saved under a different name?'));
@@ -75,9 +85,9 @@ if automatic == 0
             set(p,'Linewidth',2);
             xlabel('Trial'), ylabel('Reaction Time in msecs')
             title('Reaction Time by Trial Number')
-        elseif phase == 1
+        elseif opts.phase == 1
             % Analyze the ratio data
-            prelimFile = [directory 'RawData/' subjectID '-VisualDataRatio.mat'];
+            prelimFile = [opts.directory 'RawData/' opts.subjectID '-VisualDataRatio.mat'];
             if ~exist(prelimFile, 'file')
                 disp(strcat('ERROR! Missing File: ', prelimFile));  % Return an error message for missing file
                 disp(strcat('Maybe the Preliminary phase is saved under a different name?'));
@@ -111,22 +121,22 @@ if automatic == 0
     end
     
     %% Load data for test visual experiment
-    if preliminary == 0 || preliminary == 2
-        if phase == 0
-            if manual == 0
-                filename = [[directory 'RawData/'] subjectID '-VisualTestContrast.mat'];
+    if opts.preliminary == 0 || opts.preliminary == 2
+        if opts.phase == 0
+            if opts.manual == 0
+                filename = [[opts.directory 'RawData/'] opts.subjectID '-VisualTestContrast.mat'];
                 if ~exist(filename, 'file')
-                    filename = [[directory 'RawData/'] subjectID '-VisualNoisyTest.mat'];  % Are you trying to analyze the older data with the older file name?
+                    filename = [[opts.directory 'RawData/'] opts.subjectID '-VisualNoisyTest.mat'];  % Are you trying to analyze the older data with the older file name?
                     %else
                     disp(strcat('ERROR! Missing File: ', filename));  % Return an error message for missing file
                     return;
                 else
                     load(filename);  % Will load Test_Data
                 end
-            elseif manual == 1
-                filename = [[directory 'RawData/'] subjectID '-VisualTestContrastManual.mat'];
+            elseif opts.manual == 1
+                filename = [[opts.directory 'RawData/'] opts.subjectID '-VisualTestContrastManual.mat'];
                 if ~exist(filename, 'file')
-                    filename = [[directory 'RawData/'] subjectID '-VisualNoisyTest.mat'];  % Are you trying to analyze the older data with the older file name?
+                    filename = [[opts.directory 'RawData/'] opts.subjectID '-VisualNoisyTest.mat'];  % Are you trying to analyze the older data with the older file name?
                     %else
                     disp(strcat('ERROR! Missing File: ', filename));  % Return an error message for missing file
                     return;
@@ -134,21 +144,21 @@ if automatic == 0
                     load(filename);  % Will load Test_Data
                 end
             end
-        elseif phase == 1
-            if manual == 0
-                filename = [[directory 'RawData/'] subjectID '-VisualTestRatio.mat'];
+        elseif opts.phase == 1
+            if opts.manual == 0
+                filename = [[opts.directory 'RawData/'] opts.subjectID '-VisualTestRatio.mat'];
                 if ~exist(filename, 'file')
-                    filename = [[directory 'RawData/'] subjectID '-VisualNoisyTest.mat'];  % Are you trying to analyze the older data with the older file name?
+                    filename = [[opts.directory 'RawData/'] opts.subjectID '-VisualNoisyTest.mat'];  % Are you trying to analyze the older data with the older file name?
                     %else
                     disp(strcat('ERROR! Missing File: ', filename));  % Return an error message for missing file
                     return;
                 else
                     load(filename);  % Will load Test_Data
                 end
-            elseif manual == 1
-                filename = [[directory 'RawData/'] subjectID '-VisualTestRatioManual.mat'];
+            elseif opts.manual == 1
+                filename = [[opts.directory 'RawData/'] opts.subjectID '-VisualTestRatioManual.mat'];
                 if ~exist(filename, 'file')
-                    filename = [[directory 'RawData/'] subjectID '-VisualNoisyTest.mat'];  % Are you trying to analyze the older data with the older file name?
+                    filename = [[opts.directory 'RawData/'] opts.subjectID '-VisualNoisyTest.mat'];  % Are you trying to analyze the older data with the older file name?
                     %else
                     disp(strcat('ERROR! Missing File: ', filename));  % Return an error message for missing file
                     return;
@@ -160,11 +170,11 @@ if automatic == 0
     end
     
     %% Analyze Auditory Data
-elseif automatic == 1
-    if preliminary == 1 || preliminary == 2
+elseif opts.automatic == 1
+    if opts.preliminary == 1 || opts.preliminary == 2
         %load the first preliminary auditory data
-        if phase == 0
-            prelimFile = [directory 'RawData/' subjectID '-AuditoryDataVolume.mat'];
+        if opts.phase == 0
+            prelimFile = [opts.directory 'RawData/' opts.subjectID '-AuditoryDataVolume.mat'];
             if ~exist(prelimFile, 'file')
                 disp(strcat('ERROR! Missing File: ', prelimFile));  % Return an error message for missing file
                 disp(strcat('Maybe the Preliminary phase is saved under a different name?'));
@@ -195,8 +205,8 @@ elseif automatic == 1
             set(p,'Linewidth',2);hold on;
             xlabel('Trial'), ylabel('Reaction Time in msecs')
             title('Reaction Time by Trial Number')
-        elseif phase == 1
-            prelimFile = [directory 'RawData/' subjectID '-AuditoryDataRatio.mat'];
+        elseif opts.phase == 1
+            prelimFile = [opts.directory 'RawData/' opts.subjectID '-AuditoryDataRatio.mat'];
             if ~exist(prelimFile, 'file')
                 disp(strcat('ERROR! Missing File: ', prelimFile));  % Return an error message for missing file
                 disp(strcat('Maybe the Preliminary phase is saved under a different name?'));
@@ -230,10 +240,10 @@ elseif automatic == 1
     end
     
     %% Load data for test auditory experiment
-    if preliminary == 0 || preliminary == 2
-        if phase == 0
-            if manual == 0
-                filename = [[directory 'RawData/'] subjectID '-AuditoryTestVolume.mat'];
+    if opts.preliminary == 0 || opts.preliminary == 2
+        if opts.phase == 0
+            if opts.manual == 0
+                filename = [[opts.directory 'RawData/'] opts.subjectID '-AuditoryTestVolume.mat'];
                 if ~exist(filename, 'file')
                     disp(strcat('ERROR! Missing File: ', filename));  % Return an error message for missing file
                     disp(strcat('Maybe the test data is saved under a different name?'));
@@ -241,8 +251,8 @@ elseif automatic == 1
                 else
                     load(filename);  % Will load Test_Data
                 end
-            elseif manual == 1
-                filename = [[directory 'RawData/'] subjectID '-AuditoryTestVolumeManual.mat'];
+            elseif opts.manual == 1
+                filename = [[opts.directory 'RawData/'] opts.subjectID '-AuditoryTestVolumeManual.mat'];
                 if ~exist(filename, 'file')
                     disp(strcat('ERROR! Missing File: ', filename));  % Return an error message for missing file
                     disp(strcat('Maybe the test data is saved under a different name?'));
@@ -270,9 +280,9 @@ elseif automatic == 1
             Test_Data.current_trial = length(Test_Data.choice);
             
             
-        elseif phase == 1
-            if manual == 0
-                filename = [[directory 'RawData/'] subjectID '-AuditoryTestRatio.mat'];
+        elseif opts.phase == 1
+            if opts.manual == 0
+                filename = [[opts.directory 'RawData/'] opts.subjectID '-AuditoryTestRatio.mat'];
                 if ~exist(filename, 'file')
                     disp(strcat('ERROR! Missing File: ', filename));  % Return an error message for missing file
                     disp(strcat('Maybe the test data is saved under a different name?'));
@@ -280,8 +290,8 @@ elseif automatic == 1
                 else
                     load(filename);  % Will load Test_Data
                 end
-            elseif manual == 1
-                filename = [[directory 'RawData/'] subjectID '-AuditoryTestRatioManual.mat'];
+            elseif opts.manual == 1
+                filename = [[opts.directory 'RawData/'] opts.subjectID '-AuditoryTestRatioManual.mat'];
                 if ~exist(filename, 'file')
                     disp(strcat('ERROR! Missing File: ', filename));  % Return an error message for missing file
                     disp(strcat('Maybe the test data is saved under a different name?'));
@@ -313,18 +323,18 @@ elseif automatic == 1
 end
 
 %% Analyze Test Data
-if preliminary == 0 || preliminary == 2
+if opts.preliminary == 0 || opts.preliminary == 2
     
     m = mean(Test_Data.volume(:));
     Trial_Data = Test_Data;
-    if median == 1
+    if opts.median == 1
         Trial_Data.order_of_flashes(find(Test_Data.contrast(:)> m),:,:) = [];
         Trial_Data.flash_rate(:,find(Test_Data.contrast(:)>m)) = [];
         Trial_Data.contrast(find(Test_Data.contrast(:)>m))=[];
         Trial_Data.accuracy(find(Test_Data.contrast(:)>m)) = [];
         Trial_Data.choice(find(Test_Data.contrast(:)>m)) = [];
         Trial_Data.current_trial = length(find(Test_Data.contrast(:)<=m));
-    elseif median == 0
+    elseif opts.median == 0
         Trial_Data = Test_Data;
         Trial_Data.order_of_flashes(find(Test_Data.contrast(:)<= m),:,:) = [];
         Trial_Data.flash_rate(:,find(Test_Data.contrast(:)<=m)) = [];
@@ -422,12 +432,12 @@ if preliminary == 0 || preliminary == 2
     axis tight
     title('Psychometric Functions');
     
-    if phase == 0
-        if automatic == 0
+    if opts.phase == 0
+        if opts.automatic == 0
             xlabel('Contrast')
             ylabel('Percentage correct')
             legend('Contrast Trials', 'Location','southeast')
-        elseif automatic == 1
+        elseif opts.automatic == 1
             xlabel('Volume')
             ylabel('Percentage correct')
             legend('Volume Trials', 'Location','southeast')
@@ -445,7 +455,7 @@ if preliminary == 0 || preliminary == 2
     Get_Figure('Psychometric Curve And Analysis');
     subplot(2,4,[1,2,5,6]); hold on;  % Plot the psychometric function of the high and low contrast/volume condition
    
-    if phase == 0
+    if opts.phase == 0
         
         % Plot the volume/contrast level by the percentage correct
         [params,ll] = fit_sigmoid(Test_Data.contrast,accuracy);
@@ -456,16 +466,16 @@ if preliminary == 0 || preliminary == 2
         set(f,'Linewidth',2); hold on;   % Make the lines thicker
         axis tight
         title('Psychometric Functions');
-        if automatic == 0
+        if opts.automatic == 0
             xlabel('Contrast')
             ylabel('Percentage Correct')
             legend('Contrast Trials', 'Location','southeast')
-        elseif automatic == 1
+        elseif opts.automatic == 1
             xlabel('Volume')
             ylabel('Percentage Correct')
             legend('Volume Trials', 'Location','southeast')
         end
-    elseif phase == 1
+    elseif opts.phase == 1
         [params,ll] = fit_sigmoid(flash_rate,Test_Data.choice);
         p=compute_sigmoid(unique_ratio_conditions,params(1),params(2),params(3));
         e=plot(unique_contrast_conditions,p,'g-');hold on;
@@ -481,10 +491,10 @@ if preliminary == 0 || preliminary == 2
     %}
     
     %addpath(genpath('psignifit-master'));
-    addpath(genpath([directory 'Code']));
+    addpath(genpath([opts.directory 'Code']));
     Get_Figure('Psychometric Curve And Analysis');
     subplot(2,4,[1,2,5,6]); hold on;  % Plot the psychometric function of the high and low contrast/volume condition
-    if phase == 0
+    if opts.phase == 0
         data_cont_vol = [unique_contrast_conditions(:), contrast_yes(:), num_trials_at_x(:)];
         options=struct;
         options.sigmoidName    = 'weibull';
@@ -518,11 +528,11 @@ if preliminary == 0 || preliminary == 2
         plotOptions.plotData       = 0;                    % plot the data?
         plotOptions.lineColor      = [0,0,0];              % color of the PF
         plotOptions.lineWidth      = 2;                    % lineWidth of the PF
-        if automatic == 0
+        if opts.automatic == 0
             plotOptions.xLabel         = 'Contrast Level';     % xLabel
             plotOptions.yLabel         = 'Percent Correct';    % yLabel
             legend('Contrast Trials', 'Location','southeast')
-        elseif automatic == 1
+        elseif opts.automatic == 1
             plotOptions.xLabel         = 'Volume Level';     % xLabel
             plotOptions.yLabel         = 'Percent Correct';    % yLabel
             legend('Volume Trials', 'Location','southeast')
@@ -552,11 +562,11 @@ if preliminary == 0 || preliminary == 2
         axis tight
         
         
-        fileName = sprintf('%s%s-result.mat',[directory 'RawData/'],subjectID); % create a name for the data you want to save
+        fileName = sprintf('%s%s-result.mat',[opts.directory 'RawData/'],opts.subjectID); % create a name for the data you want to save
         save(fileName, 'result');
         %plotPsych(result,plotOptions);
         
-    elseif phase == 1
+    elseif opts.phase == 1
         
         data_ratio = [unique_ratio_conditions(:), ratio_yes(:), num_trials_at_x_ratio(:)];
         
@@ -668,7 +678,7 @@ if preliminary == 0 || preliminary == 2
     % Since the Ideal Weights will require a different analysis, the weights will have to be manually included
     
     % Ideal Left Weights
-    if version == 1
+    if opts.version == 1
         idealLeftBarWeights = [0.6492,0.6763,0.5486,0.4267,0.4868,0.5528,0.5854,0.6241,0.6171, ...
             0.6158,0.6609,0.7116,0.7902,0.8748,0.9297,0.9909,0.9033,0.8220, ...
             0.7521,0.6882,0.6627,0.6428,0.6599,0.6830,0.6610,0.6452,0.7221, ...
@@ -692,7 +702,7 @@ if preliminary == 0 || preliminary == 2
     % SDebars(Test_Data.number_of_images+1:end)
     
     % Ideal Right Weights
-    if version == 1
+    if opts.version == 1
         idealRightBarWeights = [-0.5964,-0.6116,-0.7484,-0.8809,-0.8447,-0.8040,-0.7814,-0.7543,-0.7903, ...
             -0.8222,-0.7914,-0.7567,-0.6735,-0.5858,-0.5238,-0.4571,-0.5405,-0.6194, ...
             -0.6902,-0.7566,-0.7869,-0.8131,-0.7870,-0.7566,-0.7593,-0.7573,-0.6906, ...
@@ -706,9 +716,9 @@ if preliminary == 0 || preliminary == 2
         e = errorbar(idealRightBarWeights, idealRightBarErrors, '.-m');  % Magenta Line
         set(e,'Linewidth',2); hold on;
     end
-    if phase == 0
+    if opts.phase == 0
         title('Low Volume/Contrast PK');
-    elseif phase == 1
+    elseif opts.phase == 1
         title('High Volume/Contrast PK');
     end
     axis tight
@@ -718,7 +728,7 @@ if preliminary == 0 || preliminary == 2
     
     subplot(2,4,[7,8]); hold on; % Graph the difference in weights between the left and right bar/ear
     
-    if difference == 0
+    if opts.difference == 0
         % Graph the difference in the weights for the left and right side
         wdiff = LRWeightsErrors{1,1}-LRWeightsErrors{2,1};
         SDebars = LRWeightsErrors{1,2}+LRWeightsErrors{2,2};
@@ -752,9 +762,9 @@ if preliminary == 0 || preliminary == 2
     axis tight
     xlabel('Frames')
     ylabel('Weights')
-    if phase == 0
+    if opts.phase == 0
         legend('Volume','Location','southoutside')
-    elseif phase == 1
+    elseif opts.phase == 1
         legend('Ratio','Location','southoutside')
     end
     
@@ -763,7 +773,7 @@ if preliminary == 0 || preliminary == 2
     
     
     % Plot the change in change in click/flash rate by the percentage left for the threshold volume/contrast case
-    if phase ==0
+    if opts.phase ==0
         Get_Figure('Psychometric Curve of ratio for volume/contrast trials');
         %{
         h = plot(unique_ratio_conditions, ratio_proportions./sum(ratio_proportions), 'k-');hold on;
@@ -877,13 +887,13 @@ if preliminary == 0 || preliminary == 2
     set(best_fit2,'Linewidth',2); hold on;   % Make the lines thicker
     axis([0 inf 0 inf])
     
-    if phase==0
+    if opts.phase==0
         title('Psychometric Curve of absolute ratio');
         xlabel('|Ratio Difference|')
         ylabel('Percentage of chosing left')
         legend('Absolute Ratio PS for volume trials(<=0)', 'Absolute Ratio PS for volume trials(>=0)','Location','southoutside')
     end
-    if phase==1
+    if opts.phase==1
         title('Psychometric Curve of absolute ratio');
         xlabel('|Ratio Difference|')
         ylabel('Percentage of chosing left')
