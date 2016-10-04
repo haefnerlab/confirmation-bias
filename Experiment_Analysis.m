@@ -1,36 +1,35 @@
-function [] = Experiment_Analysis(subjectID, automatic, preliminary, phase, manual, median, version, difference, directory)
-
-% Example Input - Experiment_Analysis('Matthew', 0, 0, 0, '/Users/bcs206/Documents/Summer/')
-
-
-% This function is an analysis of the visual/auditory data produced by the
-% Bar Task and the Poisson Click Task
-
+function Experiment_Analysis(subjectID, automatic, preliminary, phase, manual, median, version, difference, directory)
+% EXPERIMENT_ANALYSIS Analyze psychometric and psychophysical kernel for a
+% particular subject by creating a series of figures.
+%
+%   EXPERIMENT_ANALYSIS(subjectID, automatic, preliminary, phase, manual,
+%   median, version, difference, directory)
+%
 % subjectID determines the subject to retrieve the data from. Ex. '01', 'Matthew', etc, etc,...
-
+%
 % automatic determines if the data  being analyzed will be auditory or
 % visual. Ex. 0 = visual bar task, 1 = auditory click task
-
+%
 % preliminary determines if we want to skip the analysis of the preliminary
 % phase data or the test data. Ex. 0 = skip the preliminary analysis,
 % 1 = skip the test analysis, 2 = don't skip either analysis
-
+%
 % phase determines if we are analyzing the volume or ratio phase.
 % Ex. 0 = volume/contrast, 1 = ratio
-
+%
 % manual determines if we are analyzing manually saved data or not.
 % Ex. 0 = automatically saved test data, 1 = manually saved test data
-
+%
 % median determines if we want to analyse test data above median 0, below median 1 or analyse the entire test data 2.
-
+%
 % version determines if the weights of the Ideal observer (or manually chosen weights) will be plotted
 % on the graphs along with the weights of the data beign analyzed.
 % Ex. 0 = no ideal weights plotted, 1 = yes plot the ideal weights
-
+%
 % difference dictates how we graph the difference in the weights for the left and right side
 % 0 means we directly subtract the right weights from the left weights
 % 1 means we take the difference in the flash/click rates and feed that difference into the regression model and graph that output with errorbars
-
+%
 % directory allows this code to be able to create and save files of the subject data on any computer
 
 
