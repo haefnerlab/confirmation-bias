@@ -83,7 +83,7 @@ if phase == 0
         %% Preliminary Calibration Phase
         
         % Set up struct to store data/answers
-        preliminary_trials = 10;
+        preliminary_trials = 100;
         loops = 4;
         
         Preliminary_Data.move_on = zeros(1,preliminary_trials*loops);          % Is the subject ready to move on or not? Always 0 or 1 for how many trials they got right so far
@@ -356,8 +356,8 @@ elseif phase == 1
         %% Preliminary Calibration Phase
         
         % Set up struct to store data/answers
-        preliminary_trials = 400;
-        loops = 2;
+        preliminary_trials = 100;
+        loops = 4;
         
         Preliminary_Data.move_on = zeros(1,preliminary_trials*loops);          % Is the subject ready to move on or not? Always 0 or 1 for how many trials they got right so far
         Preliminary_Data.step_size = zeros(1,preliminary_trials*loops);        % By how much to adjust the contrast [1.5, 1.2, or 1.1]
