@@ -1,4 +1,4 @@
-function [] = Experiment_Analysis(subjectID_prelim, subjectID, automatic, preliminary, phase, manual, median, version, difference, directory)
+function [] = Experiment_Analysis(subjectID, automatic, preliminary, phase, manual, median, version, difference, directory)
 
 % Example Input - Experiment_Analysis('Matthew', 0, 0, 0, '/Users/bcs206/Documents/Summer/')
 
@@ -46,7 +46,7 @@ if automatic == 0
     if preliminary == 1 || preliminary == 2
         %load the preliminary visual data
         if phase == 0
-            prelimFile = [directory 'RawData/' subjectID_prelim '-VisualDataContrast.mat'];
+            prelimFile = [directory 'RawData/' subjectID '-VisualDataContrast.mat'];
             if ~exist(prelimFile, 'file')
                 disp(strcat('ERROR! Missing File: ', prelimFile));  % Return an error message for missing file
                 disp(strcat('Maybe the Preliminary phase is saved under a different name?'));
@@ -78,7 +78,7 @@ if automatic == 0
             title('Reaction Time by Trial Number')
         elseif phase == 1
             % Analyze the ratio data
-            prelimFile = [directory 'RawData/' subjectID_prelim '-VisualDataRatio.mat'];
+            prelimFile = [directory 'RawData/' subjectID '-VisualDataRatio.mat'];
             if ~exist(prelimFile, 'file')
                 disp(strcat('ERROR! Missing File: ', prelimFile));  % Return an error message for missing file
                 disp(strcat('Maybe the Preliminary phase is saved under a different name?'));
@@ -165,7 +165,7 @@ elseif automatic == 1
     if preliminary == 1 || preliminary == 2
         %load the first preliminary auditory data
         if phase == 0
-            prelimFile = [directory 'RawData/' subjectID_prelim '-AuditoryDataVolume.mat'];
+            prelimFile = [directory 'RawData/' subjectID '-AuditoryDataVolume.mat'];
             if ~exist(prelimFile, 'file')
                 disp(strcat('ERROR! Missing File: ', prelimFile));  % Return an error message for missing file
                 disp(strcat('Maybe the Preliminary phase is saved under a different name?'));
@@ -197,7 +197,7 @@ elseif automatic == 1
             xlabel('Trial'), ylabel('Reaction Time in msecs')
             title('Reaction Time by Trial Number')
         elseif phase == 1
-            prelimFile = [directory 'RawData/' subjectID_prelim '-AuditoryDataRatio.mat'];
+            prelimFile = [directory 'RawData/' subjectID '-AuditoryDataRatio.mat'];
             if ~exist(prelimFile, 'file')
                 disp(strcat('ERROR! Missing File: ', prelimFile));  % Return an error message for missing file
                 disp(strcat('Maybe the Preliminary phase is saved under a different name?'));
