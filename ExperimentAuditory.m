@@ -69,7 +69,7 @@ if phase == 0
         Screen('TextSize', wPtr, 20); % Set text size to 20
         Screen('DrawText', wPtr, 'You will hear several clicks in each trial.', xc-500, yc-150, white);
         Screen('DrawText', wPtr, 'Then you will be asked which ear heard the higher rate of clicks.', xc-500, yc-100, white);
-        Screen('DrawText', wPtr, 'Select the arrow key corresponding to the answer within 2 secs after trial ends.', xc-500, yc-50, white);
+        Screen('DrawText', wPtr, 'Select the arrow key corresponding to the answer within 1 sec after trial ends.', xc-500, yc-50, white);
         Screen('DrawText', wPtr, 'A high pitched beep means correct, a low pitched beep means incorrect.', xc-500, yc, white);
         Screen('DrawText', wPtr, 'Ask the researcher if you need further clarification.', xc-500, yc+50, white);
         Screen('DrawText', wPtr, 'Press the spacebar to begin.', xc-500, yc+100, white);
@@ -83,8 +83,8 @@ if phase == 0
         %% Preliminary Calibration Phase
         
         % Set up struct to store data/answers
-        preliminary_trials = 100;
-        loops = 4;
+        preliminary_trials = 120;
+        loops = 1;
         
         Preliminary_Data.move_on = zeros(1,preliminary_trials*loops);          % Is the subject ready to move on or not? Always 0 or 1 for how many trials they got right so far
         Preliminary_Data.step_size = zeros(1,preliminary_trials*loops);        % By how much to adjust the contrast [1.5, 1.2, or 1.1]
@@ -113,7 +113,7 @@ if phase == 0
         % Store all clicks sounded, ever
         % Number of trials and the sampling rate times stimulus duration to store the two sounds for the two ears
         
-        max_volume = 0.1;      % Starting background volume level
+        max_volume = 0.25;      % Starting background volume level
         volume = max_volume;
         move_on = 0;        % Did the subject get two correct trials yet?
         step_size = 1.5;    % How strongly should the volume level be adjusted?
