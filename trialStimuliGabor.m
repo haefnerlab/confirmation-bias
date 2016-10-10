@@ -154,9 +154,9 @@ try
         Screen('DrawText', wPtr, sprintf('Current Trial - #%d', Data.current_trial), xc-600, yc+250, 0);   % Unobtrusive output to screen of the current trial number
         onset = Screen('Flip', wPtr);
         
-        
+        tstart=tic;
         [~,~,keyCode] = KbCheck;
-        while ~keyCode(left) && ~keyCode(right) % wait for press
+        while ~keyCode(left) && ~keyCode(right) && toc(tstart)<=1 % wait for press
             [~,~,keyCode] = KbCheck;
             if keyCode(escapeKey)
                 
@@ -178,9 +178,9 @@ try
         
         image_properties.reaction = (offset - onset)*1000;  % Records reaction time in ms times a thousand
         
-        if keyCode(left) == KbCheck
+        if keyCode(left)% == KbCheck
             image_properties.choice = 1;        % The subject chose left orientation
-        elseif keyCode(right) == KbCheck
+        elseif keyCode(right)% == KbCheck
             image_properties.choice = 0;        % The subject chose right orientation
         end
         
