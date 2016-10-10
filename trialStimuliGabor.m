@@ -4,7 +4,7 @@ function image_properties = trialStimuliGabor(current_trial, image_array, screen
 % experiment.
 
 %screen_frame = Data.screen_frame * .01667; % This is because the refresh rate is 60 Hz
-screen_frame = Data.screen_frame * .007; % This is because the refresh rate is 144 Hz
+screen_frame = Data.screen_frame * .0083; % This is because the refresh rate is 120 Hz
 % This tells me how many ms each image will be on the screen
 
 
@@ -121,7 +121,7 @@ try
         Screen('DrawLine', wPtr, black, xc+res*4, yc+res*4, xc+res*4-15, yc+res*4, 1);
         Screen('DrawLine', wPtr, black, xc+res*4, yc+res*4, xc+res*4, yc+res*4-15, 1);
         Screen('Flip', wPtr);
-        pause(0.4)
+        pause(0.5)
         Screen('Flip', wPtr);
         
         for i = 1:Data.number_of_images
@@ -154,9 +154,9 @@ try
         Screen('DrawText', wPtr, sprintf('Current Trial - #%d', Data.current_trial), xc-600, yc+250, 0);   % Unobtrusive output to screen of the current trial number
         onset = Screen('Flip', wPtr);
         
-        
+        tstart=tic;
         [~,~,keyCode] = KbCheck;
-        while ~keyCode(left) && ~keyCode(right) % wait for press
+        while ~keyCode(left) && ~keyCode(right) && toc(tstart)<=1 % wait for press
             [~,~,keyCode] = KbCheck;
             if keyCode(escapeKey)
                 
@@ -178,9 +178,9 @@ try
         
         image_properties.reaction = (offset - onset)*1000;  % Records reaction time in ms times a thousand
         
-        if keyCode(left) == KbCheck
+        if keyCode(left)% == KbCheck
             image_properties.choice = 1;        % The subject chose left orientation
-        elseif keyCode(right) == KbCheck
+        elseif keyCode(right)% == KbCheck
             image_properties.choice = 0;        % The subject chose right orientation
         end
         

@@ -40,7 +40,7 @@ function Experiment_Analysis(opts)
 
 % Set defaults
 
-if ~isfield(opts, 'opts.subjectID'),   error('opts.subjectID is required'); end
+if ~isfield(opts, 'subjectID'),   error('opts.subjectID is required'); end
 if ~isfield(opts, 'automatic'),   opts.automatic =   0; end
 if ~isfield(opts, 'preliminary'), opts.preliminary = 0; end
 if ~isfield(opts, 'phase'),       opts.phase =       0; end
