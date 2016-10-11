@@ -71,6 +71,7 @@ if phase == 0       % save the test contrast data
         fileName = sprintf('%s%s-GaborTestContrastManual.mat',[directory 'RawData/'],subjectID); % create a name for the data you want to save
         save(fileName, 'Test_Data', 'test_image_collection'); % save the data
     end
+    
 elseif phase == 1       % save the test ratio data
     %% Save final data to folder
     if ~exist([directory 'RawData/'], 'dir') % Check the directory actually exists

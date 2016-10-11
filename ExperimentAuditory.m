@@ -5,7 +5,7 @@ function [] = ExperimentAuditory(subjectID, automatic, phase, add_noise, directo
 if ~exist('automatic','var')  || ~exist('add_noise','var') || ~exist('directory','var')
     automatic = 0;       % 0 = normal subject, 1 = ideal observer auto running the experiment, 2 = human_like like observer, 3 = human observer
     phase = 0;           % 0 = volume experiment, 1 = ratio experiment
-    add_noise = 0;       % 0 = no noise added, 1 = soome background noise added to the sound
+    add_noise = 0;       % 0 = no noise added, 1 = some background noise added to the sound
     directory = pwd;     % Make it equal to the current directory
 end
 
@@ -69,7 +69,7 @@ if phase == 0
         Screen('TextSize', wPtr, 20); % Set text size to 20
         Screen('DrawText', wPtr, 'You will hear several clicks in each trial.', xc-500, yc-150, white);
         Screen('DrawText', wPtr, 'Then you will be asked which ear heard the higher rate of clicks.', xc-500, yc-100, white);
-        Screen('DrawText', wPtr, 'Select the arrow key corresponding to the answer within 2 secs after trial ends.', xc-500, yc-50, white);
+        Screen('DrawText', wPtr, 'Select the arrow key corresponding to the answer within 1 sec after trial ends.', xc-500, yc-50, white);
         Screen('DrawText', wPtr, 'A high pitched beep means correct, a low pitched beep means incorrect.', xc-500, yc, white);
         Screen('DrawText', wPtr, 'Ask the researcher if you need further clarification.', xc-500, yc+50, white);
         Screen('DrawText', wPtr, 'Press the spacebar to begin.', xc-500, yc+100, white);
@@ -83,7 +83,7 @@ if phase == 0
         %% Preliminary Calibration Phase
         
         % Set up struct to store data/answers
-        preliminary_trials = 100;
+        preliminary_trials = 120;
         loops = 4;
         
         Preliminary_Data.move_on = zeros(1,preliminary_trials*loops);          % Is the subject ready to move on or not? Always 0 or 1 for how many trials they got right so far
@@ -113,7 +113,7 @@ if phase == 0
         % Store all clicks sounded, ever
         % Number of trials and the sampling rate times stimulus duration to store the two sounds for the two ears
         
-        max_volume = 0.1;      % Starting background volume level
+        max_volume = 0.25;      % Starting background volume level
         volume = max_volume;
         move_on = 0;        % Did the subject get two correct trials yet?
         step_size = 1.5;    % How strongly should the volume level be adjusted?
@@ -121,12 +121,15 @@ if phase == 0
         reversal_counter = 0;	% Tracks how many reversals the subject has gotten so far
         
         % Begin Preliminary Trials
+        flag=0;
         i=1;
         while i <= preliminary_trials * loops
             
             if mod(i,preliminary_trials) == 1
+                
                 if i~=1
-                    if automatic == 0
+                    flag=flag+1;
+                    if automatic == 0 && flag==1
                         sounds(-1);
                         Screen('TextSize', wPtr, 20); % Set text size to 20
                         Screen('DrawText', wPtr, 'You have completed a block.', xc-500, yc-150, white);
@@ -147,6 +150,8 @@ if phase == 0
                 previous_trial = 1;
                 reversal_counter = 0;
                 %max_volume = 0.1;
+            else
+                flag=0;
             end
             
             Preliminary_Data.current_trial = i;
@@ -256,8 +261,7 @@ if phase == 0
                 if volume < max_volume
                     volume = volume*step_size;		% Subject got the trial wrong and the volume needs to be increased
                     %volume = volume/step_size; % as step sixe less than 1
-                end
-                if volume > max_volume
+                else
                     volume = max_volume;  % Just an insurance measure to keep the volume from going too high
                 end
             elseif move_on == 2 && ~isnan(Preliminary_Data.choice(i))
@@ -395,12 +399,14 @@ elseif phase == 1
         reversal_counter = 0;	% Tracks how many reversals the subject has gotten so far
         
         % Begin Preliminary Trials
+        flag=0;
         i=1;
         while i <= preliminary_trials * loops
             
             if mod(i,preliminary_trials) == 1
                 if i~=1
-                    if automatic == 0
+                    flag=flag+1;
+                    if automatic == 0 && flag==1
                         sounds(-1);
                         Screen('TextSize', wPtr, 20); % Set text size to 20
                         Screen('DrawText', wPtr, 'You finished a block.', xc-500, yc-150, white);
@@ -420,6 +426,8 @@ elseif phase == 1
                 step_size = 1;
                 previous_trial = 1;
                 reversal_counter = 0;
+            else
+                flag=0;
             end
             
             Preliminary_Data.current_trial = i;
@@ -536,14 +544,14 @@ elseif phase == 1
                 end
             end
             
-            if move_on == 0
+            if move_on == 0 && ~isnan(Preliminary_Data.choice(i))
                 if ratio < max_ratio
                     ratio = ratio + step_size;
                 end
                 if ratio > max_ratio
                     ratio = max_ratio;  % Just an insurance measure to keep the ratio from going too high
                 end
-            elseif move_on == 2
+            elseif move_on == 2 && ~isnan(Preliminary_Data.choice(i))
                 move_on = 0;                    	% Subject got two trials right and it's time to decrease the volume level
                 ratio = ratio - step_size;
                 if ratio < ratio_sum/2

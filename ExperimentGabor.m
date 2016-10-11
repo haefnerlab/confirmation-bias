@@ -4,7 +4,7 @@ function [] = ExperimentGabor(subjectID, automatic, phase, directory)
 
 if ~exist('automatic','var') || ~exist('directory','var')
     automatic = 0;       % 0 = normal subject, 1 = ideal observer auto running the experiment
-    phase = 0;
+    phase = 0;           % 0 = contrast experiment, 1 = ratio experiment
     directory = pwd;     % Make it equal to the current directory
 end
 
@@ -89,8 +89,9 @@ if phase == 0
         Preliminary_Data.step_size = zeros(1,preliminary_trials*loops);        % By how much to adjust the contrast [1.5, 1.2, or 1.1]
         Preliminary_Data.reversal_counter = zeros(1,preliminary_trials*loops);   % How many trials has the subject got wrong? When to change the step size?
         Preliminary_Data.contrast = zeros(1,preliminary_trials*loops);         % How loud the sound is, or the signal level
-        Preliminary_Data.number_of_images = 12;
+        Preliminary_Data.number_of_images = 10;
         Preliminary_Data.correct_answer = zeros(1,preliminary_trials*loops);         % What was the right ear/answer?
+        Preliminary_Data.staircase_answer = zeros(1,preliminary_trials*loops);         % What was the right ear/answer?
         Preliminary_Data.reaction_time = zeros(1,preliminary_trials*loops);          % How quick is the subject to input their answer for the orientation choice? Recorded in ms
         Preliminary_Data.choice = zeros(1,preliminary_trials*loops);                 % Which ear did the subject choose? 1 = left, 0 = right
         Preliminary_Data.accuracy = zeros(1,preliminary_trials*loops);               % Did the subject make the right selection? 1 = yes, 0 = no
@@ -111,7 +112,7 @@ if phase == 0
         Preliminary_Data.image_template2 = zeros(preliminary_trials*loops,Preliminary_Data.number_of_images);
         Preliminary_Data.image_template_difference = zeros(preliminary_trials*loops,Preliminary_Data.number_of_images);
         
-        %image_collection = zeros(preliminary_trials,Preliminary_Data.number_of_images,Preliminary_Data.gabor_step,Preliminary_Data.gabor_step);
+        
         image_collection = zeros(preliminary_trials*loops, Preliminary_Data.number_of_images, ...
             Preliminary_Data.image_length_x*Preliminary_Data.screen_resolution, Preliminary_Data.image_length_y*Preliminary_Data.screen_resolution);
         
@@ -123,14 +124,35 @@ if phase == 0
         reversal_counter = 0;	% Tracks how many reversals the subject has gotten so far
         
         % Begin Preliminary Trials
-        for i = 1:preliminary_trials * loops
+        flag=0;
+        i=1;
+        while i <= preliminary_trials * loops
             
             if mod(i,preliminary_trials) == 1
+                if i~=1
+                    flag=flag+1;
+                    if automatic == 0 && flag==1
+                        sounds(-1);
+                        Screen('TextSize', wPtr, 20); % Set text size to 20
+                        Screen('DrawText', wPtr, 'You have completed a block.', xc-500, yc-150, white);
+                        Screen('DrawText', wPtr, 'You may take a break if you want!', xc-500, yc-100, white);
+                        Screen('DrawText', wPtr, 'Press the spacebar whenever you are ready again.', xc-500, yc-50, white);
+                        
+                        Screen('Flip', wPtr); % Function to flip to the next screen image
+                        [~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
+                        while ~keyCode(spaceKey)        % While loop to wait fo rhte spacebar to be pressed
+                            [~, ~, keyCode] = KbCheck;
+                        end
+                        Screen('Flip', wPtr);
+                    end
+                end
                 contrast = max_contrast;
                 move_on = 0;
                 step_size = 2.0;
                 previous_trial = 1;
                 reversal_counter = 0;
+            else
+                flag=0;
             end
             
             Preliminary_Data.current_trial = i;
@@ -150,6 +172,7 @@ if phase == 0
                 desired_orientations = 1;        % Left Orientation
                 probabilities = [1];             % 100% chance of only one orientation
                 Preliminary_Data.correct_answer(i) = 1;	% Since left appears >= than the right orientation, it's the correct answer
+                Preliminary_Data.staircase_answer(i) = 1;
                 Preliminary_Data.ratio(i) = Preliminary_Data.number_of_images;  % Use only the one orientation
             else            % The right ear will hear more clicks
                 Preliminary_Data.average_orientations(1,i) = 0;
@@ -157,12 +180,13 @@ if phase == 0
                 desired_orientations = 0;        % Right Orientation
                 probabilities = [1];             % 100% chance of only one orientation
                 Preliminary_Data.correct_answer(i) = 0;	% Since right appears >= than the left orientation, it's the correct answer
+                Preliminary_Data.staircase_answer(i) = 0;
                 Preliminary_Data.ratio(i) = Preliminary_Data.number_of_images;  % Use only the one orientation
             end
             
             % Function to generate the orientations of all images in the
             % trial and determine correct orientation to select
-            [order_of_orientations, ~] = makeOrientations(desired_orientations, probabilities, Preliminary_Data.number_of_images);
+            [order_of_orientations, correct_orientation_answer] = makeOrientations(desired_orientations, probabilities, Preliminary_Data.number_of_images);
             
             % A function to generate a struct containing properties of the images used in this trial, I,
             % and an collection of the gabors which will be displayed to the screen, image_array
@@ -188,27 +212,59 @@ if phase == 0
                 Preliminary_Data.image_template_difference(i,k) = I.log_regress(3,k);   % Log odds for difference in above two images image
             end
             
+            % The staircase is based on the actual click rate, not on the underlying number of clicks each ear hears
+            Preliminary_Data.staircase_answer(i) = correct_orientation_answer;     % If 1, the answer was left, and if 0, the answer was right
+            
             %% Feedback & Accuracy
             if (Preliminary_Data.choice(i) == 1 && Preliminary_Data.correct_answer(i) == 1) || (Preliminary_Data.choice(i) == 0 && Preliminary_Data.correct_answer(i) == 0)
                 Preliminary_Data.accuracy(i) = 1;	% 1 is true for accuracy
                 if automatic == 0
                     sounds(1);              % Beep for correct when it's the person running the experiment
                 end
+                %{
                 move_on = move_on + 1;	% if right, we increment move_on and later check it to decrease contrast level
                 if previous_trial == 0    % if the subject got the last trial wrong
                     previous_trial = 1;       % staircase is reversing
                     reversal_counter = reversal_counter+1;
                 end
+                %}
             elseif (Preliminary_Data.choice(i) == 1 && Preliminary_Data.correct_answer(i) == 0) || (Preliminary_Data.choice(i) == 0 && Preliminary_Data.correct_answer(i) == 1)
                 Preliminary_Data.accuracy(i) = 0;	% 0 is false for inaccuracy
                 if automatic == 0
                     sounds(0);              % Buzz for wrong when it's the person running the experiment
                 end
+                %{
                 move_on = 0;            % if wrong, we reset move_on to 0 and later increase the contrast level
                 if previous_trial == 1    % if the subject got the last trial right
                     previous_trial = 0;       % staircase is reversing
                     reversal_counter = reversal_counter+1;
                 end
+                %}
+            elseif (isnan(Preliminary_Data.choice(i)) )
+                %Preliminary_Data.accuracy(i) = 0;	% 0 is false for inaccuracy
+                if automatic == 0
+                    sounds(0);              % Buzz for wrong when it's the person running the experiment
+                end
+            end
+            
+            %% Staircase method
+            if (Preliminary_Data.choice(i) == 1 && Preliminary_Data.staircase_answer(i) == 1) || (Preliminary_Data.choice(i) == 0 && Preliminary_Data.staircase_answer(i) == 0)
+                
+                move_on = move_on + 1;	% if right, we increment move_on and later check it to decrease volume level
+                if previous_trial == 0    % if the subject got the last trial wrong
+                    previous_trial = 1;       % staircase is reversing
+                    reversal_counter = reversal_counter+1;
+                end
+            elseif (Preliminary_Data.choice(i) == 1 && Preliminary_Data.staircase_answer(i) == 0) || (Preliminary_Data.choice(i) == 0 && Preliminary_Data.staircase_answer(i) == 1)
+                
+                move_on = 0;            % if wrong, we reset move_on to 0 and later increase the volume level
+                if previous_trial == 1    % if the subject got the last trial right
+                    previous_trial = 0;       % staircase is reversing
+                    reversal_counter = reversal_counter+1;
+                end
+            end
+            if automatic == 0
+                pause(.5); % Pause for 500 ms after feedback before next trial
             end
             
             if reversal_counter == 15       % It's a rule of thumb for when it's time to change the step size, since the subject has reversed 15 times
@@ -225,13 +281,13 @@ if phase == 0
                 end
             end
             
-            if move_on == 0
+            if move_on == 0 && ~isnan(Preliminary_Data.choice(i))
                 if contrast < max_contrast
                     contrast = contrast*step_size;		% Subject got the trial wrong and the contrast needs to be increased
                 else
                     contrast = max_contrast;
                 end
-            elseif move_on == 2
+            elseif move_on == 2 && ~isnan(Preliminary_Data.choice(i))
                 move_on = 0;                    	% Subject got two trials right and it's time to lower the contrast level
                 contrast = contrast/step_size;
             end
@@ -240,9 +296,11 @@ if phase == 0
             if contrast > max_contrast
                 contrast = max_contrast;  % Just an insurance measure to keep the contrast from going over the maximum value allowed
             end
-			
-			% Maybe save the data after every nth trial? Remember, you're saving images too, so there's a noticiable delay between trials for the subjects
-			
+            
+            % Maybe save the data after every nth trial? Remember, you're saving images too, so there's a noticiable delay between trials for the subjects
+            if ~isnan(Preliminary_Data.choice(i))
+                i=i+1;
+            end
         end
         
         %% Save final data to folder
@@ -336,6 +394,7 @@ elseif phase == 1
         Preliminary_Data.contrast = zeros(1,preliminary_trials*loops);         % How loud the sound is, or the signal level
         Preliminary_Data.number_of_images = 12;
         Preliminary_Data.correct_answer = zeros(1,preliminary_trials*loops);         % What was the right ear/answer?
+        Preliminary_Data.staircase_answer = zeros(1,preliminary_trials*loops);         % What was the right ear/answer?
         Preliminary_Data.reaction_time = zeros(1,preliminary_trials*loops);          % How quick is the subject to input their answer for the orientation choice? Recorded in ms
         Preliminary_Data.choice = zeros(1,preliminary_trials*loops);                 % Which ear did the subject choose? 1 = left, 0 = right
         Preliminary_Data.accuracy = zeros(1,preliminary_trials*loops);               % Did the subject make the right selection? 1 = yes, 0 = no
@@ -371,9 +430,28 @@ elseif phase == 1
         contrast = 64;      % High Contrast
         
         % Begin Preliminary Trials
-        for i = 1:preliminary_trials * loops
+        i=1;
+        flag=0;
+        while i <= preliminary_trials * loops
             
-            if mod(i,preliminary_trials) == 1
+            if mod(i,preliminary_trials) == 1if i~=1
+                flag=flag+1;
+                if automatic == 0 && flag==1
+                    sounds(-1);
+                    Screen('TextSize', wPtr, 20); % Set text size to 20
+                    Screen('DrawText', wPtr, 'You finished a block.', xc-500, yc-150, white);
+                    Screen('DrawText', wPtr, 'You may take a break!', xc-500, yc-100, white);
+                    Screen('DrawText', wPtr, 'Press the spacebar whenever you are ready again.', xc-500, yc-50, white);
+                    
+                    Screen('Flip', wPtr); % Function to flip to the next screen image
+                    [~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
+                    while ~keyCode(spaceKey)        % While loop to wait fo rhte spacebar to be pressed
+                        [~, ~, keyCode] = KbCheck;
+                    end
+                    Screen('Flip', wPtr);
+                end
+                
+                
                 ratio = max_ratio;
                 move_on = 0;
                 step_size = 1.0;
@@ -410,8 +488,8 @@ elseif phase == 1
             
             % Function to generate the orientations of all images in the
             % trial and determine correct orientation to select
-            [order_of_orientations, ~] = makeOrientations(desired_orientations, probabilities, Preliminary_Data.number_of_images);
-            
+            [order_of_orientations, correct_orientation_answer] = makeOrientations(desired_orientations, probabilities, Preliminary_Data.number_of_images);
+            Preliminary_Data.correct_answer(i) = correct_orientation_answer;
             % A function to generate a struct containing properties of the images used in this trial, I,
             % and an collection of the gabors which will be displayed to the screen, image_array
             image_array = makeImages(Preliminary_Data, order_of_orientations, contrast);
@@ -442,23 +520,52 @@ elseif phase == 1
                 if automatic == 0
                     sounds(1);              % Beep for correct when it's the person running the experiment
                 end
+                %{
                 move_on = move_on + 1;	% if right, we increment move_on and later check it to decrease contrast level
                 if previous_trial == 0    % if the subject got the last trial wrong
                     previous_trial = 1;       % staircase is reversing
                     reversal_counter = reversal_counter+1;
                 end
+                %}
             elseif (Preliminary_Data.choice(i) == 1 && Preliminary_Data.correct_answer(i) == 0) || (Preliminary_Data.choice(i) == 0 && Preliminary_Data.correct_answer(i) == 1)
                 Preliminary_Data.accuracy(i) = 0;	% 0 is false for inaccuracy
                 if automatic == 0
                     sounds(0);              % Buzz for wrong when it's the person running the experiment
                 end
+                %{
                 move_on = 0;            % if wrong, we reset move_on to 0 and later increase the contrast level
                 if previous_trial == 1    % if the subject got the last trial right
                     previous_trial = 0;       % staircase is reversing
                     reversal_counter = reversal_counter+1;
                 end
+                %}
+            elseif (isnan(Preliminary_Data.choice(i)) )
+                %Preliminary_Data.accuracy(i) = 0;	% 0 is false for inaccuracy
+                if automatic == 0
+                    sounds(0);              % Buzz for wrong when it's the person running the experiment
+                end
             end
             
+            %% Staircase and Accuracy
+            
+            if (Preliminary_Data.choice(i) == 1 && Preliminary_Data.staircase_answer(i) == 1) || (Preliminary_Data.choice(i) == 0 && Preliminary_Data.staircase_answer(i) == 0)
+                
+                move_on = move_on + 1;	% if right, we increment move_on and later check it to decrease volume level
+                if previous_trial == 0    % if the subject got the last trial wrong
+                    previous_trial = 1;       % staircase is reversing
+                    reversal_counter = reversal_counter+1;
+                end
+            elseif (Preliminary_Data.choice(i) == 1 && Preliminary_Data.staircase_answer(i) == 0) || (Preliminary_Data.choice(i) == 0 && Preliminary_Data.staircase_answer(i) == 1)
+                
+                move_on = 0;            % if wrong, we reset move_on to 0 and later increase the volume level
+                if previous_trial == 1    % if the subject got the last trial right
+                    previous_trial = 0;       % staircase is reversing
+                    reversal_counter = reversal_counter+1;
+                end
+            end
+            if automatic == 0
+                pause(.6); % Pause for 600 ms after feedback before next trial
+            end
             if reversal_counter == 5       % It's a rule of thumb for when it's time to change the step size, since the subject has reversed 5 times
                 reversal_counter = 0;  % Reset counter
                 if step_size == 1
@@ -471,14 +578,14 @@ elseif phase == 1
                 end
             end
             
-            if move_on == 0
+            if move_on == 0 && ~isnan(Preliminary_Data.choice(i))
                 if ratio < max_ratio
                     ratio = ratio + step_size;
                 end
                 if ratio > max_ratio
                     ratio = max_ratio;  % Just an insurance measure to keep the ratio from going too high
                 end
-            elseif move_on == 2
+            elseif move_on == 2 && ~isnan(Preliminary_Data.choice(i))
                 move_on = 0;                    	% Subject got two trials right and it's time to decrease the volume level
                 ratio = ratio - step_size;
                 if ratio < ratio_sum/2
@@ -490,8 +597,10 @@ elseif phase == 1
                 ratio = max_ratio;  % Just an insurance measure to keep the contrast from going over the maximum value allowed
             end
 			
-			% Maybe save the data after every nth trial? Remember, you're saving images too, so there's a noticiable delay between trials for the subjects
-			
+            % Maybe save the data after every nth trial? Remember, you're saving images too, so there's a noticiable delay between trials for the subjects
+            if ~isnan(Preliminary_Data.choice(i))
+                i=i+1;
+            end
         end
         
         %% Save final data to folder
