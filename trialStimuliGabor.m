@@ -182,6 +182,8 @@ try
             image_properties.choice = 1;        % The subject chose left orientation
         elseif keyCode(right)% == KbCheck
             image_properties.choice = 0;        % The subject chose right orientation
+        else
+            stimulus_properties.choice = nan;
         end
         
     elseif automatic == 1
