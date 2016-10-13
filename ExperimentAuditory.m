@@ -83,7 +83,7 @@ if phase == 0
         %% Preliminary Calibration Phase
         
         % Set up struct to store data/answers
-        preliminary_trials = 120;
+        preliminary_trials = 100;
         loops = 4;
         
         Preliminary_Data.move_on = zeros(1,preliminary_trials*loops);          % Is the subject ready to move on or not? Always 0 or 1 for how many trials they got right so far
@@ -113,7 +113,7 @@ if phase == 0
         % Store all clicks sounded, ever
         % Number of trials and the sampling rate times stimulus duration to store the two sounds for the two ears
         
-        max_volume = 0.25;      % Starting background volume level
+        max_volume = 0.5;      % Starting background volume level
         volume = max_volume;
         move_on = 0;        % Did the subject get two correct trials yet?
         step_size = 1.5;    % How strongly should the volume level be adjusted?
