@@ -49,14 +49,6 @@ vdiag = [1;ones(nx-2,1)+aa^2;1]*const;
 voffdiag = -ones(nx,1)*aa*const;
 negCinv = -spdiags([voffdiag,vdiag,voffdiag],-1:1,nx,nx);
 
-%% new code
-
-negCinv(120,121)=0;
-negCinv(121,120)=0;
-negCinv(120,120)=1;
-negCinv(121,121)=1;
-
-
 % Add prior indep prior variance on DC coeff
 if DCflag
     negCinv = blkdiag(negCinv,-rhoDC);

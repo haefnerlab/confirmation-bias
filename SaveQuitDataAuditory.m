@@ -1,7 +1,6 @@
+function [] = SaveQuitDataAuditory(subjectID, phase, loops_consider, preliminary_trials, directory)
 
-function [] = SaveQuitData(subjectID, phase,point, loops_consider, preliminary_trials, directory)
-
-if phase == 0       % load the test volume data
+if phase == 0       % load the volume data
     filename = [directory 'RawData/' subjectID '-AuditoryDataVolume.mat'];
     if ~exist(filename, 'file')
         disp(strcat('ERROR! Missing File: ', filename));  % Return an error message for missing file
@@ -10,7 +9,7 @@ if phase == 0       % load the test volume data
     else
         load(filename); % Load Preliminary_Data
     end
-elseif phase == 1       % load the test ratio data
+elseif phase == 1       % load the ratio data
     filename = [directory 'RawData/' subjectID '-AuditoryDataRatio.mat'];
     if ~exist(filename, 'file')
         disp(strcat('ERROR! Missing File: ', filename));  % Return an error message for missing file
@@ -21,7 +20,7 @@ elseif phase == 1       % load the test ratio data
     end
 end
 
-
+point = loops_consider*preliminary_trials;
 Preliminary_Data.move_on(point+1:end) = [];          % Is the subject ready to move on or not? Always 0 or 1 for how many trials they got right so far
 Preliminary_Data.step_size(point+1:end) = [];        % By how much to adjust the contrast [1.5, 1.2, or 1.1]
 Preliminary_Data.reversal_counter(point+1:end) = [];   % How many trials has the subject got wrong? When to change the step size?
@@ -34,7 +33,8 @@ Preliminary_Data.ratio(point+1:end) = [];  % Re ords underlying click rate
 Preliminary_Data.staircase_answer(point+1:end) = [];%stores answers based on actual click rates for staircase
 
 Preliminary_Data.current_trial = point;
-Preliminary_Data.test_phase = ([1:loops_consider].*preliminary_trials) - preliminary_trials + 1;
+%Preliminary_Data.test_phase = ([1:loops_consider].*preliminary_trials) - preliminary_trials + 1;
+Preliminary_Data.test_phase ((loops_consider+1):end) = [];
 
 % Set properties of a click
 Preliminary_Data.sampling_rate = 6000;   % Indirectly controls frequency
