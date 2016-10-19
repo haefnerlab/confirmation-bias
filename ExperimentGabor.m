@@ -57,7 +57,7 @@ up = KbName('upArrow');
 down = KbName('downArrow');
 
 % This is the first preliminary phase with a constant ratio (20, 4) and finding the threshold contrast
-
+HideCursor(whichScreen)
 if phase == 0
     
     fileName = sprintf('%s%s-GaborDataContrast.mat',directory,subjectID); % Set the desired filename of the experimental data
@@ -82,7 +82,7 @@ if phase == 0
         %% Preliminary Calibration Phase
         
         % Set up struct to store data/answers
-        preliminary_trials = 400;
+        preliminary_trials = 40;
         loops = 2;
         
         Preliminary_Data.move_on = zeros(1,preliminary_trials*loops);          % Is the subject ready to move on or not? Always 0 or 1 for how many trials they got right so far
@@ -105,8 +105,8 @@ if phase == 0
         
         Preliminary_Data.screen_frame = 12;	% how long each image will show on screen in frame rates
         Preliminary_Data.screen_resolution = 25;          % how many pixels correspond to a single datapoint of a gabor
-        Preliminary_Data.image_length_x = 4;  % Size of the image along x-axis
-        Preliminary_Data.image_length_y = 4;
+        Preliminary_Data.image_length_x = 5;  % Size of the image along x-axis
+        Preliminary_Data.image_length_y = 5;
         
         Preliminary_Data.image_template1 = zeros(preliminary_trials*loops,Preliminary_Data.number_of_images);
         Preliminary_Data.image_template2 = zeros(preliminary_trials*loops,Preliminary_Data.number_of_images);
@@ -392,7 +392,7 @@ elseif phase == 1
         Preliminary_Data.step_size = zeros(1,preliminary_trials*loops);        % By how much to adjust the contrast [1.5, 1.2, or 1.1]
         Preliminary_Data.reversal_counter = zeros(1,preliminary_trials*loops);   % How many trials has the subject got wrong? When to change the step size?
         Preliminary_Data.contrast = zeros(1,preliminary_trials*loops);         % How loud the sound is, or the signal level
-        Preliminary_Data.number_of_images = 12;
+        Preliminary_Data.number_of_images = 10;
         Preliminary_Data.correct_answer = zeros(1,preliminary_trials*loops);         % What was the right ear/answer?
         Preliminary_Data.staircase_answer = zeros(1,preliminary_trials*loops);         % What was the right ear/answer?
         Preliminary_Data.reaction_time = zeros(1,preliminary_trials*loops);          % How quick is the subject to input their answer for the orientation choice? Recorded in ms
@@ -408,8 +408,8 @@ elseif phase == 1
         
         Preliminary_Data.screen_frame = 12;	% how long each image will show on screen in frame rates
         Preliminary_Data.screen_resolution = 25;          % how many pixels correspond to a single datapoint of a gabor
-        Preliminary_Data.image_length_x = 4;  % Size of the image along x-axis
-        Preliminary_Data.image_length_y = 4;
+        Preliminary_Data.image_length_x = 5;  % Size of the image along x-axis
+        Preliminary_Data.image_length_y = 5;
         
         Preliminary_Data.image_template1 = zeros(preliminary_trials*loops,Preliminary_Data.number_of_images);
         Preliminary_Data.image_template2 = zeros(preliminary_trials*loops,Preliminary_Data.number_of_images);
@@ -422,7 +422,7 @@ elseif phase == 1
         ratio_sum = Preliminary_Data.number_of_images;
         max_ratio = Preliminary_Data.number_of_images;      % Starting ratio of clicks, 20 for one ear and 4 for the other ear
         ratio = max_ratio;
-        step_size = 1;    % How strongly should the volume level be adjusted?
+        step_size = 1;    % How strongly should the contrast level be adjusted?
         move_on = 0;        % Did the subject get two correct trials yet?
         previous_trial = 1;     % Tracks if the subject was right or wrong last trial (1 is right and 0 is wrong on previous_trial trial)
         reversal_counter = 0;	% Tracks how many reversals the subject has gotten so far
@@ -434,23 +434,24 @@ elseif phase == 1
         flag=0;
         while i <= preliminary_trials * loops
             
-            if mod(i,preliminary_trials) == 1if i~=1
-                flag=flag+1;
-                if automatic == 0 && flag==1
-                    sounds(-1);
-                    Screen('TextSize', wPtr, 20); % Set text size to 20
-                    Screen('DrawText', wPtr, 'You finished a block.', xc-500, yc-150, white);
-                    Screen('DrawText', wPtr, 'You may take a break!', xc-500, yc-100, white);
-                    Screen('DrawText', wPtr, 'Press the spacebar whenever you are ready again.', xc-500, yc-50, white);
-                    
-                    Screen('Flip', wPtr); % Function to flip to the next screen image
-                    [~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
-                    while ~keyCode(spaceKey)        % While loop to wait fo rhte spacebar to be pressed
-                        [~, ~, keyCode] = KbCheck;
+            if mod(i,preliminary_trials) == 1
+                if i~=1
+                    flag=flag+1;
+                    if automatic == 0 && flag==1
+                        sounds(-1);
+                        Screen('TextSize', wPtr, 20); % Set text size to 20
+                        Screen('DrawText', wPtr, 'You finished a block.', xc-500, yc-150, white);
+                        Screen('DrawText', wPtr, 'You may take a break!', xc-500, yc-100, white);
+                        Screen('DrawText', wPtr, 'Press the spacebar whenever you are ready again.', xc-500, yc-50, white);
+                        
+                        Screen('Flip', wPtr); % Function to flip to the next screen image
+                        [~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
+                        while ~keyCode(spaceKey)        % While loop to wait fo rhte spacebar to be pressed
+                            [~, ~, keyCode] = KbCheck;
+                        end
+                        Screen('Flip', wPtr);
                     end
-                    Screen('Flip', wPtr);
                 end
-                
                 
                 ratio = max_ratio;
                 move_on = 0;
@@ -503,6 +504,19 @@ elseif phase == 1
             % used, subject ID, the struct with all of the data, and the
             % fact it's the person or computer running the experiment
             I = trialStimuliGabor(i, image_array, wPtr, subjectID, Preliminary_Data, automatic, phase, directory);
+            
+            % The staircase is based on the actual click rate, not on the underlying number of clicks each ear hears
+            if sum(Preliminary_Data.order_of_orientations(i,:)) > Preliminary_Data.number_of_images/2
+                Preliminary_Data.staircase_answer(i) = 1;     % If 1, the answer was left, and if 0, the answer was right
+            elseif sum(Preliminary_Data.order_of_orientations(i,:)) < Preliminary_Data.number_of_images/2
+                Preliminary_Data.staircase_answer(i) = 0;
+            else % the ears have an equal underlying click rate
+                if rand < 0.5
+                    Preliminary_Data.staircase_answer(i) = 1;
+                else
+                    Preliminary_Data.staircase_answer(i) = 0;
+                end
+            end
             
             Preliminary_Data.reaction_time(i) = I.reaction;
             Preliminary_Data.choice(i) = I.choice; % If 1, subject chose left, and if 0, the subject chose right
@@ -659,6 +673,6 @@ elseif phase == 1
         end
     end
 end
-
+ShowCursor([],whichScreen)
 Screen('CloseAll'); % close screen
 end

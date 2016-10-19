@@ -40,21 +40,24 @@ contrast = 127.0 + contrast;
 image_array = ones(Data.number_of_images, Data.image_length_x*res, Data.image_length_y*res);
 for i = 1:Data.number_of_images
     if order_of_orientations(i) == 1
-        image = [[ones(res,res)*contrast ones(res,res)*background ones(res,res)*background ones(res,res)*background];
-                 [ones(res,res)*background ones(res,res)*contrast ones(res,res)*background ones(res,res)*background];
-                 [ones(res,res)*background ones(res,res)*background ones(res,res)*contrast ones(res,res)*background];
-                 [ones(res,res)*background ones(res,res)*background ones(res,res)*background ones(res,res)*contrast]];  % Left Orientation Binary Image
+        image = [[ones(res,res)*background ones(res,res)*background ones(res,res)*contrast ones(res,res)*background ones(res,res)*background];
+                 [ones(res,res)*background ones(res,res)*background ones(res,res)*contrast ones(res,res)*background ones(res,res)*background];
+                 [ones(res,res)*background ones(res,res)*background ones(res,res)*contrast ones(res,res)*background ones(res,res)*background];
+                 [ones(res,res)*background ones(res,res)*background ones(res,res)*contrast ones(res,res)*background ones(res,res)*background];
+                 [ones(res,res)*background ones(res,res)*background ones(res,res)*contrast ones(res,res)*background ones(res,res)*background]];  % Left Orientation Binary Image
     else
-        image = [[ones(res,res)*background ones(res,res)*background ones(res,res)*background ones(res,res)*contrast];
-                 [ones(res,res)*background ones(res,res)*background ones(res,res)*contrast ones(res,res)*background];
-                 [ones(res,res)*background ones(res,res)*contrast ones(res,res)*background ones(res,res)*background];
-                 [ones(res,res)*contrast ones(res,res)*background ones(res,res)*background ones(res,res)*background]];  % Right Orientation Binary Image
+        image = [[ones(res,res)*background ones(res,res)*background ones(res,res)*background ones(res,res)*background ones(res,res)*background];
+                 [ones(res,res)*background ones(res,res)*background ones(res,res)*background ones(res,res)*background ones(res,res)*background];
+                 [ones(res,res)*contrast ones(res,res)*contrast ones(res,res)*contrast ones(res,res)*contrast ones(res,res)*contrast];
+                 [ones(res,res)*background ones(res,res)*background ones(res,res)*background ones(res,res)*background ones(res,res)*background];
+                 [ones(res,res)*background ones(res,res)*background ones(res,res)*background ones(res,res)*background ones(res,res)*background]];  % Right Orientation Binary Image
     end
     [x_axis, y_axis] = size(image);
-    static = [[ones(res,res)+(randn*16.0) ones(res,res)+(randn*16.0) ones(res,res)+(randn*16.0) ones(res,res)+(randn*16.0)];
-             [ones(res,res)+(randn*16.0) ones(res,res)+(randn*16.0) ones(res,res)+(randn*16.0) ones(res,res)+(randn*16.0)];
-             [ones(res,res)+(randn*16.0) ones(res,res)+(randn*16.0) ones(res,res)+(randn*16.0) ones(res,res)+(randn*16.0)];
-             [ones(res,res)+(randn*16.0) ones(res,res)+(randn*16.0) ones(res,res)+(randn*16.0) ones(res,res)+(randn*16.0)]];
+    static = [[ones(res,res)+(randn*16.0) ones(res,res)+(randn*16.0) ones(res,res)+(randn*16.0) ones(res,res)+(randn*16.0) ones(res,res)+(randn*16.0)];
+             [ones(res,res)+(randn*16.0) ones(res,res)+(randn*16.0) ones(res,res)+(randn*16.0) ones(res,res)+(randn*16.0) ones(res,res)+(randn*16.0)];
+             [ones(res,res)+(randn*16.0) ones(res,res)+(randn*16.0) ones(res,res)+(randn*16.0) ones(res,res)+(randn*16.0) ones(res,res)+(randn*16.0)];
+             [ones(res,res)+(randn*16.0) ones(res,res)+(randn*16.0) ones(res,res)+(randn*16.0) ones(res,res)+(randn*16.0) ones(res,res)+(randn*16.0)];
+             [ones(res,res)+(randn*16.0) ones(res,res)+(randn*16.0) ones(res,res)+(randn*16.0) ones(res,res)+(randn*16.0) ones(res,res)+(randn*16.0)]];
     %image = (image.*contrast) + 127;
     image = image + static;
     image(image > 255) = 255;

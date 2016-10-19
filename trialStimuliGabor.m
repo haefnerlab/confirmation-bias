@@ -16,15 +16,17 @@ screen_frame = Data.screen_frame * .0083; % This is because the refresh rate is 
 
 res = Data.screen_resolution;
 
-left_default = [[ones(res,res) zeros(res,res) zeros(res,res) zeros(res,res)];
-                [zeros(res,res) ones(res,res) zeros(res,res) zeros(res,res)];
-                [zeros(res,res) zeros(res,res) ones(res,res) zeros(res,res)];
-                [zeros(res,res) zeros(res,res) zeros(res,res) ones(res,res)]];
+left_default = [[zeros(res,res) zeros(res,res) ones(res,res) zeros(res,res) zeros(res,res)];
+                [zeros(res,res) zeros(res,res) ones(res,res) zeros(res,res) zeros(res,res)];
+                [zeros(res,res) zeros(res,res) ones(res,res) zeros(res,res) zeros(res,res)];
+                [zeros(res,res) zeros(res,res) ones(res,res) zeros(res,res) zeros(res,res)];
+                [zeros(res,res) zeros(res,res) ones(res,res) zeros(res,res) zeros(res,res)]];
 
-right_default = [[zeros(res,res) zeros(res,res) zeros(res,res) ones(res,res)];
-                 [zeros(res,res) zeros(res,res) ones(res,res) zeros(res,res)];
-                 [zeros(res,res) ones(res,res) zeros(res,res) zeros(res,res)];
-                 [ones(res,res) zeros(res,res) zeros(res,res) zeros(res,res)]];
+right_default = [[zeros(res,res) zeros(res,res) zeros(res,res) zeros(res,res) zeros(res,res)];
+                 [zeros(res,res) zeros(res,res) zeros(res,res) zeros(res,res) zeros(res,res)];
+                 [ones(res,res) ones(res,res) ones(res,res) ones(res,res) ones(res,res)];
+                 [zeros(res,res) zeros(res,res) zeros(res,res) zeros(res,res) zeros(res,res)];
+                 [zeros(res,res) zeros(res,res) zeros(res,res) zeros(res,res) zeros(res,res)]];
 
 left_patch = (left_default .* 6.0) .* 16.0 + 127.0;   % To give the template a nice large boost for easy viewing
 right_patch = (right_default .* 6.0) .* 16.0 + 127.0;   % To give the template a nice large boost for easy viewing
@@ -139,18 +141,24 @@ try
             Screen('Close', image_texture(i));% To save on memory and processing time, close the screen afterwards
         end
         
-        if myIsField(Data, 'move_on') %&& Data.current_trial < 26
-            show_left_patch = Screen('MakeTexture', wPtr, left_patch);
-            Screen('DrawTexture', wPtr, show_left_patch, [], [xc-res*4-400 yc-res*4 xc+res*4-400 yc+res*4]);   % xc, yc indicates the coordinates of the middle of the screen
-            show_right_patch = Screen('MakeTexture', wPtr, right_patch);
-            Screen('DrawTexture', wPtr, show_right_patch, [], [xc-res*4+400 yc-res*4 xc+res*4+400 yc+res*4]);
-            
+        %if myIsField(Data, 'move_on') %&& Data.current_trial < 26
+        show_left_patch = Screen('MakeTexture', wPtr, left_patch);
+        Screen('DrawTexture', wPtr, show_left_patch, [], [xc-res*4-200 yc-res*4 xc+res*4-200 yc+res*4]);   % xc, yc indicates the coordinates of the middle of the screen
+        show_right_patch = Screen('MakeTexture', wPtr, right_patch);
+        Screen('DrawTexture', wPtr, show_right_patch, [], [xc-res*4+200 yc-res*4 xc+res*4+200 yc+res*4]);
+        
+        
+        
+        %{
         else
-            show_left_patch = Screen('MakeTexture', wPtr, left_patch);
-            Screen('DrawTexture', wPtr, show_left_patch, [], [xc-res*4-400 yc-res*4 xc+res*4-400 yc+res*4]);   % xc, yc indicates the coordinates of the middle of the screen
-            show_right_patch = Screen('MakeTexture', wPtr, right_patch);
-            Screen('DrawTexture', wPtr, show_right_patch, [], [xc-res*4+400 yc-res*4 xc+res*4+400 yc+res*4]);
+        show_left_patch = Screen('MakeTexture', wPtr, left_patch);
+        Screen('DrawTexture', wPtr, show_left_patch, [], [xc-res*5-500 yc-res*5 xc+res*5-500 yc+res*5]);   % xc, yc indicates the coordinates of the middle of the screen
+        show_right_patch = Screen('MakeTexture', wPtr, right_patch);
+        Screen('DrawTexture', wPtr, show_right_patch, [], [xc-res*5+500 yc-res*5 xc+res*5+500 yc+res*5]);
         end
+        %}
+        
+        
         Screen('DrawText', wPtr, sprintf('Current Trial - #%d', Data.current_trial), xc-600, yc+250, 0);   % Unobtrusive output to screen of the current trial number
         onset = Screen('Flip', wPtr);
         
@@ -169,6 +177,7 @@ try
                     fileName = sprintf('%s%s-GaborQuit.mat',directory,subjectID); % create a name for the data you want to save as a csv
                     save(fileName, 'Data'); % save the data
                 end
+                ShowCursor([],whichScreen)
                 sca; % closes screen
                 return
             end
@@ -183,9 +192,10 @@ try
         elseif keyCode(right)% == KbCheck
             image_properties.choice = 0;        % The subject chose right orientation
         else
-            stimulus_properties.choice = nan;
+            image_properties.choice = nan;
         end
-        
+    
+    
     elseif automatic == 1
         % Ideal Observer
         

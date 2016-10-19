@@ -41,8 +41,8 @@ function Experiment_Analysis(opts)
 % Set defaults
 
 if ~isfield(opts, 'subjectID'),   error('opts.subjectID is required'); end
-if ~isfield(opts, 'automatic'),   opts.automatic =   0; end
-if ~isfield(opts, 'preliminary'), opts.preliminary = 0; end
+if ~isfield(opts, 'automatic'),   opts.automatic =   1; end
+if ~isfield(opts, 'preliminary'), opts.preliminary = 2; end
 if ~isfield(opts, 'phase'),       opts.phase =       0; end
 if ~isfield(opts, 'manual'),      opts.manual =      0; end
 if ~isfield(opts, 'median'),      opts.median =      0; end
@@ -641,6 +641,27 @@ if opts.preliminary == 0 || opts.preliminary == 2
     %addpath(genpath('logisticRegression'));  % Jake's logistic functions
     
     subplot(2,4,[3, 4]); hold on;    % Plot left and right weights for the high contrast/volume case
+    X = order_of_flashes(:,:);
+    X=X/std(X(:));
+    X=[X ones(size(X,1),1)];  % Add a bias term
+    Y = Test_Data.choice(:); % 1 x trials
+    %size(X)
+    %size(Y)
+    wmle=glmfit(X(:,1:end-1), Y, 'binomial');
+    [wAR1,~,SDebars,~] = autoRegress_logisticAR1(X, Y, 2*Test_Data.number_of_images, 0.01, 10.^(0:6)', [.1 .5 .75 .9 .95 .99]'); % Call on Jake's functions
+    %[wAR1,~,SDebars,~] = autoRegress_logisticRidge(X, ...
+     %      Y, [1 2*Test_Data.number_of_images], 0.01, 10.^(0:6)',wmle);
+    wAR1(end)=[];      % Remove bias term
+    SDebars(end)=[];
+    %SDebars_diff = SDebars;   % Save this for the difference in weights
+    
+    
+    % Plot the subject's left weights
+    
+    e = errorbar(wAR1(1:Test_Data.number_of_images), SDebars(1:Test_Data.number_of_images),'.-b');
+    set(e,'Linewidth',2); hold on;
+   
+    %{
     colors='br';
     LRWeightsErrors = cell(2,2);
     for LeftRight=[1 2]
@@ -651,6 +672,8 @@ if opts.preliminary == 0 || opts.preliminary == 2
         X=[X ones(size(X,1),1)];  % Add a bias term
         Y = Test_Data.choice(:); % 1 x trials
         wmle=glmfit(X(:,1:end-1), Y, 'binomial');
+        size(X)
+        size(wmle)
         %     [wAR1,~,SDebars,~] = autoRegress_logisticAR1_2D(X, ...
         %         Y, [2 Test_Data.number_of_images], 0.01, 10.^(0:6)', [.1 .5 .75 .9 .95 .99]',wmle); % Call on Jake's functions
         
@@ -669,7 +692,9 @@ if opts.preliminary == 0 || opts.preliminary == 2
         e = errorbar(wAR1, SDebars, linestyle);
         set(e,'Linewidth',2); hold on;
     end
+   
     legend('Left', 'Right');
+     %}
     % To print out the subject's/Ideal Observer's left bar weights, uncomment the following:
     % wAR1(1:Test_Data.number_of_images)
     % SDebars(1:Test_Data.number_of_images)
@@ -694,9 +719,9 @@ if opts.preliminary == 0 || opts.preliminary == 2
     end
     
     % Plot the subject's right weights
-% % % %     e = errorbar(wAR1(Test_Data.number_of_images+1:end), SDebars(Test_Data.number_of_images+1:end), '.-r');  % Red Line
-% % % %     set(e,'Linewidth',2); hold on;
-% % % %     legend('Left weights', 'Right weights','Location','northoutside')
+     e = errorbar(wAR1(Test_Data.number_of_images+1:end), SDebars(Test_Data.number_of_images+1:end), '.-r');  % Red Line
+     set(e,'Linewidth',2); hold on;
+     legend('Left weights', 'Right weights','Location','northoutside')
     % To print out the subject's/Ideal Observer's right bar weights, uncomment the following:
     % wAR1(Test_Data.number_of_images+1:end)
     % SDebars(Test_Data.number_of_images+1:end)
@@ -730,8 +755,8 @@ if opts.preliminary == 0 || opts.preliminary == 2
     
     if opts.difference == 0
         % Graph the difference in the weights for the left and right side
-        wdiff = LRWeightsErrors{1,1}-LRWeightsErrors{2,1};
-        SDebars = LRWeightsErrors{1,2}+LRWeightsErrors{2,2};
+        wdiff =wAR1(1:Test_Data.number_of_images) - wAR1(Test_Data.number_of_images+1:end);
+        %SDebars = LRWeightsErrors{1,2}+LRWeightsErrors{2,2};
         %s = SDebars(1:length(wAR1)/2) + SDebars(length(wAR1)/2+1:end);
         %e = errorbar([1:Test_Data.number_of_images], w', s', '.-k');
         e= plot(wdiff, '.-k');
@@ -745,13 +770,14 @@ if opts.preliminary == 0 || opts.preliminary == 2
         X = [X ones(size(X,1),1)];  % Add a bias term
         Y = Test_Data.choice; % 1 x trials
         %wmle=glmfit(X(:,1:end-1), Y', 'binomial');
-%         [wAR1,~,SDebars,~] = autoRegress_logisticAR1_2D(X, ...
-%             Y', [2 Test_Data.number_of_images/2], 0.01, 10.^(0:6)', [.1 .5 .75 .9 .95 .99]');
+        [wAR1,~,SDebars,~] = autoRegress_logisticAR1_2D(X, Y', [2 Test_Data.number_of_images/2], 0.01, 10.^(0:6)', [.1 .5 .75 .9 .95 .99]');
         
         %[wAR1,~,SDebars,~] = autoRegress_logisticRidge(X, ...
         %   Y', [1 Test_Data.number_of_images], 0.01, 10.^(0:6)',wmle);
-        [wAR1,~,SDebars,~] = autoRegress_logisticAR1(X, ...
-           Y', Test_Data.number_of_images, 0.01, 10.^(0:6)', [.1 .5 .75 .9 .95 .99]',wmle);
+        size(X)
+        size(Y)
+        %[wAR1,~,SDebars,~] = autoRegress_logisticAR1(X, ...
+        %   Y', Test_Data.number_of_images, 0.01, 10.^(0:6)', [.1 .5 .75 .9 .95 .99]');
         wAR1(end)=[];
         SDebars(end)=[];
         e = errorbar(wAR1(1:end), SDebars(1:end),'.-k');
