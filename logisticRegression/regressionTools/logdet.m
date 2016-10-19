@@ -8,4 +8,7 @@ function x = logdet(A)
 % Input:
 %     A NxN - A must be sqaure, positive semi-definite
 
-x = 2*sum(log(diag(chol(A))));
+%[R, p] = chol(A);
+%x = 2*sum(log(diag(R)));
+%x = 2*sum(log(diag(chol(A))));
+ x = 2*sum(log(det(A)));

@@ -24,13 +24,13 @@ function [wRidge,hprs,SDebars,postHess,logevid] = autoRegress_logisticAR1(xx,yy,
 % $Id$
 
 nw = size(xx,2); % length of filter
-
 % initialize filter estimate with MAP regression estimate, if necessary
 if nargin == 6
     rh0 = 5;        % initial value of ridge parameter
     Lprior = speye(nw)*rhoNull;
     %Lprior(iirdge,iirdge) = rho0;
     w0 = (xx'*xx+Lprior)\(xx'*yy);
+    
 end
 
 % --- set prior and log-likelihood function pointers ---
