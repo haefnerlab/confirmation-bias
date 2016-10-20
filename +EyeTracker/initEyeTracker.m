@@ -7,15 +7,18 @@ resolution = Screen('Resolution', whichscreen);
 
 % This struct defines all configurable options for the eye tracker code.
 tracker_info = struct(...
+    ... % PTB info and debug flags
     'whichscreen', whichscreen, ...
-    'debug', false, ...
-    'debugUseMouse', false, ...
+    'debug', false, ... % when true, renders additional info onto the screen.
+    'debugUseMouse', false, ... % when true, substitutes the mouse coordinate for the eye tracker.
     'pixelsPerGazeCoordinate', [resolution.width, resolution.height], ... % X, Y screen pixels per 'gaze unit'
+    ... % parameters for getFixation()
     'fixationSymbol', 'r', ... % 'r' for rect, 'c' for circle, or '+' for plus
     'fixationSymbolSize', [10, 10], ... % pixel size of fixation symbol, independent of the 'Rect' below
     'fixationTime', 1000, ... % ms. Max time allowed in getFixation()
     'fixationMinimumHold', 500, ... % Time required within fixationRect to consider it held.
-    'fixationCorrection', [0 0], ... % Add this to [gx, gy] to get corrected position (recalibrated during getFixation)
+    ... % parameters for isFixation()
+    'fixationCorrection', [0 0], ... % Add this to [gx, gy] to get corrected position (this is set automatically during getFixation)
     'fixationCenter', [resolution.width/2, resolution.height/2], ...
     'fixationRect', [30 30]);
 
