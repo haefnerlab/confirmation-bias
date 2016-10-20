@@ -1,4 +1,4 @@
-function image_properties = trialStimuliGabor(current_trial, image_array, screen, subjectID, Data, automatic, phase, directory)
+function [image_properties, eye_tracker_points, broke_fixation] = trialStimuliGabor(current_trial, image_array, screen, subjectID, Data, automatic, phase, directory, tracker_info)
 % trialStimuli displays the animation of several gabor patches in quick
 % succession to the subject, or runs through a single trial of the
 % experiment.
@@ -7,6 +7,8 @@ function image_properties = trialStimuliGabor(current_trial, image_array, screen
 screen_frame = Data.screen_frame * .0083; % This is because the refresh rate is 120 Hz
 % This tells me how many ms each image will be on the screen
 
+eye_tracker_points = [];
+broke_fixation = false;
 
 %% Make sure to have left/right patch to match the orientations used
 %left_default = makeGabor(Data.gabor_sigma_x, Data.gabor_sigma_y, Data.gabor_spatial_frequency, Data.gabor_phase, ...
@@ -17,16 +19,16 @@ screen_frame = Data.screen_frame * .0083; % This is because the refresh rate is 
 res = Data.screen_resolution;
 
 left_default = [[zeros(res,res) zeros(res,res) ones(res,res) zeros(res,res) zeros(res,res)];
-                [zeros(res,res) zeros(res,res) ones(res,res) zeros(res,res) zeros(res,res)];
-                [zeros(res,res) zeros(res,res) ones(res,res) zeros(res,res) zeros(res,res)];
-                [zeros(res,res) zeros(res,res) ones(res,res) zeros(res,res) zeros(res,res)];
-                [zeros(res,res) zeros(res,res) ones(res,res) zeros(res,res) zeros(res,res)]];
+    [zeros(res,res) zeros(res,res) ones(res,res) zeros(res,res) zeros(res,res)];
+    [zeros(res,res) zeros(res,res) ones(res,res) zeros(res,res) zeros(res,res)];
+    [zeros(res,res) zeros(res,res) ones(res,res) zeros(res,res) zeros(res,res)];
+    [zeros(res,res) zeros(res,res) ones(res,res) zeros(res,res) zeros(res,res)]];
 
 right_default = [[zeros(res,res) zeros(res,res) zeros(res,res) zeros(res,res) zeros(res,res)];
-                 [zeros(res,res) zeros(res,res) zeros(res,res) zeros(res,res) zeros(res,res)];
-                 [ones(res,res) ones(res,res) ones(res,res) ones(res,res) ones(res,res)];
-                 [zeros(res,res) zeros(res,res) zeros(res,res) zeros(res,res) zeros(res,res)];
-                 [zeros(res,res) zeros(res,res) zeros(res,res) zeros(res,res) zeros(res,res)]];
+    [zeros(res,res) zeros(res,res) zeros(res,res) zeros(res,res) zeros(res,res)];
+    [ones(res,res) ones(res,res) ones(res,res) ones(res,res) ones(res,res)];
+    [zeros(res,res) zeros(res,res) zeros(res,res) zeros(res,res) zeros(res,res)];
+    [zeros(res,res) zeros(res,res) zeros(res,res) zeros(res,res) zeros(res,res)]];
 
 left_patch = (left_default .* 6.0) .* 16.0 + 127.0;   % To give the template a nice large boost for easy viewing
 right_patch = (right_default .* 6.0) .* 16.0 + 127.0;   % To give the template a nice large boost for easy viewing
@@ -110,10 +112,6 @@ try
     
     
     if automatic == 0
-        Screen('DrawDots', wPtr, [xc, yc+res*4+50], 50, black, [0 0], 1);
-        Screen('DrawDots', wPtr, [xc, yc+res*4+50], 15, white, [0 0], 1);   % draw a bull's eye below where the stimulus will appear as a fixation point
-        Screen('DrawLine', wPtr, white, xc-25, yc+res*4+50, xc+25, yc+res*4+50, 1);
-        Screen('DrawLine', wPtr, white, xc, yc-25+res*4+50, xc, yc+25+res*4+50, 1);   % draw a cross on the bull's eye as a fixation point
         Screen('DrawLine', wPtr, black, xc-res*4, yc-res*4, xc-res*4+15, yc-res*4, 1);     % Show the corners of where the stimulus which is about to appear
         Screen('DrawLine', wPtr, black, xc-res*4, yc-res*4, xc-res*4, yc-res*4+15, 1);
         Screen('DrawLine', wPtr, black, xc-res*4, yc+res*4, xc-res*4+15, yc+res*4, 1);
@@ -122,15 +120,22 @@ try
         Screen('DrawLine', wPtr, black, xc+res*4, yc-res*4, xc+res*4, yc-res*4+15, 1);
         Screen('DrawLine', wPtr, black, xc+res*4, yc+res*4, xc+res*4-15, yc+res*4, 1);
         Screen('DrawLine', wPtr, black, xc+res*4, yc+res*4, xc+res*4, yc+res*4-15, 1);
-        Screen('Flip', wPtr);
-        pause(0.5)
-        Screen('Flip', wPtr);
+
+        [is_fixating, tracker_info, eye_tracker_points] = EyeTracker.getFixation(tracker_info, wPtr, 127);
+        start_time = eye_tracker_points(1, 1);
+        if ~is_fixating
+            broke_fixation = true;
+            return;
+        end
         
         for i = 1:Data.number_of_images
-            Screen('DrawDots', wPtr, [xc, yc+res*4+50], 50, black, [0 0], 1);
-            Screen('DrawDots', wPtr, [xc, yc+res*4+50], 15, white, [0 0], 1);   % draw a bull's eye below where the stimulus will appear as a fixation point
-            Screen('DrawLine', wPtr, white, xc-25, yc+res*4+50, xc+25, yc+res*4+50, 1);
-            Screen('DrawLine', wPtr, white, xc, yc-25+res*4+50, xc, yc+25+res*4+50, 1);   % draw a cross on the bull's eye as a fixation point
+            EyeTracker.drawFixationSymbol(tracker_info, wPtr, [255 255 255]);
+            gaze_point = EyeTracker.getGazePoint(tracker_info, 'pixels');
+            if ~EyeTracker.isFixation(tracker_info, gaze_point)
+                broke_fixation = true;
+                return;
+            end
+            eye_tracker_points = vertcat(eye_tracker_points, [GetSecs()-start_time gaze_point]);
             Screen('DrawText', wPtr, sprintf('Current Trial - #%d', Data.current_trial), xc-900, yc+550, 0);   % Unobtrusive output to screen of the current trial number
             [x_axis, y_axis] = size(image);
             Screen('DrawTexture', wPtr, image_texture(i), [], [xc-x_axis yc-y_axis xc+x_axis yc+y_axis]); %Fill the buffer with the first texture
@@ -194,8 +199,8 @@ try
         else
             image_properties.choice = nan;
         end
-    
-    
+        
+        
     elseif automatic == 1
         % Ideal Observer
         

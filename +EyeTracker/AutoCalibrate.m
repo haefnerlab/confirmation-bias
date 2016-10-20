@@ -25,12 +25,17 @@ assert(any(tracker_info.calibration_n_points == [6 9 12 16]), 'calibration_n_poi
 vpx_SendCommandString(sprintf('calibration_Points %d', tracker_info.calibration_n_points));
 vpx_SendCommandString('calibration_PointLocationMethod Automatic');
 vpx_SendCommandString(sprintf('calibration_StimulusType %s', tracker_info.calibration_animate));
-[r, g, b] = tracker_info.calibration_color;
+r = tracker_info.calibration_color(1);
+g = tracker_info.calibration_color(2);
+b = tracker_info.calibration_color(3);
 vpx_SendCommandString(sprintf('calibration_StimulusColor %d %d %d', r, g, b));
 
 % Run calibration.
-success = vpx_SendCommandString('calibrationStart');
-
+vpx_SendCommandString('calibrationStart');
+vpx_CalibrationInProgress = 6; % See documentation for vpx_GetStatus.
+pause(0.1);
+while vpx_GetStatus(vpx_CalibrationInProgress), end
+success = true;
 % TODO - validate result with vpx_getcalibrationeventrecord ??
 
 end
