@@ -1,7 +1,4 @@
 function tracker_info = initEyeTracker(whichscreen, varargin)
-% Connect to eye tracker.
-vpx_Initialize();
-
 % Return struct with tracker's configuration options.
 resolution = Screen('Resolution', whichscreen);
 
@@ -28,8 +25,6 @@ tracker_info = struct(...
     'calibration_animate', 'Shrink', ... % 'Shrink' or 'Bounce'
     'calibration_color', [100 255 100]);
 
-vpx_SendCommandString(sprintf('smoothingPoints %d', tracker_info.smoothing_n_points));
-
 % Parse any extra (..., 'key', value, ...) pairs passed in through
 % varargin.
 for val_idx=2:2:length(varargin)
@@ -41,5 +36,11 @@ for val_idx=2:2:length(varargin)
     else
         tracker_info.(key) = varargin{val_idx};
     end
+end
+
+if ~tracker_info.debugUseMouse
+    % Connect to eye tracker and do one-time configuration commands
+    vpx_Initialize();
+    vpx_SendCommandString(sprintf('smoothingPoints %d', tracker_info.smoothing_n_points));
 end
 end
