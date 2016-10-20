@@ -20,7 +20,11 @@ tracker_info = struct(...
     ... % parameters for isFixation()
     'fixationCorrection', [0 0], ... % Add this to [gx, gy] to get corrected position (this is set automatically during getFixation)
     'fixationCenter', [resolution.width/2, resolution.height/2], ...
-    'fixationRect', [30 30]);
+    'fixationRect', [30 30], ... % true size of rectangle for fixation requirement (separate from the symbol size above)
+    ... % parameters for calibration
+    'calibration_n_points', 12, ... % number of points used for calibration
+    'calibration_animate', 'Shrink', ... % 'Shrink' or 'Bounce'
+    'calibration_color', [100 255 100]);
 
 % Parse any extra (..., 'key', value, ...) pairs passed in through
 % varargin.
