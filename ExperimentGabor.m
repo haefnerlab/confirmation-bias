@@ -21,8 +21,8 @@ end
 settings = LoadSettings(directory);
 
 %% Set Up the Initialization of the expeirment
-cd([directory 'Code/']) % Set the current directory
-directory = [directory 'RawData/'];  % Directory to save the data and files to
+cd([directory 'Code\']) % Set the current directory
+directory = [directory 'RawData\'];  % Directory to save the data and files to
 commandwindow; % Moves the cursor to the commandwindow
 
 if settings.useOpenGL, InitializeMatlabOpenGL; end
@@ -42,6 +42,7 @@ black = [0 0 0];                % Sets the color to be black
 %[wPtr, ~] = Screen('OpenWindow', whichScreen, black, [xc-900 yc-500 xc+900 yc+500], 32);
 % Creates a small window instead of using the full screen
 % Mainly to allow screenshots
+Screen('LoadNormalizedGammaTable', wPtr, gammaTable*[1 1 1]);
 
 if ~isempty(settings.gammaTableFile)
     gtdata = load(settings.gammaTableFile);
@@ -62,6 +63,8 @@ exitKey = KbName(settings.keyExit);
 % This is the first preliminary phase with a constant ratio (20, 4) and finding the threshold contrast
 HideCursor(whichScreen)
 if phase == 0
+    
+%     EyeTracker.AutoCalibrate(tracker_info);
     
     fileName = sprintf('%s%s-GaborDataContrast.mat',directory,subjectID); % Set the desired filename of the experimental data
     if ~exist(fileName, 'file') % Check to see if the subject has already done the preliminary phase or not
