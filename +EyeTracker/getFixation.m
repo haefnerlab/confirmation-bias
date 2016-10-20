@@ -34,7 +34,11 @@ while GetSecs() - start < tracker_info.fixationTime / 1000
         end
     end
     if tracker_info.debug
-        Screen('FillRect', wPtr, [0 0 0], [gx - 20, gy - 20, gx + 20, gy + 20]);
+        % draw target box
+        Screen('FrameRect', wPtr, [255 255 255], ptbCenteredRect(tracker_info.fixationCenter, tracker_info.fixationRect));
+        % draw crosshairs on gaze location
+        Screen('DrawLine', wPtr, [255 0 0], gx - 10, gy, gx + 10, gy);
+        Screen('DrawLine', wPtr, [255 0 0], gx, gy - 10, gx, gy + 10);
     end
 
     Screen('Flip', wPtr);
