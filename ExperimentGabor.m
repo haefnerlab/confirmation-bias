@@ -1,4 +1,4 @@
-function [] = ExperimentGabor(subjectID, automatic, phase, directory)
+function [] = ExperimentGabor(subjectID, automatic, phase, directory, varargin)
 
 % Example Input - ExperimentGabor('Matthew', 0, '/Users/bcs206/Documents/Summer/')
 
@@ -45,7 +45,11 @@ gammaTable = gammaTable2;
 % Creates a small window instead of using the full screen
 % Mainly to allow screenshots
 
-tracker_info = EyeTracker.initEyeTracker(whichScreen, 'fixationSymbol', 'b', 'fixationCenter', [xc, yc+50]);
+tracker_info = EyeTracker.initEyeTracker(whichScreen, ...
+    'fixationSymbol', 'b', ...
+    'fixationCenter', [xc, yc+100], ...
+    'fixationSymbolSize', [30 30], ...
+    varargin{:});
 
 %Screen('LoadNormalizedGammaTable', wPtr, gammaTable*[1 1 1]);
 
