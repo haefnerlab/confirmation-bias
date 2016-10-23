@@ -12,7 +12,7 @@ regressors = [left right ones(trials, 1)];
         est_left = regression_weights(1:120);
         est_right = regression_weights(121:end-1);
         plot(true_left);
-        plot(true_right);
+        plot(-true_right);
         errorbar(est_left, errors(1:120));
         errorbar(est_right, errors(121:240));
         title(name);
@@ -40,6 +40,6 @@ compare(kernel, kernel, responses, 'linear decreasing');
 
 kernel = zeros(120, 1); kernel(end/2-1:end/2+1) = 1;
 responses = left * kernel - right * kernel > 0;
-compare(kernel, kernel, responses, 'linear decreasing');
+compare(kernel, kernel, responses, 'middle three');
 
 end
