@@ -45,7 +45,7 @@ gammaTable = gammaTable2;
 % Creates a small window instead of using the full screen
 % Mainly to allow screenshots
 
-tracker_info = EyeTracker.initEyeTracker(whichScreen);
+tracker_info = EyeTracker.initEyeTracker(whichScreen, 'fixationSymbol', 'b', 'fixationCenter', [xc, yc+50]);
 
 %Screen('LoadNormalizedGammaTable', wPtr, gammaTable*[1 1 1]);
 
