@@ -1,4 +1,4 @@
-function testPK(trials, ridge, ar1)
+function testPK(trials, ridge, ar1, curvature)
 
 left = 0.1 * round(rand(trials, 120));
 right = 0.1 * round(rand(trials, 120));
@@ -6,7 +6,7 @@ right = 0.1 * round(rand(trials, 120));
 regressors = [left right ones(trials, 1)];
 
     function compare(true_left, true_right, responses, name)
-        [regression_weights, ~, errors] = CustomRegression.PsychophysicalKernel(regressors, responses, ridge, ar1, true);
+        [regression_weights, ~, errors] = CustomRegression.PsychophysicalKernel(regressors, responses, ridge, ar1, curvature, true);
         
         figure(); hold on;
         est_left = regression_weights(1:120);

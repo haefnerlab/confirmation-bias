@@ -1,4 +1,4 @@
-function [weights, postVal, errors] = PsychophysicalKernel(data, responses, hpr_ridge, hpr_ar1, split_smoothness)
+function [weights, postVal, errors] = PsychophysicalKernel(data, responses, hpr_ridge, hpr_ar1, hpr_curvature, split_smoothness)
 %PSYCHOPHYSICALKERNEL Regress PK
 %
 % [ weights, errors ] = PSYCHOPHYSICALKERNEL(data, responses) where data is
@@ -15,9 +15,10 @@ responses = 1.0 * responses;
 
 break_points = p-1; % don't smooth onto bias term
 if split_smoothness, break_points = [break_points floor(p/2)]; end
-D = derivative_matrix(p, break_points);
+D1 = derivative_matrix(p, break_points);
+D2 = second_derivative_matrix(p, break_points);
 
-negLogPost = @(w) -log_prior(w, D, hpr_ridge, hpr_ar1) - bernoulli_log_likelihood(data, responses, w);
+negLogPost = @(w) -log_prior(w, D1, D2, hpr_ridge, hpr_ar1, hpr_curvature) - bernoulli_log_likelihood(data, responses, w);
 
 if nargout > 2
     [weights, negPostVal, ~, ~, ~, hessian] = fminunc(negLogPost, zeros(p, 1));
@@ -35,18 +36,31 @@ function D = derivative_matrix(n, break_at)
 D = - eye(n) + diag(ones(n-1, 1), 1);
 D(end) = 0;
 for i=break_at
-    D(i,i) = 0;
-    D(i, i+1) = 0;
+    D(i,:) = 0;
 end
 end
 
-function LP = log_prior(weights, D, hpr_ridge, hpr_ar1)
+function D = second_derivative_matrix(n, break_at)
+D = eye(n) - 2*diag(ones(n-1, 1), 1) + diag(ones(n-2, 1), 2);
+D(end) = 0;
+D(end-1, end-2:end) = 0;
+for i=break_at
+    D(i-1, :) = 0;
+    D(i, :) = 0;
+end
+end
+
+function LP = log_prior(weights, D1, D2, hpr_ridge, hpr_ar1, hpr_curvature)
 ridge = -0.5 * dot(weights, weights);
 ar1 = 0;
 if hpr_ar1 > 0
-    ar1 = -0.5 * dot(D*weights, D*weights);
+    ar1 = -0.5 * dot(D1*weights, D1*weights);
 end
-LP = hpr_ridge * ridge + hpr_ar1 * ar1;
+curvature = 0;
+if hpr_curvature > 0
+    curvature = -0.5 * dot(D2*weights, D2*weights);
+end
+LP = hpr_ridge * ridge + hpr_ar1 * ar1 + hpr_curvature * curvature;
 end
 
 function LL = bernoulli_log_likelihood(data, responses, weights)
