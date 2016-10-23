@@ -44,6 +44,7 @@ Screen('Preference', 'SkipSyncTests', 0); % Opens Screen
 
 white = [255 255 255];          % Sets the color to be white
 black = [0 0 0];
+gray = [127 127 127];
 
 % Set up variables for keyboard functions
 KbName('UnifyKeyNames');
@@ -104,7 +105,7 @@ try
     
     image_properties.log_odds = log_odds / Data.number_of_images;
     
-    
+    stimulus_bbox = ptbCenteredRect([xc, yc], size(image));
     
     Screen('FillRect', wPtr, 127.0);        % Make the background gray
     [~, stimOnsetTime] = Screen('Flip', wPtr);
@@ -112,17 +113,10 @@ try
     
     
     if automatic == 0
-        Screen('DrawLine', wPtr, black, xc-res*4, yc-res*4, xc-res*4+15, yc-res*4, 1);     % Show the corners of where the stimulus which is about to appear
-        Screen('DrawLine', wPtr, black, xc-res*4, yc-res*4, xc-res*4, yc-res*4+15, 1);
-        Screen('DrawLine', wPtr, black, xc-res*4, yc+res*4, xc-res*4+15, yc+res*4, 1);
-        Screen('DrawLine', wPtr, black, xc-res*4, yc+res*4, xc-res*4, yc+res*4-15, 1);
-        Screen('DrawLine', wPtr, black, xc+res*4, yc-res*4, xc+res*4-15, yc-res*4, 1);
-        Screen('DrawLine', wPtr, black, xc+res*4, yc-res*4, xc+res*4, yc-res*4+15, 1);
-        Screen('DrawLine', wPtr, black, xc+res*4, yc+res*4, xc+res*4-15, yc+res*4, 1);
-        Screen('DrawLine', wPtr, black, xc+res*4, yc+res*4, xc+res*4, yc+res*4-15, 1);
-
-        [is_fixating, tracker_info, eye_tracker_points] = EyeTracker.getFixation(tracker_info, wPtr, 127);
-        start_time = eye_tracker_points(1, 1);
+        % Get fixation while displaying a frame around where the stimulus
+        % will be.
+        [is_fixating, tracker_info, eye_tracker_points] = EyeTracker.getFixation(tracker_info, wPtr, @() drawStimulusFrame(wPtr, gray, black, stimulus_bbox, 15));
+        % If the subject never fixated, end the trial.
         if ~is_fixating
             broke_fixation = true;
             return;
@@ -131,15 +125,14 @@ try
         for i = 1:Data.number_of_images
             EyeTracker.drawFixationSymbol(tracker_info, wPtr);
             gaze_point = EyeTracker.getGazePoint(tracker_info, 'pixels');
+            % If fixation is broken at any time, end the trial.
             if ~EyeTracker.isFixation(tracker_info, gaze_point)
                 broke_fixation = true;
                 return;
             end
-            eye_tracker_points = vertcat(eye_tracker_points, [GetSecs()-start_time gaze_point]);
+            eye_tracker_points = vertcat(eye_tracker_points, [GetSecs()-stimOnsetTime gaze_point]);
             Screen('DrawText', wPtr, sprintf('Current Trial - #%d', Data.current_trial), xc-900, yc+550, 0);   % Unobtrusive output to screen of the current trial number
-            [x_axis, y_axis] = size(image);
-            Screen('DrawTexture', wPtr, image_texture(i), [], [xc-x_axis yc-y_axis xc+x_axis yc+y_axis]); %Fill the buffer with the first texture
-            Screen('Flip', wPtr);
+            Screen('DrawTexture', wPtr, image_texture(i), [], stimulus_bbox); %Fill the buffer with the first texture
             [~, stimOnsetTime] = Screen('Flip', wPtr, stimOnsetTime+screen_frame);
             %update the display in screen_frame after the last Flip?
             
@@ -413,4 +406,17 @@ catch ERR
     Screen('CloseAll');
     rethrow(ERR);
     
+end
+
+function drawStimulusFrame(wPtr, bg, color, bbox, length)
+    Screen('FillRect', wPtr, bg);
+    Screen('DrawLine', wPtr, color, bbox(1), bbox(2), bbox(1)+length, bbox(2), 1);
+    Screen('DrawLine', wPtr, color, bbox(1), bbox(2), bbox(1), bbox(2)+length, 1);
+    Screen('DrawLine', wPtr, color, bbox(1), bbox(4), bbox(1)+length, bbox(4), 1);
+    Screen('DrawLine', wPtr, color, bbox(1), bbox(4), bbox(1), bbox(4)-length, 1);
+    Screen('DrawLine', wPtr, color, bbox(3), bbox(2), bbox(3)-length, bbox(2), 1);
+    Screen('DrawLine', wPtr, color, bbox(3), bbox(2), bbox(3), bbox(2)+length, 1);
+    Screen('DrawLine', wPtr, color, bbox(3), bbox(4), bbox(3)-length, bbox(4), 1);
+    Screen('DrawLine', wPtr, color, bbox(3), bbox(4), bbox(3), bbox(4)-length, 1);
+end
 end
