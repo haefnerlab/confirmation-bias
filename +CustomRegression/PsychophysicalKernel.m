@@ -4,7 +4,8 @@ function [weights, postVal, errors] = PsychophysicalKernel(data, responses, hpr_
 % [ weights, errors ] = PSYCHOPHYSICALKERNEL(data, responses) where data is
 % [trials x regressors] and responses is [trials x 1] of booleans.
 
-if nargin < 5, split_smoothness = false; end
+if nargin < 6, split_smoothness = false; end
+if nargin < 5, hpr_curvature = 0; end
 if nargin < 4, hpr_ar1 = 0; end
 if nargin < 3, hpr_ridge = 0; end
 
