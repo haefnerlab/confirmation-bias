@@ -3,7 +3,7 @@ function demoFixation(whichscreen, n_repeats, varargin)
 if nargin < 2, n_repeats = 5; end
 
 InitializeMatlabOpenGL;
-
+Screen('Preference', 'SkipSyncTests', 1);
 [wPtr, ~] = Screen('OpenWindow', whichscreen, [0 0 0], [], 32);
 
 HideCursor(whichscreen);
@@ -31,7 +31,7 @@ try
                 rect_corner = floor(rand(1,2).*tracker_info.pixelsPerGazeCoordinate);
                 rect = [rect_corner, rect_corner + [50 50]];
                 Screen('FillRect', wPtr, randi(256, 1, 3), rect);
-                EyeTracker.drawFixationSymbol(tracker_info, wPtr, [255 255 255]);
+                EyeTracker.drawFixationSymbol(tracker_info, wPtr);
                 Screen('Flip', wPtr);
                 gaze_xy = vertcat(gaze_xy, EyeTracker.getGazePoint(tracker_info));
                 if ~EyeTracker.isValidTrial(tracker_info, gaze_xy)

@@ -129,7 +129,7 @@ try
         end
         
         for i = 1:Data.number_of_images
-            EyeTracker.drawFixationSymbol(tracker_info, wPtr, [255 255 255]);
+            EyeTracker.drawFixationSymbol(tracker_info, wPtr);
             gaze_point = EyeTracker.getGazePoint(tracker_info, 'pixels');
             if ~EyeTracker.isFixation(tracker_info, gaze_point)
                 broke_fixation = true;

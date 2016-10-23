@@ -14,7 +14,7 @@ is_holding = false;
 while GetSecs() - start < tracker_info.fixationTime / 1000
     Screen('FillRect', wPtr, bgcolor);
     color = [255 255 255];
-    EyeTracker.drawFixationSymbol(tracker_info, wPtr, color);
+    EyeTracker.drawFixationSymbol(tracker_info, wPtr);
     now_msecs = (GetSecs() - start) * 1000;
     [gx, gy] = EyeTracker.getGazePoint(tracker_info, 'pixels');
     

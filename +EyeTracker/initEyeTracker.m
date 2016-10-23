@@ -10,8 +10,9 @@ tracker_info = struct(...
     'debugUseMouse', false, ... % when true, substitutes the mouse coordinate for the eye tracker.
     'pixelsPerGazeCoordinate', [resolution.width, resolution.height], ... % X, Y screen pixels per 'gaze unit'
     ... % parameters for getFixation()
-    'fixationSymbol', 'r', ... % 'r' for rect, 'c' for circle, or '+' for plus
+    'fixationSymbol', 'r', ... % 'r' for rect, 'c' for circle, 'b' for bullseye, or '+' for plus
     'fixationSymbolSize', [10, 10], ... % pixel size of fixation symbol, independent of the 'Rect' below
+    'fixationSymbolColors', [255 255 255; 0 0 0], ... % primary/secondary color of fixation symbol
     'fixationTime', 1000, ... % ms. Max time allowed in getFixation()
     'fixationMinimumHold', 500, ... % Time required within fixationRect to consider it held.
     ... % parameters for isFixation()
