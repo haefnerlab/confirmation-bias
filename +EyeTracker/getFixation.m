@@ -1,19 +1,23 @@
-function [is_holding, tracker_info, coordinates_history] = getFixation(tracker_info, wPtr, bgcolor)
+function [is_holding, tracker_info, coordinates_history] = getFixation(tracker_info, wPtr, background)
 %GETFIXATION displays a fixation symbol on a blank background until the
 %subject is deemed fixating.
 %
-% [is_holding, tracker_info, coordinates_history] = GETFIXATION(tracker_info, wPtr, bgcolor)
+% [is_holding, tracker_info, coordinates_history] = GETFIXATION(tracker_info, wPtr, background)
 % runs the routine drawing to the screen specified by wPtr. Further
 % parameters are controlled by tracker_info. Returns a boolean is_holding,
 % an updated tracker_info that has proper slip correction, and the history
 % of gaze locations in pixel space with [msec, x, y] in each row.
+% 'background' may be a color or a function to draw the background.
 start = GetSecs();
 coordinates_history = [];
 i = 1;
 is_holding = false;
 while GetSecs() - start < tracker_info.fixationTime / 1000
-    Screen('FillRect', wPtr, bgcolor);
-    color = [255 255 255];
+    if isnumeric(background)
+        Screen('FillRect', wPtr, background);
+    else
+        background();
+    end
     EyeTracker.drawFixationSymbol(tracker_info, wPtr);
     now_msecs = (GetSecs() - start) * 1000;
     [gx, gy] = EyeTracker.getGazePoint(tracker_info, 'pixels');
