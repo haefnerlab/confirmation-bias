@@ -11,27 +11,13 @@ eye_tracker_points = [];
 broke_fixation = false;
 
 %% Make sure to have left/right patch to match the orientations used
-%left_default = makeGabor(Data.gabor_sigma_x, Data.gabor_sigma_y, Data.gabor_spatial_frequency, Data.gabor_phase, ...
-%    -pi/4, Data.gabor_startpoint, Data.gabor_step, Data.gabor_endpoint);    % Load left template
-%right_default = makeGabor(Data.gabor_sigma_x, Data.gabor_sigma_y, Data.gabor_spatial_frequency, Data.gabor_phase, ...
-%    pi/4, Data.gabor_startpoint, Data.gabor_step, Data.gabor_endpoint);    % Load right template
-
 res = Data.screen_resolution;
 
-left_default = [[zeros(res,res) zeros(res,res) ones(res,res) zeros(res,res) zeros(res,res)];
-    [zeros(res,res) zeros(res,res) ones(res,res) zeros(res,res) zeros(res,res)];
-    [zeros(res,res) zeros(res,res) ones(res,res) zeros(res,res) zeros(res,res)];
-    [zeros(res,res) zeros(res,res) ones(res,res) zeros(res,res) zeros(res,res)];
-    [zeros(res,res) zeros(res,res) ones(res,res) zeros(res,res) zeros(res,res)]];
+left_template = Data.left_template;
+right_template = Data.right_template;
 
-right_default = [[zeros(res,res) zeros(res,res) zeros(res,res) zeros(res,res) zeros(res,res)];
-    [zeros(res,res) zeros(res,res) zeros(res,res) zeros(res,res) zeros(res,res)];
-    [ones(res,res) ones(res,res) ones(res,res) ones(res,res) ones(res,res)];
-    [zeros(res,res) zeros(res,res) zeros(res,res) zeros(res,res) zeros(res,res)];
-    [zeros(res,res) zeros(res,res) zeros(res,res) zeros(res,res) zeros(res,res)]];
-
-left_patch = (left_default .* 6.0) .* 16.0 + 127.0;   % To give the template a nice large boost for easy viewing
-right_patch = (right_default .* 6.0) .* 16.0 + 127.0;   % To give the template a nice large boost for easy viewing
+left_patch = (left_template .* 6.0) .* 16.0 + 127.0;   % To give the template a nice large boost for easy viewing
+right_patch = (right_template .* 6.0) .* 16.0 + 127.0;   % To give the template a nice large boost for easy viewing
 
 log_regress = zeros(3, Data.number_of_images);
 
@@ -60,12 +46,12 @@ try
     wPtr = screen;
     % a pointer to refer to the same screen used in the previous trials
     
-    left_template = left_default;
-    right_template = right_default;
+    left_template = left_template;
+    right_template = right_template;
     
     if automatic == 0
-        left_template = (left_default .* Data.contrast(current_trial));     % Match the signal:noise to the current image frame
-        right_template = (right_default .* Data.contrast(current_trial));
+        left_template = (left_template .* Data.contrast(current_trial));     % Match the signal:noise to the current image frame
+        right_template = (right_template .* Data.contrast(current_trial));
     end
     
     

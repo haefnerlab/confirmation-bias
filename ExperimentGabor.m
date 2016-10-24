@@ -120,6 +120,13 @@ if phase == 0
         
         Preliminary_Data.eye_tracker_points = {};
         
+        res = Preliminary_Data.screen_resolution;
+        Preliminary_Data.left_template = zeros(res * 5);
+        for i=1:5
+            Preliminary_Data.left_template((i-1)*res+1:i*res, (i-1)*res+1:i*res) = 1;
+        end
+        Preliminary_Data.right_template = rot90(Preliminary_Data.left_template);
+        
         
         image_collection = zeros(preliminary_trials*loops, Preliminary_Data.number_of_images, ...
             Preliminary_Data.image_length_x*Preliminary_Data.screen_resolution, Preliminary_Data.image_length_y*Preliminary_Data.screen_resolution);
