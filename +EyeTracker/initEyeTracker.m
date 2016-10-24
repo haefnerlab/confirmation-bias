@@ -18,7 +18,7 @@ tracker_info = struct(...
     ... % parameters for isFixation()
     'fixationCorrection', [0 0], ... % Add this to [gx, gy] to get corrected position (this is set automatically during getFixation)
     'fixationCenter', [resolution.width/2, resolution.height/2], ...
-    'fixationRect', [30 30], ... % true size of rectangle for fixation requirement (separate from the symbol size above)
+    'fixationRect', [10 10], ... % true size of rectangle for fixation requirement (separate from the symbol size above)
     ... % parameters for smoothing
     'smoothing_n_points', 4, ... % how far in the past to average together
     ... % parameters for calibration
