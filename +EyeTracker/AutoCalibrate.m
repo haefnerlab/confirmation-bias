@@ -42,5 +42,5 @@ success = true;
 % TODO - validate result with vpx_getcalibrationeventrecord ??
 
 Screen('OpenWindow', tracker_info.whichscreen);
-
+HideCursor(tracker_info.whichscreen);
 end
