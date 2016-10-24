@@ -21,6 +21,9 @@ end
 
 assert(any(tracker_info.calibration_n_points == [6 9 12 16]), 'calibration_n_points must be in {6, 9, 12, 16}');
 
+% Psychtoolbox can't be open while calibration runs.
+Screen('CloseAll');
+
 % Send configuration commands.
 vpx_SendCommandString(sprintf('calibration_Points %d', tracker_info.calibration_n_points));
 vpx_SendCommandString('calibration_PointLocationMethod Automatic');
@@ -37,5 +40,7 @@ pause(0.1);
 while vpx_GetStatus(vpx_CalibrationInProgress), end
 success = true;
 % TODO - validate result with vpx_getcalibrationeventrecord ??
+
+Screen('OpenWindow', tracker_info.whichscreen);
 
 end
