@@ -1,8 +1,24 @@
 function [weights, postVal, errors] = PsychophysicalKernel(data, responses, hpr_ridge, hpr_ar1, hpr_curvature, split_smoothness)
 %PSYCHOPHYSICALKERNEL Regress PK
 %
-% [ weights, errors ] = PSYCHOPHYSICALKERNEL(data, responses) where data is
-% [trials x regressors] and responses is [trials x 1] of booleans.
+% [ weights, postVal, errors ] = PSYCHOPHYSICALKERNEL(data, responses) 
+% where data is [trials x regressors] and responses is [trials x 1] of
+% booleans, computes regression weights 'weights', the value of the
+% log posterior, and the estimated errors on each weight. Errors may be NaN
+% if the Hessian is degenerate at the MAP solution.
+%
+% PSYCHOPHYSICALKERNEL(data, responses, hpr_ridge, hpr_ar1, hpr_curvature)
+% uses a prior with the given hyperparameter weights. Ridge controls the
+% magnitude of the weights (a bias towards zero, i.e. ridgre regression).
+% AR1 is a prior on the first temporal derivative of the weights,
+% encouraging them to be close to constant. Curvature is a prior on the
+% second temporal derivative of the weights, encouraging them to be smooth.
+%
+% PSYCHOPHYSICALKERNEL(..., split_smoothness) when split_smoothness is
+% true, the smoothness constraints are not enforced at the midpoint of the
+% data. This is useful when computing temporal weights for two indpendent
+% 'sensors' with concatenated data, e.g. audio data to the left and right
+% ear separately.
 
 if nargin < 6, split_smoothness = false; end
 if nargin < 5, hpr_curvature = 0; end
