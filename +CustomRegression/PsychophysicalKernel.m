@@ -1,4 +1,5 @@
-function [weights, postVal, errors] = PsychophysicalKernel(data, responses, hpr_ridge, hpr_ar1, hpr_curvature, split_smoothness)
+function [weights, postVal, errors, map_ridge, map_ar1, map_curvature] = ...
+    PsychophysicalKernel(data, responses, hpr_ridge, hpr_ar1, hpr_curvature, split_smoothness)
 %PSYCHOPHYSICALKERNEL Regress PK
 %
 % [ weights, postVal, errors ] = PSYCHOPHYSICALKERNEL(data, responses) 
@@ -8,11 +9,17 @@ function [weights, postVal, errors] = PsychophysicalKernel(data, responses, hpr_
 % if the Hessian is degenerate at the MAP solution.
 %
 % PSYCHOPHYSICALKERNEL(data, responses, hpr_ridge, hpr_ar1, hpr_curvature)
-% uses a prior with the given hyperparameter weights. Ridge controls the
-% magnitude of the weights (a bias towards zero, i.e. ridgre regression).
-% AR1 is a prior on the first temporal derivative of the weights,
-% encouraging them to be close to constant. Curvature is a prior on the
-% second temporal derivative of the weights, encouraging them to be smooth.
+% performs grid search over all combinations of the given prior
+% hyperparameters (arrays of values). Ridge controls the magnitude of the
+% weights (a bias towards zero, i.e. ridgre regression). AR1 is a prior on
+% the first temporal derivative of the weights, encouraging them to be
+% close to constant. Curvature is a prior on the second temporal derivative
+% of the weights, encouraging them to be smooth. For example,
+% PSYCHOPHYSICALKERNEL(D, R, [0 0.5 1], [0], [10 100]) will fit using all
+% of [0 0 10], [0 0 100], [.5 0 10], [.5 0 100], [1 0 10], [1 0 100] for
+% the ridge/ar1/curvature hyperparameters respectively. Three additional
+% return values contain the MAP estimate of each hyperparameter..
+% [ w, p, e, map_ridge, map_ar1, map_curvature ] = PSYCHOPHYSICALKERNEL(...)
 %
 % PSYCHOPHYSICALKERNEL(..., split_smoothness) when split_smoothness is
 % true, the smoothness constraints are not enforced at the midpoint of the
@@ -35,17 +42,47 @@ if split_smoothness, break_points = [break_points floor(p/2)]; end
 D1 = derivative_matrix(p, break_points);
 D2 = second_derivative_matrix(p, break_points);
 
-negLogPost = @(w) -log_prior(w, D1, D2, hpr_ridge, hpr_ar1, hpr_curvature) - bernoulli_log_likelihood(data, responses, w);
+% Grid search will be done over all combinations (i.e. the cartesian
+% product) of given hyperparameters.
+grid_size = [length(hpr_ridge) length(hpr_ar1) length(hpr_curvature)];
+n_gridpts = prod(grid_size);
 
-if nargout > 2
-    [weights, negPostVal, ~, ~, ~, hessian] = fminunc(negLogPost, zeros(p, 1));
-    % attempt to invert the hessian for error bars
-    errors = abs(diag(inv(hessian)));
-else
-    [weights, negPostVal] = fminunc(negLogPost, zeros(p, 1));
+% Each entry in 'results' will itself be a cell array containing the return
+% values (i.e. {weights, postval, errors, ...})
+results = cell(n_gridpts, 1);
+
+compute_error = nargout > 2;
+
+parfor i=1:n_gridpts
+    % Determine which hyperparameters to use this iteration by treating i
+    % as a 1d index into the 3d grid of ridge/ar1/curvature values.
+    [idx_ridge, idx_ar1, idx_curvature] = ind2sub(grid_size, i);
+    % Construct a loss function given these hyperparameters.
+    negLogPost = @(w) ...
+        - log_prior(w, D1, D2, hpr_ridge(idx_ridge), hpr_ar1(idx_ar1), hpr_curvature(idx_curvature)) ...
+        - bernoulli_log_likelihood(data, responses, w);
+
+    % Fit weights using 'fminunc', only computing the hessian (which is
+    % slow) if errors are requested.
+    if compute_error
+        [weights, negPostVal, ~, ~, ~, hessian] = fminunc(negLogPost, zeros(p, 1));
+        % attempt to invert the hessian for error bars - this sometimes
+        % fails silently, returning NaN.
+        errors = abs(diag(inv(hessian)));
+    else
+        [weights, negPostVal] = fminunc(negLogPost, zeros(p, 1));
+        errors = zeros(size(weights));
+    end
+    postVal = -negPostVal;
+    
+    % Record all results for this set of hyperparameters.
+    results{i} = {weights, postVal, errors, hpr_ridge(idx_ridge), hpr_ar1(idx_ar1), hpr_curvature(idx_curvature)}
 end
 
-postVal = -negPostVal;
+% Find and return the MAP result.
+postVals = cellfun(@(result) result{2}, results);
+[~, idx_map] = max(postVals);
+[weights, postVal, errors, map_ridge, map_ar1, map_curvature] = results{idx_map}{:};
 
 end
 

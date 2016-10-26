@@ -6,9 +6,9 @@ right = 0.1 * round(rand(trials, 120));
 regressors = [left right ones(trials, 1)];
 
     function compare(true_left, true_right, responses, name)
-        [regression_weights, ~, errors, ridge, ar1, curvature] = CustomRegression.PsychophysicalKernelGridSearch(regressors, responses, @CustomRegression.PsychophysicalKernel, ridges, ar1s, curvatures, 'args', true);
+        [regression_weights, ~, errors, ridge, ar1, curvature] = CustomRegression.PsychophysicalKernel(regressors, responses, ridges, ar1s, curvatures, true);
         
-        fig = figure(); hold on;
+        figure(); hold on;
         est_left = regression_weights(1:120);
         est_right = regression_weights(121:end-1);
         plot(true_left);
