@@ -41,7 +41,7 @@ all_hprs = horzcat(all_hprs{:});
 n_gridpts = size(all_hprs,1);
 fprintf('Beginning parallel search over %d gridpoints\n', n_gridpts);
 results = cell(n_gridpts, 1);
-for i=1:n_gridpts
+parfor i=1:n_gridpts
     res = cell(1, 3+n_hprs);
     args = horzcat(num2cell(all_hprs(i,:)), extra_args);
     [weights, postVal, errors] = pkfun(data, responses, args{:});
