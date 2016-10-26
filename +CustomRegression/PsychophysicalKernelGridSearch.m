@@ -9,14 +9,14 @@ function [ varargout ] = PsychophysicalKernelGridSearch( data, responses, pkfun,
 % length(hprs1)*length(hprs2)*... Output will be the outputs of pkfun, plus
 % values of the hyperparameters at the MAP grid point. For example,
 %
-% fn = PsychophysicalKernel
+% fn = @CustomRegression.PsychophysicalKernel
 % [weights, postval, errors, ridge, ar1, curvature] = ...
 % PSYCHOPHYSICALKERNELGRIDSEARCH(data, responses, fn, ridges, ar1s, curvatures)
 %
 % Other non-grid-searched arguments to the pkfun can be passed in after a
 % 'args' delimeter, e.g.
 % 
-% fn = PsychophysicalKernel
+% fn = @CustomRegression.PsychophysicalKernel
 % PsychophysicalKernelGridSearch(d, r, fn, [0 .01 .1 1], [0], [0], 'args', true)
 %
 % ..will search over values [0, 0.01, 0.1 1] for hpr_ridge, and will set
