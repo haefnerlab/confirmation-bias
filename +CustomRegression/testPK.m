@@ -9,7 +9,7 @@ right = 0.1 * round(rand(trials, 120));
 regressors = [left right ones(trials, 1)];
 
     function compare(true_left, true_right, responses, name)
-        [regression_weights, ~, errors] = CustomRegression.PsychophysicalKernel(regressors, responses, ridge, ar1, curvature, true);
+        [regression_weights, ~, errors, map_ridge, map_ar1, map_curvature] = CustomRegression.PsychophysicalKernel(regressors, responses, ridge, ar1, curvature, true);
         
         fig = figure(); hold on;
         est_left = regression_weights(1:120);
@@ -19,7 +19,7 @@ regressors = [left right ones(trials, 1)];
         errorbar(est_left, errors(1:120));
         errorbar(est_right, errors(121:240));
         title(name);
-        saveas(fig, fullfile(results_dir, sprintf('%.2f %.2f %.2f %s.fig', ridge, ar1, curvature, name)));
+        saveas(fig, fullfile(results_dir, sprintf('%.2f %.2f %.2f %s.fig', map_ridge, map_ar1, map_curvature, name)));
     end
 
 %% First test: flat both
