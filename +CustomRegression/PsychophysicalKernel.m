@@ -87,17 +87,14 @@ postVals = cellfun(@(result) result{2}, results);
 end
 
 function D = derivative_matrix(n, break_at)
-D = - eye(n) + diag(ones(n-1, 1), 1);
-D(end) = 0;
+D = full(CustomRegression.create_forward_difference_matrix([1 n], [-1 1]));
 for i=break_at
     D(i,:) = 0;
 end
 end
 
 function D = second_derivative_matrix(n, break_at)
-D = eye(n) - 2*diag(ones(n-1, 1), 1) + diag(ones(n-2, 1), 2);
-D(end) = 0;
-D(end-1, end-2:end) = 0;
+D = full(CustomRegression.create_forward_difference_matrix([1 n], [1 -2 1]));
 for i=break_at
     D(i-1, :) = 0;
     D(i, :) = 0;
