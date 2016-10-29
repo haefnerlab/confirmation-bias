@@ -130,7 +130,7 @@ if phase == 0
                 if i~=1
                     flag=flag+1;
                     if automatic == 0 && flag==1
-                        sounds(-1);
+                        sounds(-1, 1.5);
                         Screen('TextSize', wPtr, 20); % Set text size to 20
                         Screen('DrawText', wPtr, 'You have completed a block.', xc-500, yc-150, white);
                         Screen('DrawText', wPtr, 'You may take a break if you want!', xc-500, yc-100, white);
@@ -212,18 +212,18 @@ if phase == 0
             if (Preliminary_Data.choice(i) == 1 && Preliminary_Data.correct_answer(i) == 1) || (Preliminary_Data.choice(i) == 0 && Preliminary_Data.correct_answer(i) == 0)
                 Preliminary_Data.accuracy(i) = 1;	% 1 is true for accuracy
                 if automatic == 0
-                    sounds(1);              % Beep for correct when it's the person running the experiment
+                    sounds(1, 0.2);              % Beep for correct when it's the person running the experiment
                 end
                 
             elseif (Preliminary_Data.choice(i) == 1 && Preliminary_Data.correct_answer(i) == 0) || (Preliminary_Data.choice(i) == 0 && Preliminary_Data.correct_answer(i) == 1)
                 Preliminary_Data.accuracy(i) = 0;	% 0 is false for inaccuracy
                 if automatic == 0
-                    sounds(0);              % Buzz for wrong when it's the person running the experiment
+                    sounds(0, 0.2);              % Buzz for wrong when it's the person running the experiment
                 end
             elseif (isnan(Preliminary_Data.choice(i)) )
                 %Preliminary_Data.accuracy(i) = 0;	% 0 is false for inaccuracy
                 if automatic == 0
-                    sounds(0);              % Buzz for wrong when it's the person running the experiment
+                    sounds(2, 0.2);              % Buzz for 'invalid trial'
                 end    
             end
             %% Staircase method
@@ -407,7 +407,7 @@ elseif phase == 1
                 if i~=1
                     flag=flag+1;
                     if automatic == 0 && flag==1
-                        sounds(-1);
+                        sounds(-1, 1.5);
                         Screen('TextSize', wPtr, 20); % Set text size to 20
                         Screen('DrawText', wPtr, 'You finished a block.', xc-500, yc-150, white);
                         Screen('DrawText', wPtr, 'You may take a break!', xc-500, yc-100, white);
@@ -498,18 +498,18 @@ elseif phase == 1
             if (Preliminary_Data.choice(i) == 1 && Preliminary_Data.correct_answer(i) == 1) || (Preliminary_Data.choice(i) == 0 && Preliminary_Data.correct_answer(i) == 0)
                 Preliminary_Data.accuracy(i) = 1;	% 1 is true for accuracy
                 if automatic == 0
-                    sounds(1);              % Beep for correct when it's the person running the experiment
+                    sounds(1, 0.2);              % Beep for correct when it's the person running the experiment
                 end
                 
             elseif (Preliminary_Data.choice(i) == 1 && Preliminary_Data.correct_answer(i) == 0) || (Preliminary_Data.choice(i) == 0 && Preliminary_Data.correct_answer(i) == 1)
                 Preliminary_Data.accuracy(i) = 0;	% 0 is false for inaccuracy
                 if automatic == 0
-                    sounds(0);              % Buzz for wrong when it's the person running the experiment
+                    sounds(0, 0.2);              % Buzz for wrong when it's the person running the experiment
                 end
             elseif (isnan(Preliminary_Data.choice(i)) )
                 %Preliminary_Data.accuracy(i) = 0;	% 0 is false for inaccuracy
                 if automatic == 0
-                    sounds(0);              % Buzz for wrong when it's the person running the experiment
+                    sounds(2, 0.2);              % Buzz for wrong when it's the person running the experiment
                 end
             end
             %% Staircase & Accuracy

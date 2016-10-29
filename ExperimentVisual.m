@@ -151,7 +151,7 @@ if automatic == 0     % If automatic == 1, skip the preliminary phase since it's
             if ((I.choice == 1 && Preliminary_Data.correct_answer(i) == 1)  ||  (I.choice == 0 && Preliminary_Data.correct_answer(i) == 0))
                 Preliminary_Data.accuracy(i) = 1;	% 1 is true for accuracy
                 if automatic == 0
-                    sounds(1);              % Beep for correct when it's the person running the experiment
+                    sounds(1, 0.2);              % Beep for correct when it's the person running the experiment
                 end
                 move_on = move_on + 1;	% If right, we increment move_on and later check it to decrease contrast level
                 if previous_trial == 0    % If the subject got the last trial wrong
@@ -161,7 +161,7 @@ if automatic == 0     % If automatic == 1, skip the preliminary phase since it's
             elseif ((I.choice == 1 && Preliminary_Data.correct_answer(i) == 0)  ||  (I.choice == 0 && Preliminary_Data.correct_answer(i) == 1))
                 Preliminary_Data.accuracy(i) = 0;	% 0 is false for inaccuracy
                 if automatic == 0
-                    sounds(0);              % Buzz for wrong when it's the person running the experiment
+                    sounds(0, 0.2);              % Buzz for wrong when it's the person running the experiment
                 end
                 move_on = 0;            % if wrong, we reset move_on to 0 and later increase the contrast level
                 if previous_trial == 1    % if the subject got the last trial right
@@ -404,12 +404,12 @@ for i = 1:test_trials
     if ((I.choice == 1 && Test_Data.correct_answer(i) == 1)  ||  (I.choice == 0 && Test_Data.correct_answer(i) == 0))
         Test_Data.accuracy(i) = 1;	% 1 is true for accuracy
         if automatic == 0   % only sound when there's a subject
-            sounds(1);              % Beep for correct
+            sounds(1, 0.2);              % Beep for correct
         end
     elseif ((I.choice == 1 && Test_Data.correct_answer(i) == 0)  ||  (I.choice == 0 && Test_Data.correct_answer(i) == 1))
         Test_Data.accuracy(i) = 0;	% 0 is false for inaccuracy
         if automatic == 0   % only sound when there's a subject
-            sounds(0);              % Buzz for wrong
+            sounds(0, 0.2);              % Buzz for wrong
         end
     end
     
