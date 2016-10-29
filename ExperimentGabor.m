@@ -37,8 +37,8 @@ Screen('Preference', 'SkipSyncTests', 0); % Opens Screen
 white = [255 255 255];          % Sets the color to be white
 black = [0 0 0];                % Sets the color to be black
 
-load('ColorCal2MeasurementsNoHotMirror.mat');
-gammaTable = gammaTable2;
+% load('ColorCal2MeasurementsNoHotMirror.mat');
+% gammaTable = gammaTable2;
 % Screen('LoadNormalizedGammaTable', win, gammaTable*[1 1 1]);
 [wPtr, ~] = Screen('OpenWindow', whichScreen, black, [], 32); % Opens window, sets background as black, sets screensize
 %[wPtr, ~] = Screen('OpenWindow', whichScreen, black, [xc-900 yc-500 xc+900 yc+500], 32);
@@ -47,7 +47,7 @@ gammaTable = gammaTable2;
 
 tracker_info = EyeTracker.initEyeTracker(whichScreen, ...
     'fixationSymbol', 'b', ...
-    'fixationCenter', [xc, yc+150], ...
+    'fixationCenter', [xc, ScreenSize(4)-50], ...
     'fixationSymbolSize', [30 30], ...
     varargin{:});
 

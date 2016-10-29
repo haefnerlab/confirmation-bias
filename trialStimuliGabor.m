@@ -91,7 +91,7 @@ try
     
     image_properties.log_odds = log_odds / Data.number_of_images;
     
-    stimulus_bbox = ptbCenteredRect([xc, yc], size(image));
+    stimulus_bbox = ptbCenteredRect([xc, size(image,1)], size(image));
     
     Screen('FillRect', wPtr, 127.0);        % Make the background gray
     [~, stimOnsetTime] = Screen('Flip', wPtr);
