@@ -51,7 +51,7 @@ results = struct(...
     'walk', zeros(trials, frames+1));
 
 % Anonymous function to create mixture-of-gaussians p(x|D)
-p_x_D = @(D) [+D var_x p_x; -D var_x 1-p_x];
+p_x_D = @(D) [+D sqrt(var_x) p_x; -D sqrt(var_x) 1-p_x];
 p_x_Dp = p_x_D(+1); % 'p' for plus
 p_x_Dm = p_x_D(-1); % 'm' for minus
 
@@ -59,7 +59,7 @@ p_x_Dm = p_x_D(-1); % 'm' for minus
 
     function x = sample_x(e, D)
         mog_prior = p_x_D(D);
-        likelihood = [e, var_e, 1];
+        likelihood = [e, sqrt(var_e), 1];
         x = mogsample(mogprod(mog_prior, likelihood));
     end
 
@@ -119,7 +119,7 @@ end
 % weight at each mode. A distribution with N modes is represented by an Nx3
 % matrix:
 %
-%   mog = [mu_1 var_1 pi_1; ...; mu_n var_n, pi_n]
+%   mog = [mu_1 sigma_1 pi_1; ...; mu_n sigma_n, pi_n]
 
 function x = mogsample(mog)
 % first choose a mode
@@ -137,12 +137,12 @@ prod = zeros(modes_out, 3);
 k = 1;
 for i=1:modes1
     for j=1:modes2
-        mu_i = d1(i,1); var_i = d1(i,2); pi_i = d1(i,3);
-        mu_j = d2(j,1); var_j = d2(j,2); pi_j = d2(j,3);
+        mu_i = d1(i,1); var_i = d1(i,2)^2; pi_i = d1(i,3);
+        mu_j = d2(j,1); var_j = d2(j,2)^2; pi_j = d2(j,3);
         mu_k = (var_i * mu_j + var_j * mu_i) / (var_i + var_j);
         var_k = (var_i * var_j) / (var_i + var_j);
         pi_k = pi_i * pi_j * normpdf(mu_i, mu_j, sqrt(var_i + var_j));
-        prod(k, :) = [mu_k, var_k, pi_k];
+        prod(k, :) = [mu_k, sqrt(var_k), pi_k];
         k = k+1;
     end
 end
