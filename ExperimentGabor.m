@@ -41,7 +41,6 @@ black = [0 0 0];                % Sets the color to be black
 %[wPtr, ~] = Screen('OpenWindow', whichScreen, black, [xc-900 yc-500 xc+900 yc+500], 32);
 % Creates a small window instead of using the full screen
 % Mainly to allow screenshots
-Screen('LoadNormalizedGammaTable', wPtr, gammaTable*[1 1 1]);
 
 if ~isempty(settings.gammaTableFile)
     gtdata = load(settings.gammaTableFile);
@@ -63,7 +62,7 @@ exitKey = KbName(settings.keyExit);
 HideCursor(whichScreen)
 if phase == 0
     
-%     EyeTracker.AutoCalibrate(tracker_info);
+    EyeTracker.AutoCalibrate(tracker_info);
     
     fileName = fullfile(directory, 'RawData', [subjectID '-GaborDataContrast.mat']); % Set the desired filename of the experimental data
     if ~exist(fileName, 'file') % Check to see if the subject has already done the preliminary phase or not
