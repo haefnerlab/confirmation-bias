@@ -18,32 +18,34 @@ end
 
 % directory allows this code to be able to create and save files of the subject data on any computer
 
+settings = LoadSettings(directory);
 
 %% Set Up the Initialization of the expeirment
 cd([directory 'Code/']) % Set the current directory
 directory = [directory 'RawData/'];  % Directory to save the data and files to
 commandwindow; % Moves the cursor to the commandwindow
 
-InitializeMatlabOpenGL
+if settings.useOpenGL, InitializeMatlabOpenGL; end
 
 % Screen set up
-whichScreen = 0; %allow to choose the display if there's more than one
+whichScreen = settings.whichScreen; %allow to choose the display if there's more than one
 ResolutionScreen = Screen('Resolution', whichScreen); % Gets screen resolution
 ScreenSize = [0 0 ResolutionScreen.width ResolutionScreen.height]; % Sets full screen
 xc = ScreenSize(3)/2; %	Gets the middle of the horizontal axis
 yc = ScreenSize(4)/2; % Gets the middle of the vertical axis
-Screen('Preference', 'SkipSyncTests', 0); % Opens Screen
+Screen('Preference', 'SkipSyncTests', settings.ptbSkipSyncTests); % Opens Screen
 
 white = [255 255 255];          % Sets the color to be white
 black = [0 0 0];                % Sets the color to be black
-
-% load('ColorCal2MeasurementsNoHotMirror.mat');
-% gammaTable = gammaTable2;
-% Screen('LoadNormalizedGammaTable', win, gammaTable*[1 1 1]);
 [wPtr, ~] = Screen('OpenWindow', whichScreen, black, [], 32); % Opens window, sets background as black, sets screensize
 %[wPtr, ~] = Screen('OpenWindow', whichScreen, black, [xc-900 yc-500 xc+900 yc+500], 32);
 % Creates a small window instead of using the full screen
 % Mainly to allow screenshots
+
+if ~isempty(settings.gammaTableFile)
+    gtdata = load(settings.gammaTableFile);
+    Screen('LoadNormalizedGammaTable', wPtr, gtdata.(settings.gammaTable)*[1 1 1]);
+end
 
 tracker_info = EyeTracker.initEyeTracker(whichScreen, ...
     'fixationSymbol', 'b', ...
@@ -51,16 +53,10 @@ tracker_info = EyeTracker.initEyeTracker(whichScreen, ...
     'fixationSymbolSize', [30 30], ...
     varargin{:});
 
-%Screen('LoadNormalizedGammaTable', wPtr, gammaTable*[1 1 1]);
-
 % Set up keyboard functions
 KbName('UnifyKeyNames');
-spaceKey = KbName('space');
-escapeKey = KbName('ESCAPE');
-left = KbName('leftArrow');
-right = KbName('rightArrow');
-up = KbName('upArrow');
-down = KbName('downArrow');
+goKey = KbName(settings.keyGo);
+exitKey = KbName(settings.keyExit);
 
 % This is the first preliminary phase with a constant ratio (20, 4) and finding the threshold contrast
 HideCursor(whichScreen)
@@ -77,10 +73,10 @@ if phase == 0
 		Screen('DrawText', wPtr, 'You will have to decide which image appeared more frequently.', xc-500, yc, white);
 		Screen('DrawText', wPtr, 'Select the image positioned to the left or right by pressing the corresponding arrow key.', xc-500, yc+50, white);
 		Screen('DrawText', wPtr, 'Ask the researcher if you need further clarification.', xc-500, yc+100, white);
-		Screen('DrawText', wPtr, 'Press the space bar to begin.', xc-500, yc+150, white);    % Display text colored white
+		Screen('DrawText', wPtr, sprintf('Press %s to begin.', settings.goKeyName), xc-500, yc+150, white);    % Display text colored white
 		Screen('Flip', wPtr); % Function to flip to the next screen image
 		[~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
-		while ~keyCode(spaceKey)        % While loop to wait fo rhte spacebar to be pressed
+		while ~keyCode(goKey)        % While loop to wait for the spacebar to be pressed
 			[~, ~, keyCode] = KbCheck;
 		end
 		Screen('Flip', wPtr); % Function to flip to the next screen image
@@ -152,11 +148,11 @@ if phase == 0
                         Screen('TextSize', wPtr, 20); % Set text size to 20
                         Screen('DrawText', wPtr, 'You have completed a block.', xc-500, yc-150, white);
                         Screen('DrawText', wPtr, 'You may take a break if you want!', xc-500, yc-100, white);
-                        Screen('DrawText', wPtr, 'Press the spacebar whenever you are ready again.', xc-500, yc-50, white);
+                        Screen('DrawText', wPtr, sprintf('Press %s whenever you are ready again.', settings.goKeyName), xc-500, yc-50, white);
                         
                         Screen('Flip', wPtr); % Function to flip to the next screen image
                         [~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
-                        while ~keyCode(spaceKey)        % While loop to wait fo rhte spacebar to be pressed
+                        while ~keyCode(goKey)        % While loop to wait for the spacebar to be pressed
                             [~, ~, keyCode] = KbCheck;
                         end
                         Screen('Flip', wPtr);
@@ -215,7 +211,7 @@ if phase == 0
             % Pass in the contrast level, all of the images, screen being
             % used, subject ID, the struct with all of the data, and the
             % fact it's the person or computer running the experiment
-            [I, eye_tracker_points, broke_fixation] = trialStimuliGabor(i, image_array, wPtr, subjectID, Preliminary_Data, automatic, phase, directory, tracker_info);
+            [I, eye_tracker_points, broke_fixation] = trialStimuliGabor(i, image_array, wPtr, subjectID, Preliminary_Data, automatic, phase, directory, tracker_info, settings);
             
             if broke_fixation
                 Screen('Flip', wPtr);
@@ -353,10 +349,10 @@ elseif phase == 1
 		Screen('DrawText', wPtr, 'You will have to decide which image appeared more frequently.', xc-500, yc, white);
 		Screen('DrawText', wPtr, 'Select the image positioned to the left or right by pressing the corresponding arrow key.', xc-500, yc+50, white);
 		Screen('DrawText', wPtr, 'Ask the researcher if you need further clarification.', xc-500, yc+100, white);
-		Screen('DrawText', wPtr, 'Press the space bar to begin.', xc-500, yc+150, white);    % Display text colored white
+		Screen('DrawText', wPtr, sprintf('Press %s to begin.', settings.goKeyName), xc-500, yc+150, white);    % Display text colored white
 		Screen('Flip', wPtr); % Function to flip to the next screen image
 		[~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
-		while ~keyCode(spaceKey)        % While loop to wait fo rhte spacebar to be pressed
+		while ~keyCode(goKey)        % While loop to wait for the spacebar to be pressed
 			[~, ~, keyCode] = KbCheck;
 		end
 		Screen('Flip', wPtr); % Function to flip to the next screen image
@@ -422,11 +418,11 @@ elseif phase == 1
                         Screen('TextSize', wPtr, 20); % Set text size to 20
                         Screen('DrawText', wPtr, 'You finished a block.', xc-500, yc-150, white);
                         Screen('DrawText', wPtr, 'You may take a break!', xc-500, yc-100, white);
-                        Screen('DrawText', wPtr, 'Press the spacebar whenever you are ready again.', xc-500, yc-50, white);
+                        Screen('DrawText', wPtr, sprintf('Press %s whenever you are ready again.', settings.goKeyName), xc-500, yc-50, white);
                         
                         Screen('Flip', wPtr); % Function to flip to the next screen image
                         [~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
-                        while ~keyCode(spaceKey)        % While loop to wait fo rhte spacebar to be pressed
+                        while ~keyCode(goKey)        % While loop to wait for the spacebar to be pressed
                             [~, ~, keyCode] = KbCheck;
                         end
                         Screen('Flip', wPtr);
@@ -483,7 +479,7 @@ elseif phase == 1
             % Pass in the contrast level, all of the images, screen being
             % used, subject ID, the struct with all of the data, and the
             % fact it's the person or computer running the experiment
-            I = trialStimuliGabor(i, image_array, wPtr, subjectID, Preliminary_Data, automatic, phase, directory);
+            I = trialStimuliGabor(i, image_array, wPtr, subjectID, Preliminary_Data, automatic, phase, directory, tracker_info, settings);
             
             % The staircase is based on the actual click rate, not on the underlying number of clicks each ear hears
             if sum(Preliminary_Data.order_of_orientations(i,:)) > Preliminary_Data.number_of_images/2

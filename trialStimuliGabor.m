@@ -1,4 +1,4 @@
-function [image_properties, eye_tracker_points, broke_fixation] = trialStimuliGabor(current_trial, image_array, screen, subjectID, Data, automatic, phase, directory, tracker_info)
+function [image_properties, eye_tracker_points, broke_fixation] = trialStimuliGabor(current_trial, image_array, screen, subjectID, Data, automatic, phase, directory, tracker_info, settings)
 % trialStimuli displays the animation of several gabor patches in quick
 % succession to the subject, or runs through a single trial of the
 % experiment.
@@ -21,12 +21,11 @@ right_patch = (right_template .* 6.0) .* 16.0 + 127.0;   % To give the template 
 
 log_regress = zeros(3, Data.number_of_images);
 
-whichScreen = 0; %allow to choose the display if there's more than one
+whichScreen = settings.whichScreen; %allow to choose the display if there's more than one
 ResolutionScreen = Screen('Resolution', whichScreen); % Gets screen res
 ScreenSize = [0 0 ResolutionScreen.width ResolutionScreen.height]; % Sets full screen
 xc = ScreenSize(3)/2; %	Gets the middle of the horizontal axis
 yc = ScreenSize(4)/2; % Gets the middle of the vertical axis
-Screen('Preference', 'SkipSyncTests', 0); % Opens Screen
 
 white = [255 255 255];          % Sets the color to be white
 black = [0 0 0];
@@ -34,21 +33,15 @@ gray = [127 127 127];
 
 % Set up variables for keyboard functions
 KbName('UnifyKeyNames');
-spaceKey = KbName('space');
-escapeKey = KbName('ESCAPE');
-left = KbName('leftArrow');
-right = KbName('rightArrow');
-up = KbName('upArrow');
-down = KbName('downArrow');
+exitKey = KbName(settings.keyExit);
+leftKey = KbName(settings.keyLeft);
+rightKey = KbName(settings.keyRight);
 
 try
     
     wPtr = screen;
     % a pointer to refer to the same screen used in the previous trials
-    
-    left_template = left_template;
-    right_template = right_template;
-    
+
     if automatic == 0
         left_template = (left_template .* Data.contrast(current_trial));     % Match the signal:noise to the current image frame
         right_template = (right_template .* Data.contrast(current_trial));
@@ -148,9 +141,9 @@ try
         
         tstart=tic;
         [~,~,keyCode] = KbCheck;
-        while ~keyCode(left) && ~keyCode(right) && toc(tstart)<=1 % wait for press
+        while ~keyCode(leftKey) && ~keyCode(rightKey) && toc(tstart)<=1 % wait for press
             [~,~,keyCode] = KbCheck;
-            if keyCode(escapeKey)
+            if keyCode(exitKey)
                 
                 if ~exist(directory, 'dir')
                     mkdir(directory);
@@ -171,9 +164,9 @@ try
         
         image_properties.reaction = (offset - onset)*1000;  % Records reaction time in ms times a thousand
         
-        if keyCode(left)% == KbCheck
+        if keyCode(leftKey)% == KbCheck
             image_properties.choice = 1;        % The subject chose left orientation
-        elseif keyCode(right)% == KbCheck
+        elseif keyCode(rightKey)% == KbCheck
             image_properties.choice = 0;        % The subject chose right orientation
         else
             image_properties.choice = nan;

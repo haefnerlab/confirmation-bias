@@ -1,4 +1,4 @@
-function image_properties = trialStimuliVisual(screen, subjectID, Data, automatic, directory)
+function image_properties = trialStimuliVisual(screen, subjectID, Data, automatic, directory, settings)
 % trialStimuli displays the animation of several gabor patches in quick
 % succession to the subject, or runs through a single trial of the
 % experiment.
@@ -10,24 +10,20 @@ directory = [directory 'RawData'];    % Directory to save the data and files to
 screen_frame = Data.screen_frame * .01667; % This is because the refresh rate is 60 Hz
 % This tells me how many ms each image will be on the screen
 
-whichScreen = 0; %allow to choose the display if there's more than one
+whichScreen = settings.whichScreen; %allow to choose the display if there's more than one
 ResolutionScreen = Screen('Resolution', whichScreen); % Gets screen resolution
 ScreenSize = [0 0 ResolutionScreen.width ResolutionScreen.height]; % Sets full screen
 xc = ScreenSize(3)/2; %	Gets the middle of the horizontal axis
 yc = ScreenSize(4)/2; % Gets the middle of the vertical axis
-Screen('Preference', 'SkipSyncTests', 0); % Opens Screen
 
 white = [255 255 255];          % Sets the color to be white
 black = [0 0 0];
 
 % Set up variables for keyboard functions
 KbName('UnifyKeyNames');
-spaceKey = KbName('space');
-escapeKey = KbName('ESCAPE');
-left = KbName('leftArrow');
-right = KbName('rightArrow');
-up = KbName('upArrow');
-down = KbName('downArrow');
+exitKey = KbName(settings.keyExit);
+leftKey = KbName(settings.keyLeft);
+rightKey = KbName(settings.keyRight);
 
 try
     
@@ -127,9 +123,9 @@ try
         onset = Screen('Flip', wPtr);
         
         [~,~,keyCode] = KbCheck;
-        while ~keyCode(left) && ~keyCode(right) % wait for press
+        while ~keyCode(leftKey) && ~keyCode(rightKey) % wait for press
             [~,~,keyCode] = KbCheck;
-            if keyCode(escapeKey)
+            if keyCode(exitKey)
                 
                 if ~exist(directory, 'dir')
                     mkdir(directory);
@@ -149,9 +145,9 @@ try
         
         image_properties.reaction = (offset - onset)*1000;  % Records reaction time in ms times a thousand
         
-        if keyCode(left) == KbCheck
+        if keyCode(leftKey) == KbCheck
             image_properties.choice = 1;        % The subject chose the left image
-        elseif keyCode(right) == KbCheck
+        elseif keyCode(rightKey) == KbCheck
             image_properties.choice = 0;        % The subject chose the right image
         end
         

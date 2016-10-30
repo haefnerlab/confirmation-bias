@@ -93,7 +93,7 @@ cd([directory 'Code/']) % Set the current directory
             
             % The correct anxwer is based on underlying click rate, not on the actual number of clicks each ear hears
             wPtr=1;
-            I = trialStimuliAuditory(wPtr, subjectID, Preliminary_Data, i, automatic, phase, add_noise, directory);
+            I = trialStimuliAuditory(wPtr, subjectID, Preliminary_Data, i, automatic, phase, add_noise, directory, settings);
             
             Preliminary_Data.reaction_time(i) = I.reaction;
             Preliminary_Data.choice(i) = I.choice;     % If 1, subject chose left, and if 0, the subject chose right

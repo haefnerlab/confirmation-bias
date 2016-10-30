@@ -26,21 +26,22 @@ end
 
 % directory allows this code to be able to create and save files of the subject data on any computer
 
+settings = LoadSettings(directory);
+
 
 %% Set Up the Initialization of the expeirment
 cd([directory 'Code/']) % Set the current directory
 commandwindow; % Moves the cursor to the commandwindow
 
-InitializeMatlabOpenGL
-
+if settings.useOpenGL, InitializeMatlabOpenGL; end
 
 % Screen set up
-whichScreen = 0; %allow to choose the display if there's more than one
+whichScreen = settings.whichScreen; %allow to choose the display if there's more than one
 ResolutionScreen = Screen('Resolution', whichScreen); % Gets screen resolution
 ScreenSize = [0 0 ResolutionScreen.width ResolutionScreen.height]; % Sets full screen
 xc = ScreenSize(3)/2; %	Gets the middle of the horizontal axis
 yc = ScreenSize(4)/2; % Gets the middle of the vertical axis
-Screen('Preference', 'SkipSyncTests', 0); % Opens Screen
+Screen('Preference', 'SkipSyncTests', settings.ptbSkipSyncTests); % Opens Screen
 
 white = [255 255 255];          % Sets the color to be white
 black = [0 0 0];                % Sets the color to be black
@@ -52,12 +53,8 @@ black = [0 0 0];                % Sets the color to be black
 
 % Set up keyboard functions
 KbName('UnifyKeyNames');
-spaceKey = KbName('space');
-escapeKey = KbName('ESCAPE');
-left = KbName('leftArrow');
-right = KbName('rightArrow');
-up = KbName('upArrow');
-down = KbName('downArrow');
+goKey = KbName(settings.keyGo);
+exitKey = KbName(settings.keyExit);
 
 % This is the first preliminary phase with a constant ratio (20, 4) and finding the threshold volume
 
@@ -72,10 +69,10 @@ if phase == 0
         Screen('DrawText', wPtr, 'Select the arrow key corresponding to the answer within 1 sec after trial ends.', xc-500, yc-50, white);
         Screen('DrawText', wPtr, 'A high pitched beep means correct, a low pitched beep means incorrect.', xc-500, yc, white);
         Screen('DrawText', wPtr, 'Ask the researcher if you need further clarification.', xc-500, yc+50, white);
-        Screen('DrawText', wPtr, 'Press the spacebar to begin.', xc-500, yc+100, white);
+        Screen('DrawText', wPtr, sprintf('Press %s to begin.', settings.goKeyName), xc-500, yc+100, white);
         Screen('Flip', wPtr); % Function to flip to the next screen image
         [~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
-        while ~keyCode(spaceKey)        % While loop to wait fo rhte spacebar to be pressed
+        while ~keyCode(goKey)        % While loop to wait for the spacebar to be pressed
             [~, ~, keyCode] = KbCheck;
         end
         Screen('Flip', wPtr); % Function to flip to the next screen image
@@ -134,11 +131,11 @@ if phase == 0
                         Screen('TextSize', wPtr, 20); % Set text size to 20
                         Screen('DrawText', wPtr, 'You have completed a block.', xc-500, yc-150, white);
                         Screen('DrawText', wPtr, 'You may take a break if you want!', xc-500, yc-100, white);
-                        Screen('DrawText', wPtr, 'Press the spacebar whenever you are ready again.', xc-500, yc-50, white);
+                        Screen('DrawText', wPtr, sprintf('Press %s whenever you are ready again.', settings.goKeyName), xc-500, yc-50, white);
                         
                         Screen('Flip', wPtr); % Function to flip to the next screen image
                         [~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
-                        while ~keyCode(spaceKey)        % While loop to wait fo rhte spacebar to be pressed
+                        while ~keyCode(goKey)        % While loop to wait for the spacebar to be pressed
                             [~, ~, keyCode] = KbCheck;
                         end
                         Screen('Flip', wPtr);
@@ -187,7 +184,7 @@ if phase == 0
             % Pass in the screen being used, subject ID, the struct with
             % all of the data, the trial numbers, and the fact it's the person or computer
             % running the experiment
-            I = trialStimuliAuditory(wPtr, subjectID, Preliminary_Data, i, automatic, phase, add_noise, directory);
+            I = trialStimuliAuditory(wPtr, subjectID, Preliminary_Data, i, automatic, phase, add_noise, directory, settings);
             
             Preliminary_Data.reaction_time(i) = I.reaction;
             Preliminary_Data.choice(i) = I.choice;     % If 1, subject chose left, and if 0, the subject chose right
@@ -349,10 +346,10 @@ elseif phase == 1
         Screen('DrawText', wPtr, 'Select the arrow key corresponding to the answer within 2 secs after trial ends.', xc-500, yc-50, white);
         Screen('DrawText', wPtr, 'A high pitched beep means correct, a low pitched beep means incorrect.', xc-500, yc, white);
         Screen('DrawText', wPtr, 'Ask the researcher if you need further clarification.', xc-500, yc+50, white);
-        Screen('DrawText', wPtr, 'Press the spacebar to begin.', xc-500, yc+100, white);
+        Screen('DrawText', wPtr, sprintf('Press %s to begin.', settings.goKeyName), xc-500, yc+100, white);
         Screen('Flip', wPtr); % Function to flip to the next screen image
         [~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
-        while ~keyCode(spaceKey)        % While loop to wait fo rhte spacebar to be pressed
+        while ~keyCode(goKey)        % While loop to wait for the spacebar to be pressed
             [~, ~, keyCode] = KbCheck;
         end
         Screen('Flip', wPtr); % Function to flip to the next screen image
@@ -411,11 +408,11 @@ elseif phase == 1
                         Screen('TextSize', wPtr, 20); % Set text size to 20
                         Screen('DrawText', wPtr, 'You finished a block.', xc-500, yc-150, white);
                         Screen('DrawText', wPtr, 'You may take a break!', xc-500, yc-100, white);
-                        Screen('DrawText', wPtr, 'Press the spacebar whenever you are ready again.', xc-500, yc-50, white);
+                        Screen('DrawText', wPtr, sprintf('Press %s whenever you are ready again.', settings.goKeyName), xc-500, yc-50, white);
                         
                         Screen('Flip', wPtr); % Function to flip to the next screen image
                         [~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
-                        while ~keyCode(spaceKey)        % While loop to wait fo rhte spacebar to be pressed
+                        while ~keyCode(goKey)        % While loop to wait for the spacebar to be pressed
                             [~, ~, keyCode] = KbCheck;
                         end
                         Screen('Flip', wPtr);
@@ -461,7 +458,7 @@ elseif phase == 1
             % Pass in the screen being used, subject ID, the struct with
             % all of the data, the trial numbers, and the fact it's the person or computer
             % running the experiment
-            I = trialStimuliAuditory(wPtr, subjectID, Preliminary_Data, i, automatic, phase, add_noise, directory);
+            I = trialStimuliAuditory(wPtr, subjectID, Preliminary_Data, i, automatic, phase, add_noise, directory, settings);
             
             % The correct anxwer is based on underlying click rate, not on the actual number of clicks each ear hears
             if Preliminary_Data.average_clicks(1,i) > Preliminary_Data.average_clicks(2,i)

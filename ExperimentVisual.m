@@ -17,21 +17,22 @@ end
 
 % directory allows this code to be able to create and save files of the subject data on any computer
 
+settings = LoadSettings(directory);
 
 %% Set Up the Initialization of the expeirment
 cd([directory 'Code/']) % Set the current directory
 directory = [directory 'RawData/'];  % Directory to save the data and files to
 commandwindow; % Moves the cursor to the commandwindow
 
-InitializeMatlabOpenGL
+if settings.useOpenGL, InitializeMatlabOpenGL; end
 
 % Screen set up
-whichScreen = 0; %allow to choose the display if there's more than one
+whichScreen = settings.whichScreen; %allow to choose the display if there's more than one
 ResolutionScreen = Screen('Resolution', whichScreen); % Gets screen resolution
 ScreenSize = [0 0 ResolutionScreen.width ResolutionScreen.height]; % Sets full screen
 xc = ScreenSize(3)/2; %	Gets the middle of the horizontal axis
 yc = ScreenSize(4)/2; % Gets the middle of the vertical axis
-Screen('Preference', 'SkipSyncTests', 0); % Opens Screen
+Screen('Preference', 'SkipSyncTests', settings.ptbSkipSyncTests); % Opens Screen
 
 white = [255 255 255];          % Sets the color to be white
 black = [0 0 0];                % Sets the color to be black
@@ -43,14 +44,8 @@ black = [0 0 0];                % Sets the color to be black
 
 % Set up keyboard functions
 KbName('UnifyKeyNames');
-spaceKey = KbName('space');
-escapeKey = KbName('ESCAPE');
-%% Instruction Screen
-left = KbName('leftArrow');
-right = KbName('rightArrow');
-up = KbName('upArrow');
-down = KbName('downArrow');
-
+goKey = KbName(settings.keyGo);
+exitKey = KbName(settings.keyExit);
 
 Screen('TextSize', wPtr, 20); % Set text size to 20
 Screen('DrawText', wPtr, 'You will see two bars flashing very quickly in the middle of the screen with a background of static.', xc-500, yc-150, white);
@@ -58,10 +53,10 @@ Screen('DrawText', wPtr, 'You are required to keep your eyes on the bull''s eye 
 Screen('DrawText', wPtr, 'Then you will be asked which side had the more frequently appearing bar.', xc-500, yc-50, white);
 Screen('DrawText', wPtr, 'Select the left or right side by pressing the corresponding arrow key.', xc-500, yc, white);
 Screen('DrawText', wPtr, 'Ask the researcher if you need further clarification.', xc-500, yc+50, white);
-Screen('DrawText', wPtr, 'Press the spacebar to begin.', xc-500, yc+100, white);    % Display text colored white
+Screen('DrawText', wPtr, sprintf('Press %s to begin.', settings.goKeyName), xc-500, yc+100, white);    % Display text colored white
 Screen('Flip', wPtr); % Function to flip to the next screen image
 [~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
-while ~keyCode(spaceKey)        % While loop to wait fo rhte spacebar to be pressed
+while ~keyCode(goKey)        % While loop to wait for the spacebar to be pressed
     [~, ~, keyCode] = KbCheck;
 end
 Screen('Flip', wPtr); % Function to flip to the next screen image
@@ -139,7 +134,7 @@ if automatic == 0     % If automatic == 1, skip the preliminary phase since it's
             % Pass in the screen being used, subject ID, the struct with
             % all of the data, and the fact it's the person or computer
             % running the experiment
-            I = trialStimuliVisual(wPtr, subjectID, Preliminary_Data, automatic, directory);
+            I = trialStimuliVisual(wPtr, subjectID, Preliminary_Data, automatic, directory, settings);
             
             
             Preliminary_Data.reaction_time(i) = I.reaction;
@@ -244,10 +239,10 @@ Screen('DrawText', wPtr, 'You are required to keep your eyes on the bull''s eye 
 Screen('DrawText', wPtr, 'Then you will be asked which side had the more frequently appearing bar.', xc-500, yc-50, white);
 Screen('DrawText', wPtr, 'Select the left or right side by pressing the corresponding arrow key.', xc-500, yc, white);
 Screen('DrawText', wPtr, 'Ask the researcher if you need further clarification.', xc-500, yc+50, white);
-Screen('DrawText', wPtr, 'Press the spacebar to begin.', xc-500, yc+100, white);    % Display text colored white
+Screen('DrawText', wPtr, sprintf('Press %s to begin.', settings.goKeyName), xc-500, yc+100, white);    % Display text colored white
 Screen('Flip', wPtr); % Function to flip to the next screen image
 [~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
-while ~keyCode(spaceKey)        % While loop to wait fo rhte spacebar to be pressed
+while ~keyCode(goKey)        % While loop to wait for the spacebar to be pressed
     [~, ~, keyCode] = KbCheck;
 end
 Screen('Flip', wPtr); % Function to flip to the next screen image
@@ -282,10 +277,10 @@ for i = 1:test_trials
 		Screen('DrawText', wPtr, 'You are now halfway through the experiment.', xc-500, yc-100, white);
 		Screen('DrawText', wPtr, 'While the task will be identical as before,', xc-500, yc-50, white);
 		Screen('DrawText', wPtr, 'the brightness of the bar will be much lower and harder to see.', xc-500, yc, white);
-		Screen('DrawText', wPtr, 'Press the spacebar to continue.', xc-500, yc+50, white);
+		Screen('DrawText', wPtr, sprintf('Press %s to continue.', settings.goKeyName), xc-500, yc+50, white);
 		Screen('Flip', wPtr); % Function to flip to the next screen image
 		[~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
-		while ~keyCode(spaceKey)        % While loop to wait fo rhte spacebar to be pressed
+		while ~keyCode(goKey)        % While loop to wait for the spacebar to be pressed
 			[~, ~, keyCode] = KbCheck;
 		end
 		Screen('Flip', wPtr); % Function to flip to the next screen image
@@ -393,7 +388,7 @@ for i = 1:test_trials
     % Pass in the screen being used, subject ID, the struct with
     % all of the data, and the fact it's the person or computer
     % running the experiment
-    I = trialStimuliVisual(wPtr, subjectID, Test_Data, automatic, directory);
+    I = trialStimuliVisual(wPtr, subjectID, Test_Data, automatic, directory, settings);
     
     Test_Data.reaction_time(i) = I.reaction;
     
