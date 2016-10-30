@@ -69,7 +69,7 @@ if automatic == 0     % If automatic == 1, skip the preliminary phase since it's
 		Screen('DrawText', wPtr, 'You are required to keep your eyes on the bull''s eye target below the images.', xc-500, yc-100, white);
 		Screen('DrawText', wPtr, 'Then you will be shown two images.', xc-500, yc-50, white);
 		Screen('DrawText', wPtr, 'You will have to decide which image appeared more frequently.', xc-500, yc, white);
-		Screen('DrawText', wPtr, 'Select the image positioned to the left or right by pressing the corresponding arrow key.', xc-500, yc+50, white);
+		Screen('DrawText', wPtr, sprintf('Select the image positioned to the left or right by pressing %s or %s respectively', settings.keyLeftName, settings.keyRightName), xc-500, yc+50, white);
 		Screen('DrawText', wPtr, 'Ask the researcher if you need further clarification.', xc-500, yc+100, white);
 		Screen('DrawText', wPtr, 'Press the space bar to begin.', xc-500, yc+150, white);    % Display text colored white
 		Screen('Flip', wPtr); % Function to flip to the next screen image
@@ -263,7 +263,7 @@ if automatic == 0     % If automatic == 1, skip the preliminary phase since it's
         Screen('DrawText', wPtr, 'You will see several images in each trial.', xc-500, yc-100, white);
 		Screen('DrawText', wPtr, 'Then you will be shown two images.', xc-500, yc-50, white);
 		Screen('DrawText', wPtr, 'You will have to decide which image appeared more frequently.', xc-500, yc, white);
-		Screen('DrawText', wPtr, 'Select the image positioned to the left or right by pressing the corresponding arrow key.', xc-500, yc+50, white);
+		Screen('DrawText', wPtr, sprintf('Select the image positioned to the left or right by pressing %s or %s respectively', settings.keyLeftName, settings.keyRightName), xc-500, yc+50, white);
 		Screen('DrawText', wPtr, 'Ask the researcher if you need further clarification.', xc-500, yc+100, white);
 		Screen('DrawText', wPtr, 'Press the space bar to begin.', xc-500, yc+150, white);    % Display text colored white
 		Screen('Flip', wPtr); % Function to flip to the next screen image
@@ -457,7 +457,7 @@ Screen('DrawText', wPtr, 'You will see a series of images flashing very quickly 
 Screen('DrawText', wPtr, 'You are required to keep your eyes on the bull''s eye target below the images.', xc-500, yc-100, white);
 Screen('DrawText', wPtr, 'Then you will be shown two images.', xc-500, yc-50, white);
 Screen('DrawText', wPtr, 'You will have to decide which image appeared more frequently.', xc-500, yc, white);
-Screen('DrawText', wPtr, 'Select the image positioned to the left or right by pressing the corresponding arrow key.', xc-500, yc+50, white);
+Screen('DrawText', wPtr, sprintf('Select the image positioned to the left or right by pressing %s or %s respectively', settings.keyLeftName, settings.keyRightName), xc-500, yc+50, white);
 Screen('DrawText', wPtr, 'Ask the researcher if you need further clarification.', xc-500, yc+100, white);
 Screen('DrawText', wPtr, 'Press the space bar to begin.', xc-500, yc+150, white);    % Display text colored white
 Screen('Flip', wPtr); % Function to flip to the next screen image

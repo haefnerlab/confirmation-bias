@@ -51,9 +51,9 @@ Screen('TextSize', wPtr, 20); % Set text size to 20
 Screen('DrawText', wPtr, 'You will see two bars flashing very quickly in the middle of the screen with a background of static.', xc-500, yc-150, white);
 Screen('DrawText', wPtr, 'You are required to keep your eyes on the bull''s eye target between the bars', xc-500, yc-100, white);
 Screen('DrawText', wPtr, 'Then you will be asked which side had the more frequently appearing bar.', xc-500, yc-50, white);
-Screen('DrawText', wPtr, 'Select the left or right side by pressing the corresponding arrow key.', xc-500, yc, white);
+Screen('DrawText', wPtr, sprintf('Select the left or right side by pressing %s or %s respectively', settings.keyLeftName, settings.keyRightName), xc-500, yc, white);
 Screen('DrawText', wPtr, 'Ask the researcher if you need further clarification.', xc-500, yc+50, white);
-Screen('DrawText', wPtr, sprintf('Press %s to begin.', settings.goKeyName), xc-500, yc+100, white);    % Display text colored white
+Screen('DrawText', wPtr, sprintf('Press %s to begin.', settings.keyGoName), xc-500, yc+100, white);    % Display text colored white
 Screen('Flip', wPtr); % Function to flip to the next screen image
 [~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
 while ~keyCode(goKey)        % While loop to wait for the spacebar to be pressed
@@ -237,9 +237,9 @@ Screen('DrawText', wPtr, 'This time the brightness of the bars will not change o
 Screen('DrawText', wPtr, 'You will see two bars flashing very quickly in the middle of the screen with a background of static.', xc-500, yc-150, white);
 Screen('DrawText', wPtr, 'You are required to keep your eyes on the bull''s eye target between the bars', xc-500, yc-100, white);
 Screen('DrawText', wPtr, 'Then you will be asked which side had the more frequently appearing bar.', xc-500, yc-50, white);
-Screen('DrawText', wPtr, 'Select the left or right side by pressing the corresponding arrow key.', xc-500, yc, white);
+Screen('DrawText', wPtr, sprintf('Select the left or right side by pressing %s or %s respectively', settings.keyLeftName, settings.keyRightName), xc-500, yc, white);
 Screen('DrawText', wPtr, 'Ask the researcher if you need further clarification.', xc-500, yc+50, white);
-Screen('DrawText', wPtr, sprintf('Press %s to begin.', settings.goKeyName), xc-500, yc+100, white);    % Display text colored white
+Screen('DrawText', wPtr, sprintf('Press %s to begin.', settings.keyGoName), xc-500, yc+100, white);    % Display text colored white
 Screen('Flip', wPtr); % Function to flip to the next screen image
 [~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
 while ~keyCode(goKey)        % While loop to wait for the spacebar to be pressed
@@ -277,7 +277,7 @@ for i = 1:test_trials
 		Screen('DrawText', wPtr, 'You are now halfway through the experiment.', xc-500, yc-100, white);
 		Screen('DrawText', wPtr, 'While the task will be identical as before,', xc-500, yc-50, white);
 		Screen('DrawText', wPtr, 'the brightness of the bar will be much lower and harder to see.', xc-500, yc, white);
-		Screen('DrawText', wPtr, sprintf('Press %s to continue.', settings.goKeyName), xc-500, yc+50, white);
+		Screen('DrawText', wPtr, sprintf('Press %s to continue.', settings.keyGoName), xc-500, yc+50, white);
 		Screen('Flip', wPtr); % Function to flip to the next screen image
 		[~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
 		while ~keyCode(goKey)        % While loop to wait for the spacebar to be pressed

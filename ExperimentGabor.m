@@ -73,9 +73,9 @@ if phase == 0
 		Screen('DrawText', wPtr, 'You are required to keep your eyes on the bull''s eye target below the images.', xc-500, yc-100, white);
 		Screen('DrawText', wPtr, 'Then you will be shown two images.', xc-500, yc-50, white);
 		Screen('DrawText', wPtr, 'You will have to decide which image appeared more frequently.', xc-500, yc, white);
-		Screen('DrawText', wPtr, 'Select the image positioned to the left or right by pressing the corresponding arrow key.', xc-500, yc+50, white);
+		Screen('DrawText', wPtr, sprintf('Select the image positioned to the left or right by pressing %s or %s respectively', settings.keyLeftName, settings.keyRightName), xc-500, yc+50, white);
 		Screen('DrawText', wPtr, 'Ask the researcher if you need further clarification.', xc-500, yc+100, white);
-		Screen('DrawText', wPtr, sprintf('Press %s to begin.', settings.goKeyName), xc-500, yc+150, white);    % Display text colored white
+		Screen('DrawText', wPtr, sprintf('Press %s to begin.', settings.keyGoName), xc-500, yc+150, white);    % Display text colored white
 		Screen('Flip', wPtr); % Function to flip to the next screen image
 		[~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
 		while ~keyCode(goKey)        % While loop to wait for the spacebar to be pressed
@@ -150,7 +150,7 @@ if phase == 0
                         Screen('TextSize', wPtr, 20); % Set text size to 20
                         Screen('DrawText', wPtr, 'You have completed a block.', xc-500, yc-150, white);
                         Screen('DrawText', wPtr, 'You may take a break if you want!', xc-500, yc-100, white);
-                        Screen('DrawText', wPtr, sprintf('Press %s whenever you are ready again.', settings.goKeyName), xc-500, yc-50, white);
+                        Screen('DrawText', wPtr, sprintf('Press %s whenever you are ready again.', settings.keyGoName), xc-500, yc-50, white);
                         
                         Screen('Flip', wPtr); % Function to flip to the next screen image
                         [~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
@@ -349,9 +349,9 @@ elseif phase == 1
 		Screen('DrawText', wPtr, 'You are required to keep your eyes on the bull''s eye target below the images.', xc-500, yc-100, white);
 		Screen('DrawText', wPtr, 'Then you will be shown two images.', xc-500, yc-50, white);
 		Screen('DrawText', wPtr, 'You will have to decide which image appeared more frequently.', xc-500, yc, white);
-		Screen('DrawText', wPtr, 'Select the image positioned to the left or right by pressing the corresponding arrow key.', xc-500, yc+50, white);
+		Screen('DrawText', wPtr, sprintf('Select the image positioned to the left or right by pressing %s or %s respectively', settings.keyLeftName, settings.keyRightName), xc-500, yc+50, white);
 		Screen('DrawText', wPtr, 'Ask the researcher if you need further clarification.', xc-500, yc+100, white);
-		Screen('DrawText', wPtr, sprintf('Press %s to begin.', settings.goKeyName), xc-500, yc+150, white);    % Display text colored white
+		Screen('DrawText', wPtr, sprintf('Press %s to begin.', settings.keyGoName), xc-500, yc+150, white);    % Display text colored white
 		Screen('Flip', wPtr); % Function to flip to the next screen image
 		[~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
 		while ~keyCode(goKey)        % While loop to wait for the spacebar to be pressed
@@ -420,7 +420,7 @@ elseif phase == 1
                         Screen('TextSize', wPtr, 20); % Set text size to 20
                         Screen('DrawText', wPtr, 'You finished a block.', xc-500, yc-150, white);
                         Screen('DrawText', wPtr, 'You may take a break!', xc-500, yc-100, white);
-                        Screen('DrawText', wPtr, sprintf('Press %s whenever you are ready again.', settings.goKeyName), xc-500, yc-50, white);
+                        Screen('DrawText', wPtr, sprintf('Press %s whenever you are ready again.', settings.keyGoName), xc-500, yc-50, white);
                         
                         Screen('Flip', wPtr); % Function to flip to the next screen image
                         [~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press

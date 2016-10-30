@@ -69,7 +69,7 @@ if phase == 0
         Screen('DrawText', wPtr, 'Select the arrow key corresponding to the answer within 1 sec after trial ends.', xc-500, yc-50, white);
         Screen('DrawText', wPtr, 'A high pitched beep means correct, a low pitched beep means incorrect.', xc-500, yc, white);
         Screen('DrawText', wPtr, 'Ask the researcher if you need further clarification.', xc-500, yc+50, white);
-        Screen('DrawText', wPtr, sprintf('Press %s to begin.', settings.goKeyName), xc-500, yc+100, white);
+        Screen('DrawText', wPtr, sprintf('Press %s to begin.', settings.keyGoName), xc-500, yc+100, white);
         Screen('Flip', wPtr); % Function to flip to the next screen image
         [~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
         while ~keyCode(goKey)        % While loop to wait for the spacebar to be pressed
@@ -131,7 +131,7 @@ if phase == 0
                         Screen('TextSize', wPtr, 20); % Set text size to 20
                         Screen('DrawText', wPtr, 'You have completed a block.', xc-500, yc-150, white);
                         Screen('DrawText', wPtr, 'You may take a break if you want!', xc-500, yc-100, white);
-                        Screen('DrawText', wPtr, sprintf('Press %s whenever you are ready again.', settings.goKeyName), xc-500, yc-50, white);
+                        Screen('DrawText', wPtr, sprintf('Press %s whenever you are ready again.', settings.keyGoName), xc-500, yc-50, white);
                         
                         Screen('Flip', wPtr); % Function to flip to the next screen image
                         [~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
@@ -346,7 +346,7 @@ elseif phase == 1
         Screen('DrawText', wPtr, 'Select the arrow key corresponding to the answer within 2 secs after trial ends.', xc-500, yc-50, white);
         Screen('DrawText', wPtr, 'A high pitched beep means correct, a low pitched beep means incorrect.', xc-500, yc, white);
         Screen('DrawText', wPtr, 'Ask the researcher if you need further clarification.', xc-500, yc+50, white);
-        Screen('DrawText', wPtr, sprintf('Press %s to begin.', settings.goKeyName), xc-500, yc+100, white);
+        Screen('DrawText', wPtr, sprintf('Press %s to begin.', settings.keyGoName), xc-500, yc+100, white);
         Screen('Flip', wPtr); % Function to flip to the next screen image
         [~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
         while ~keyCode(goKey)        % While loop to wait for the spacebar to be pressed
@@ -408,7 +408,7 @@ elseif phase == 1
                         Screen('TextSize', wPtr, 20); % Set text size to 20
                         Screen('DrawText', wPtr, 'You finished a block.', xc-500, yc-150, white);
                         Screen('DrawText', wPtr, 'You may take a break!', xc-500, yc-100, white);
-                        Screen('DrawText', wPtr, sprintf('Press %s whenever you are ready again.', settings.goKeyName), xc-500, yc-50, white);
+                        Screen('DrawText', wPtr, sprintf('Press %s whenever you are ready again.', settings.keyGoName), xc-500, yc-50, white);
                         
                         Screen('Flip', wPtr); % Function to flip to the next screen image
                         [~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
