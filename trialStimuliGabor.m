@@ -148,10 +148,10 @@ try
                 if ~exist(directory, 'dir')
                     mkdir(directory);
                     
-                    fileName = sprintf('%s%s-GaborQuit.mat',directory,subjectID); % create a name for the data you want to save as a csv
+                    fileName = fullfile(directory, 'RawData', [subjectID '-GaborQuit.mat']); % create a name for the data you want to save as a csv
                     save(fileName, 'Data'); % save the data
                 else
-                    fileName = sprintf('%s%s-GaborQuit.mat',directory,subjectID); % create a name for the data you want to save as a csv
+                    fileName = fullfile(directory, 'RawData', [subjectID '-GaborQuit.mat']); % create a name for the data you want to save as a csv
                     save(fileName, 'Data'); % save the data
                 end
                 ShowCursor([],whichScreen)

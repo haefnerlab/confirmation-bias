@@ -125,13 +125,13 @@ try    % If there is ever an error during an experiment, the PsychToolBox screen
             
             if keyCode(exitKey)
                 
-                if ~exist([directory 'RawData/'], 'dir')
-                    mkdir([directory 'RawData/']);
+                if ~exist(fullfile(directory, 'RawData'), 'dir')
+                    mkdir(fullfile(directory, 'RawData'));
                     
-                    fileName = sprintf('%s%s-AuditoryQuit.mat',[directory 'RawData/'],subjectID); % create a name for the data you want to save as a csv
+                    fileName = fullfile(directory, 'RawData', [subjectID '-AuditoryQuit.mat']); % create a name for the data you want to save as a csv
                     save(fileName, 'Data'); % save the data
                 else
-                    fileName = sprintf('%s%s-AuditoryQuit.mat',[directory 'RawData/'],subjectID); % create a name for the data you want to save as a csv
+                    fileName = fullfile(directory, 'RawData', [subjectID '-AuditoryQuit.mat']); % create a name for the data you want to save as a csv
                     save(fileName, 'Data'); % save the data
                 end
                 sca; % closes screen
@@ -149,13 +149,13 @@ try    % If there is ever an error during an experiment, the PsychToolBox screen
         %             [~,~,keyCode] = KbCheck;
         %             if keyCode(escapeKey)
         %
-        %                 if ~exist([directory 'RawData/'], 'dir')
-        %                     mkdir([directory 'RawData/']);
+        %                 if ~exist(fullfile(directory, 'RawData'), 'dir')
+        %                     mkdir(fullfile(directory, 'RawData'));
         %
-        %                     fileName = sprintf('%s%s-AuditoryQuit.mat',[directory 'RawData/'],subjectID); % create a name for the data you want to save as a csv
+        %                     fileName = fullfile(directory, 'RawData', [subjectID '-AuditoryQuit.mat']); % create a name for the data you want to save as a csv
         %                     save(fileName, 'Data'); % save the data
         %                 else
-        %                     fileName = sprintf('%s%s-AuditoryQuit.mat',[directory 'RawData/'],subjectID); % create a name for the data you want to save as a csv
+        %                     fileName = fullfile(directory, 'RawData', [subjectID '-AuditoryQuit.mat']); % create a name for the data you want to save as a csv
         %                     save(fileName, 'Data'); % save the data
         %                 end
         %                 sca; % closes screen

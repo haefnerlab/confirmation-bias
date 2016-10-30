@@ -4,7 +4,7 @@ function [] = SaveGaborTestPhase(subjectID, phase, loops, preliminary_trials, te
 % chosen instead of automatically doing so in the experiment
 
 if phase == 0       % load the test contrast data
-    filename = [directory 'RawData/' subjectID '-GaborDataContrast.mat'];
+    filename = fullfile(directory, 'RawData', [subjectID '-GaborDataContrast.mat']);
     if ~exist(filename, 'file')
         disp(strcat('ERROR! Missing File: ', filename));  % Return an error message for missing file
         disp(strcat('Maybe the Preliminary phase is saved under a different name?'));
@@ -13,7 +13,7 @@ if phase == 0       % load the test contrast data
         load(filename); % Load Preliminary_Data
     end
 elseif phase == 1       % load the test ratio data
-    filename = [directory 'RawData/' subjectID '-GaborDataRatio.mat'];
+    filename = fullfile(directory, 'RawData', [subjectID '-GaborDataRatio.mat']);
     if ~exist(filename, 'file')
         disp(strcat('ERROR! Missing File: ', filename));  % Return an error message for missing file
         disp(strcat('Maybe the Preliminary phase is saved under a different name?'));
@@ -63,23 +63,23 @@ end
 
 if phase == 0       % save the test contrast data
     %% Save final data to folder
-    if ~exist([directory 'RawData/'], 'dir') % Check the directory actually exists
-        mkdir([directory 'RawData/']);
-        fileName = sprintf('%s%s-GaborTestContrastManual.mat',[directory 'RawData/'],subjectID); % create a name for the data you want to save
+    if ~exist(fullfile(directory, 'RawData'), 'dir') % Check the directory actually exists
+        mkdir(fullfile(directory, 'RawData'));
+        fileName = fullfile(directory, 'RawData', [subjectID '-GaborTestContrastManual.mat']); % create a name for the data you want to save
         save(fileName, 'Test_Data', 'test_image_collection'); % save the data
     else
-        fileName = sprintf('%s%s-GaborTestContrastManual.mat',[directory 'RawData/'],subjectID); % create a name for the data you want to save
+        fileName = fullfile(directory, 'RawData', [subjectID '-GaborTestContrastManual.mat']); % create a name for the data you want to save
         save(fileName, 'Test_Data', 'test_image_collection'); % save the data
     end
     
 elseif phase == 1       % save the test ratio data
     %% Save final data to folder
-    if ~exist([directory 'RawData/'], 'dir') % Check the directory actually exists
-        mkdir([directory 'RawData/']);
-        fileName = sprintf('%s%s-GaborTestRatioManual.mat',[directory 'RawData/'],subjectID); % create a name for the data you want to save
+    if ~exist(fullfile(directory, 'RawData'), 'dir') % Check the directory actually exists
+        mkdir(fullfile(directory, 'RawData'));
+        fileName = fullfile(directory, 'RawData', [subjectID '-GaborTestRatioManual.mat']); % create a name for the data you want to save
         save(fileName, 'Test_Data', 'test_image_collection'); % save the data
     else
-        fileName = sprintf('%s%s-GaborTestRatioManual.mat',[directory 'RawData/'],subjectID); % create a name for the data you want to save
+        fileName = fullfile(directory, 'RawData', [subjectID '-GaborTestRatioManual.mat']); % create a name for the data you want to save
         save(fileName, 'Test_Data', 'test_image_collection'); % save the data
     end
 end

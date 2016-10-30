@@ -21,8 +21,7 @@ end
 settings = LoadSettings(directory);
 
 %% Set Up the Initialization of the expeirment
-cd([directory 'Code\']) % Set the current directory
-directory = [directory 'RawData\'];  % Directory to save the data and files to
+cd(fullfile(directory, 'Code')) % Set the current directory
 commandwindow; % Moves the cursor to the commandwindow
 
 if settings.useOpenGL, InitializeMatlabOpenGL; end
@@ -66,7 +65,7 @@ if phase == 0
     
 %     EyeTracker.AutoCalibrate(tracker_info);
     
-    fileName = sprintf('%s%s-GaborDataContrast.mat',directory,subjectID); % Set the desired filename of the experimental data
+    fileName = fullfile(directory, 'RawData', [subjectID '-GaborDataContrast.mat']); % Set the desired filename of the experimental data
     if ~exist(fileName, 'file') % Check to see if the subject has already done the preliminary phase or not
         
 		%% Instruction Screen
@@ -330,10 +329,10 @@ if phase == 0
         %% Save final data to folder
         if ~exist(directory, 'dir') % Check the directory actually exists
             mkdir(directory);
-            fileName = sprintf('%s%s-GaborDataContrast.mat',directory,subjectID); % create a name for the data you want to save
+            fileName = fullfile(directory, 'RawData', [subjectID '-GaborDataContrast.mat']); % create a name for the data you want to save
             save(fileName, 'Preliminary_Data', 'image_collection'); % save the data
         else
-            fileName = sprintf('%s%s-GaborDataContrast.mat',directory,subjectID); % create a name for the data you want to save
+            fileName = fullfile(directory, 'RawData', [subjectID '-GaborDataContrast.mat']); % create a name for the data you want to save
             save(fileName, 'Preliminary_Data', 'image_collection'); % save the data
         end
     end
@@ -342,7 +341,7 @@ elseif phase == 1
     
     % This is the second preliminary phase with a constant contrast (max contrast of 223) and finding the threshold ratio
     
-    fileName = sprintf('%s%s-GaborDataRatio.mat',directory,subjectID); % Set the desired filename of the experimental data
+    fileName = fullfile(directory, 'RawData', [subjectID '-GaborDataRatio.mat']); % Set the desired filename of the experimental data
     if ~exist(fileName, 'file') % Check to see if the subject has already done the preliminary phase or not
         
 		%% Instruction Screen
@@ -600,10 +599,10 @@ elseif phase == 1
         %% Save final data to folder
         if ~exist(directory, 'dir') % Check the directory actually exists
             mkdir(directory);
-            fileName = sprintf('%s%s-GaborDataRatio.mat',directory,subjectID); % create a name for the data you want to save
+            fileName = fullfile(directory, 'RawData', [subjectID '-GaborDataRatio.mat']); % create a name for the data you want to save
             save(fileName, 'Preliminary_Data', 'image_collection'); % save the data
         else
-            fileName = sprintf('%s%s-GaborDataRatio.mat',directory,subjectID); % create a name for the data you want to save
+            fileName = fullfile(directory, 'RawData', [subjectID '-GaborDataRatio.mat']); % create a name for the data you want to save
             save(fileName, 'Preliminary_Data', 'image_collection'); % save the data
         end
     end

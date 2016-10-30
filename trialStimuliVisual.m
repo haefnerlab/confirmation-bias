@@ -4,7 +4,7 @@ function image_properties = trialStimuliVisual(screen, subjectID, Data, automati
 % experiment.
 
 
-directory = [directory 'RawData'];    % Directory to save the data and files to
+directory = fullfile(directory, 'RawData');    % Directory to save the data and files to
 
 
 screen_frame = Data.screen_frame * .01667; % This is because the refresh rate is 60 Hz
@@ -130,10 +130,10 @@ try
                 if ~exist(directory, 'dir')
                     mkdir(directory);
                     
-                    fileName = sprintf('%s%s-VisualQuit.mat',directory,subjectID); % create a name for the data you want to save as a csv
+                    fileName = fullfile(directory, 'RawData', [subjectID '-VisualQuit.mat']); % create a name for the data you want to save as a csv
                     save(fileName, 'Data'); % save the data
                 else
-                    fileName = sprintf('%s%s-VisualQuit.mat',directory,subjectID); % create a name for the data you want to save as a csv
+                    fileName = fullfile(directory, 'RawData', [subjectID '-VisualQuit.mat']); % create a name for the data you want to save as a csv
                     save(fileName, 'Data'); % save the data
                 end
                 sca; % closes screen

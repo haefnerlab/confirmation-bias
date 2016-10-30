@@ -34,9 +34,9 @@ end
 
 if automatic == 0
 	%load the preliminary visual data
-    prelimFile = [directory 'RawData/' subjectID_prelim '-VisualPreliminary.mat'];
+    prelimFile = fullfile(directory, 'RawData', [subjectID_prelim '-VisualPreliminary.mat']);
     if ~exist(prelimFile, 'file')
-		prelimFile = [directory 'RawData/' subjectID_prelim '-VisualNoisyPreliminary.mat']; % Are you trying to analyze the older data with the older file name?
+		prelimFile = fullfile(directory, 'RawData', [subjectID_prelim '-VisualNoisyPreliminary.mat']); % Are you trying to analyze the older data with the older file name?
 		if ~exist(prelimFile, 'file')
 			disp(strcat('ERROR! Missing File: ', prelimFile));  % Return an error message for missing file
 			disp(strcat('Maybe the Preliminary phase is saved under a different name?'));
@@ -75,9 +75,9 @@ if automatic == 0
 	
     %% Load data for test visual experiment
     
-    filename = [[directory 'RawData/'] subjectID '-VisualTest.mat'];
+    filename = fullfile(directory, 'RawData', [subjectID '-VisualTest.mat']);
     if ~exist(filename, 'file')
-		filename = [[directory 'RawData/'] subjectID '-VisualNoisyTest.mat'];  % Are you trying to analyze the older data with the older file name?
+		filename = fullfile(directory, 'RawData', [subjectID '-VisualNoisyTest.mat']);  % Are you trying to analyze the older data with the older file name?
 	%else
         disp(strcat('ERROR! Missing File: ', filename));  % Return an error message for missing file
         return;
@@ -87,9 +87,9 @@ if automatic == 0
     	
 elseif automatic == 1
 	%load the first preliminary auditory data
-    prelimFile = [directory 'RawData/' subjectID_prelim '-AuditoryPreliminaryVolume.mat'];
+    prelimFile = fullfile(directory, 'RawData', [subjectID_prelim '-AuditoryPreliminaryVolume.mat']);
     if ~exist(prelimFile, 'file')
-		prelimFile = [directory 'RawData/' subjectID_prelim '-AuditoryNoisyPreliminary.mat']; % Are you trying to analyze the older data with the older file name?
+		prelimFile = fullfile(directory, 'RawData', [subjectID_prelim '-AuditoryNoisyPreliminary.mat']); % Are you trying to analyze the older data with the older file name?
 		if ~exist(prelimFile, 'file')
 			disp(strcat('ERROR! Missing File: ', prelimFile));  % Return an error message for missing file
 			disp(strcat('Maybe the Preliminary phase is saved under a different name?'));
@@ -111,7 +111,7 @@ elseif automatic == 1
     
     
     %load the second preliminary auditory data
-    prelimFile = [directory 'RawData/' subjectID_prelim '-AuditoryPreliminaryRatio.mat'];
+    prelimFile = fullfile(directory, 'RawData', [subjectID_prelim '-AuditoryPreliminaryRatio.mat']);
     if ~exist(prelimFile, 'file')
         disp(strcat('ERROR! Missing File: ', prelimFile));  % Return an error message for missing file
         disp(strcat('Maybe the Preliminary phase is saved under a different name?'));
@@ -130,9 +130,9 @@ elseif automatic == 1
 	
     
     %% Load data for test auditory experiment
-    filename = [[directory 'RawData/'] subjectID '-AuditoryTest.mat'];
+    filename = [fullfile(directory, 'RawData'] subjectID '-AuditoryTest.mat');
     if ~exist(filename, 'file')
-		filename = [[directory 'RawData/'] subjectID '-AuditoryNoisyTest.mat']; % Are you trying to analyze the older data with the older file name?
+		filename = [fullfile(directory, 'RawData'] subjectID '-AuditoryNoisyTest.mat'); % Are you trying to analyze the older data with the older file name?
 	%else
         disp(strcat('ERROR! Missing File: ', filename));  % Return an error message for missing file
         return;

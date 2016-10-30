@@ -1,7 +1,7 @@
 function [] = SaveQuitDataGabor(subjectID, phase, loops_consider, preliminary_trials, directory)
 
 if phase == 0       % load the volume data
-    filename = [directory 'RawData/' subjectID '-GaborDataContrast.mat'];
+    filename = fullfile(directory, 'RawData', [subjectID '-GaborDataContrast.mat']);
     if ~exist(filename, 'file')
         disp(strcat('ERROR! Missing File: ', filename));  % Return an error message for missing file
         disp(strcat('Maybe the Preliminary phase is saved under a different name?'));
@@ -10,7 +10,7 @@ if phase == 0       % load the volume data
         load(filename); % Load Preliminary_Data
     end
 elseif phase == 1       % load the ratio data
-    filename = [directory 'RawData/' subjectID '-GaborDataRatio.mat'];
+    filename = fullfile(directory, 'RawData', [subjectID '-GaborDataRatio.mat']);
     if ~exist(filename, 'file')
         disp(strcat('ERROR! Missing File: ', filename));  % Return an error message for missing file
         disp(strcat('Maybe the Preliminary phase is saved under a different name?'));

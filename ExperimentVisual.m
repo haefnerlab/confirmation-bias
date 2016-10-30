@@ -20,8 +20,8 @@ end
 settings = LoadSettings(directory);
 
 %% Set Up the Initialization of the expeirment
-cd([directory 'Code/']) % Set the current directory
-directory = [directory 'RawData/'];  % Directory to save the data and files to
+cd(fullfile(directory, 'Code')) % Set the current directory
+directory = fullfile(directory, 'RawData');  % Directory to save the data and files to
 commandwindow; % Moves the cursor to the commandwindow
 
 if settings.useOpenGL, InitializeMatlabOpenGL; end
@@ -62,7 +62,7 @@ end
 Screen('Flip', wPtr); % Function to flip to the next screen image
 
 if automatic == 0     % If automatic == 1, skip the preliminary phase since it's the computer running the experiment
-    fileName = sprintf('%s%s-VisualPreliminary.mat',[directory 'RawData/'],subjectID); % Set the desired filename of the experimental data
+    fileName = fullfile(directory, 'RawData', [subjectID '-VisualPreliminary.mat']); % Set the desired filename of the experimental data
     if ~exist(fileName, 'file') % Check to see if the subject has already done the preliminary phase or not
         
         %% Preliminary Calibration Phase
@@ -194,12 +194,12 @@ if automatic == 0     % If automatic == 1, skip the preliminary phase since it's
             end
             
             %% Save the data after every trial
-            if ~exist([directory 'RawData/'], 'dir') % Check the directory actually exists
-                mkdir([directory 'RawData/']);
-                fileName = sprintf('%s%s-VisualPreliminary.mat',directory,subjectID); % create a name for the data you want to save
+            if ~exist(fullfile(directory, 'RawData'), 'dir') % Check the directory actually exists
+                mkdir(fullfile(directory, 'RawData'));
+                fileName = fullfile(directory, 'RawData', [subjectID '-VisualPreliminary.mat']); % create a name for the data you want to save
                 save(fileName, 'Preliminary_Data'); % save the data
             else
-                fileName = sprintf('%s%s-VisualPreliminary.mat',directory,subjectID); % create a name for the data you want to save
+                fileName = fullfile(directory, 'RawData', [subjectID '-VisualPreliminary.mat']); % create a name for the data you want to save
                 save(fileName, 'Preliminary_Data'); % save the data
             end
             
@@ -222,10 +222,10 @@ if automatic == 0     % If automatic == 1, skip the preliminary phase since it's
     
     contrast = average_contrast/average_last_trials;
 	
-	fileName = sprintf('%s%s-VisualTest.mat',[directory 'RawData/'],subjectID);
+	fileName = fullfile(directory, 'RawData', [subjectID '-VisualTest.mat']);
 	while exist(fileName, 'file')
 		subjectID = [subjectID, 'I'];
-		fileName = sprintf('%s%s-VisualTest.mat',[directory 'RawData/'],subjectID);
+		fileName = fullfile(directory, 'RawData', [subjectID '-VisualTest.mat']);
 	end
 else
     contrast = 1.0;   % When running the experiment for the computer, just set the contrast to an abitrary value
@@ -410,24 +410,24 @@ for i = 1:test_trials
     
     
     %% Save the data after every trial
-    if ~exist([directory 'RawData/'], 'dir')
-        mkdir([directory 'RawData/']);
-        fileName = sprintf('%s%s-VisualTest.mat',directory,subjectID); % create a name for the data you want to save
+    if ~exist(fullfile(directory, 'RawData'), 'dir')
+        mkdir(fullfile(directory, 'RawData'));
+        fileName = fullfile(directory, 'RawData', [subjectID '-VisualTest.mat']); % create a name for the data you want to save
         save(fileName, 'Test_Data'); % save the data
     else
-        fileName = sprintf('%s%s-VisualTest.mat',directory,subjectID); % create a name for the data you want to save
+        fileName = fullfile(directory, 'RawData', [subjectID '-VisualTest.mat']); % create a name for the data you want to save
         save(fileName, 'Test_Data'); % save the data
     end
 end
 %%%% May not need this part hence commented!!!!!!!!!!!!!!!!!
 %% Save final data to folder
-%if ~exist([directory 'RawData/'], 'dir')
-   % mkdir([directory 'RawData/']);
+%if ~exist(fullfile(directory, 'RawData'), 'dir')
+   % mkdir(fullfile(directory, 'RawData'));
     
-    %fileName = sprintf('%s%s-VisualTest.mat',[directory 'RawData/'],subjectID); % create a name for the data you want to save as a csv
+    %fileName = fullfile(directory, 'RawData', [subjectID '-VisualTest.mat']); % create a name for the data you want to save as a csv
     %save(fileName, 'Test_Data'); % save the data
 %else
-    %fileName = sprintf('%s%s-VisualTest.mat',[directory 'RawData/'],subjectID); % create a name for the data you want to save as a csv
+    %fileName = fullfile(directory, 'RawData', [subjectID '-VisualTest.mat']); % create a name for the data you want to save as a csv
     %save(fileName, 'Test_Data'); % save the data
 %end
 

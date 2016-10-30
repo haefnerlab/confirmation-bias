@@ -12,13 +12,13 @@ function [] = data_concat_Auditory(subjectID1, subjectID2, subjectID_output, pha
 
 % directory allows this code to be able to create and save files of the subject data on any computer
 
-% Example command line input: data_concat_Audtiory('MatthewFirstSession', 'MatthewSecondSession', MatthewCombinedSession', '/Users/bcs206/Documents/Summer/RawData/')
+% Example command line input: data_concat_Audtiory('MatthewFirstSession', 'MatthewSecondSession', MatthewCombinedSession', '/Users/bcs206/Documents/Summer/RawData')
 
 % Concatenate the volume test phases
 
 if phase == 0 || phase == 2
-    fileName1 = [directory 'RawData/' subjectID1 '-AuditoryTestVolume.mat'];
-    fileName2 = [directory 'RawData/' subjectID2 '-AuditoryTestVolume.mat'];
+    fileName1 = fullfile(directory, 'RawData', [subjectID1 '-AuditoryTestVolume.mat']);
+    fileName2 = fullfile(directory, 'RawData', [subjectID2 '-AuditoryTestVolume.mat']);
     
     if ~exist(fileName1, 'file') || ~exist(fileName2, 'file')
         disp(strcat('ERROR! Missing File: ', fileName1));
@@ -54,14 +54,14 @@ if phase == 0 || phase == 2
     Test_Data.order_of_clicks = [Data1.Test_Data.order_of_clicks; Data2.Test_Data.order_of_clicks];
     % Note this is a row-wise concatenation instead of column-wise
     
-    fileNameEnd = sprintf('%s%s-AuditoryTestVolume.mat', [ directory 'RawData/'], subjectID_output);
+    fileNameEnd = fullfile(directory, 'RawData', [subjectID '-AuditoryTestVolume.mat']);
     save(fileNameEnd, 'Test_Data');
 end    
 if phase == 1 || phase == 2
     % Now concatenate the ratio test phases
     
-    fileName1 = [directory 'RawData/' subjectID1 '-AuditoryTestRatio.mat'];
-    fileName2 = [directory 'RawData/' subjectID2 '-AuditoryTestRatio.mat'];
+    fileName1 = fullfile(directory, 'RawData', [subjectID1 '-AuditoryTestRatio.mat']);
+    fileName2 = fullfile(directory, 'RawData', [subjectID2 '-AuditoryTestRatio.mat']);
     
     if ~exist(fileName1, 'file') || ~exist(fileName2, 'file')
         disp(strcat('ERROR! Missing File: ', fileName1));
@@ -98,7 +98,7 @@ if phase == 1 || phase == 2
     % Note this is a row-wise concatenation instead of column-wise
     
     
-    fileNameEnd = sprintf('%s%s-AuditoryTestRatio.mat', [ directory 'RawData/'], subjectID_output);
+    fileNameEnd = fullfile(directory, 'RawData', [subjectID '-AuditoryTestRatio.mat']);
     save(fileNameEnd, 'Test_Data');
     
 end

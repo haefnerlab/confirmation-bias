@@ -4,7 +4,7 @@ function [] = SaveAuditoryTestPhase(subjectID, phase, loops, preliminary_trials,
 % chosen instead of automatically doing so in the experiment
 
 if phase == 0       % load the test volume data
-    filename = [directory 'RawData/' subjectID '-AuditoryDataVolume.mat'];
+    filename = fullfile(directory, 'RawData', [subjectID '-AuditoryDataVolume.mat']);
     if ~exist(filename, 'file')
         disp(strcat('ERROR! Missing File: ', filename));  % Return an error message for missing file
         disp(strcat('Maybe the Preliminary phase is saved under a different name?'));
@@ -13,7 +13,7 @@ if phase == 0       % load the test volume data
         load(filename); % Load Preliminary_Data
     end
 elseif phase == 1       % load the test ratio data
-    filename = [directory 'RawData/' subjectID '-AuditoryDataRatio.mat'];
+    filename = fullfile(directory, 'RawData', [subjectID '-AuditoryDataRatio.mat']);
     if ~exist(filename, 'file')
         disp(strcat('ERROR! Missing File: ', filename));  % Return an error message for missing file
         disp(strcat('Maybe the Preliminary phase is saved under a different name?'));
@@ -58,22 +58,22 @@ end
 
 if phase == 0       % save the test contrast data
     %% Save final data to folder
-    if ~exist([directory 'RawData/'], 'dir') % Check the directory actually exists
-        mkdir([directory 'RawData/']);
-        fileName = sprintf('%s%s-AuditoryTestVolumeManual.mat',[directory 'RawData/'],subjectID); % create a name for the data you want to save
+    if ~exist(fullfile(directory, 'RawData'), 'dir') % Check the directory actually exists
+        mkdir(fullfile(directory, 'RawData'));
+        fileName = fullfile(directory, 'RawData', [subjectID '-AuditoryTestVolumeManual.mat']); % create a name for the data you want to save
         save(fileName, 'Test_Data'); % save the data
     else
-        fileName = sprintf('%s%s-AuditoryTestVolumeManual.mat',[directory 'RawData/'],subjectID); % create a name for the data you want to save
+        fileName = fullfile(directory, 'RawData', [subjectID '-AuditoryTestVolumeManual.mat']); % create a name for the data you want to save
         save(fileName, 'Test_Data'); % save the data
     end
 elseif phase == 1       % save the test ratio data
     %% Save final data to folder
-    if ~exist([directory 'RawData/'], 'dir') % Check the directory actually exists
-        mkdir([directory 'RawData/']);
-        fileName = sprintf('%s%s-AuditoryTestRatioManual.mat',[directory 'RawData/'],subjectID); % create a name for the data you want to save
+    if ~exist(fullfile(directory, 'RawData'), 'dir') % Check the directory actually exists
+        mkdir(fullfile(directory, 'RawData'));
+        fileName = fullfile(directory, 'RawData', [subjectID '-AuditoryTestRatioManual.mat']); % create a name for the data you want to save
         save(fileName, 'Test_Data'); % save the data
     else
-        fileName = sprintf('%s%s-AuditoryTestRatioManual.mat',[directory 'RawData/'],subjectID); % create a name for the data you want to save
+        fileName = fullfile(directory, 'RawData', [subjectID '-AuditoryTestRatioManual.mat']); % create a name for the data you want to save
         save(fileName, 'Test_Data'); % save the data
     end
 end
