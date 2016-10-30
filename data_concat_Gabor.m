@@ -13,8 +13,8 @@ function [] = data_concat_Gabor(subjectID1, subjectID2, subjectID_output, phase,
 %fileName2 = fullfile(directory, 'RawData', [subjectID '-GaborTest.mat']);
 
 if phase==0 || phase==2
-    filename1 = fullfile(directory, 'RawData', [subjectID1 '-GaborTestContrast.mat']);
-    filename2 = fullfile(directory, 'RawData', [subjectID2 '-GaborTestContrast.mat']);
+    fileName1 = fullfile(directory, 'RawData', [subjectID1 '-GaborTestContrast.mat']);
+    fileName2 = fullfile(directory, 'RawData', [subjectID2 '-GaborTestContrast.mat']);
     
     if ~exist(fileName1, 'file') || ~exist(fileName2, 'file')
         disp(strcat('ERROR! Missing File: ', fileName1));
@@ -63,8 +63,8 @@ if phase==0 || phase==2
 end
 
 if phase==1 || phase==2
-    filename1 = fullfile(directory, 'RawData', [subjectID1 '-GaborTestRatio.mat']);
-    filename2 = fullfile(directory, 'RawData', [subjectID2 '-GaborTestRatio.mat']);
+    fileName1 = fullfile(directory, 'RawData', [subjectID1 '-GaborTestRatio.mat']);
+    fileName2 = fullfile(directory, 'RawData', [subjectID2 '-GaborTestRatio.mat']);
     if ~exist(fileName1, 'file') || ~exist(fileName2, 'file')
         disp(strcat('ERROR! Missing File: ', fileName1));
         disp(strcat('ERROR! Missing File: ', fileName2));
