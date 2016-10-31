@@ -6,8 +6,9 @@ function [data, var_e] = genDataWithPriorLikelihood(trials, frames, prior, likel
 % identical variances:
 %    p_auc = normcdf((mu1-mu2)/sqrt(2*var))
 %          = normcdf(2 / (sqrt(2) * stdev))
-% -> stdev = norminv(p_auc) * sqrt(2) / 2
-stdev_e = norminv(1-(likelihood-0.5), 0, 1) * sqrt(2) / 2;
+% -> norminv(p_auc) = 2/sqrt(2) * 1/stdev
+% -> stdev = sqrt(2) / norminv(p_auc)
+stdev_e = sqrt(2) / norminv(likelihood);
 var_e = stdev_e^2;
 
 % generate the 'center' of each frame according to 'prior'; with
