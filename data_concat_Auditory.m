@@ -40,7 +40,7 @@ if phase == 0 || phase == 2
     Test_Data.choice = [Data1.Test_Data.choice, Data2.Test_Data.choice];
     Test_Data.accuracy = [Data1.Test_Data.accuracy, Data2.Test_Data.accuracy];
     Test_Data.ratio = [Data1.Test_Data.ratio, Data2.Test_Data.ratio];
-    Test_Data.test_phase = [Data1.Test_Data.test_phase, Data2.Test_Data.test_phase];
+    %Test_Data.test_phase = [Data1.Test_Data.test_phase, Data2.Test_Data.test_phase];
     
     Test_Data.current_trial = Data1.Test_Data.current_trial + Data2.Test_Data.current_trial;
     Test_Data.sampling_rate = Data1.Test_Data.sampling_rate;

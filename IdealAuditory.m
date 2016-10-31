@@ -51,7 +51,6 @@ cd(fullfile(directory, 'Code')) % Set the current directory
         
         
         Preliminary_Data.current_trial = 0;
-        Preliminary_Data.test_phase = ([1:loops].*preliminary_trials) - preliminary_trials + 1;
         
         % Set properties of a click
         Preliminary_Data.sampling_rate = 6000;   % Indirectly controls frequency
