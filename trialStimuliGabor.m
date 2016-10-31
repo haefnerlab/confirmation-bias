@@ -72,12 +72,7 @@ try
         
         log_odds = log_odds + image_properties.log_regress(3,i);
         
-        %{
-        if automatic == 0
-            image = (image .* 16.0) + 127.0;
-            % Scale it into the color range of 0 to 255 if you're going to be showing it to the screen
-        end
-        %}
+        
         image_texture(i) = Screen('MakeTexture', wPtr, image);
         
     end
@@ -118,24 +113,11 @@ try
             Screen('Close', image_texture(i));% To save on memory and processing time, close the screen afterwards
         end
         
-        %if myIsField(Data, 'move_on') %&& Data.current_trial < 26
+        
         show_left_patch = Screen('MakeTexture', wPtr, left_patch);
         Screen('DrawTexture', wPtr, show_left_patch, [], [xc-res*4-200 yc-res*4 xc+res*4-200 yc+res*4]);   % xc, yc indicates the coordinates of the middle of the screen
         show_right_patch = Screen('MakeTexture', wPtr, right_patch);
         Screen('DrawTexture', wPtr, show_right_patch, [], [xc-res*4+200 yc-res*4 xc+res*4+200 yc+res*4]);
-        
-        
-        
-        %{
-        else
-        show_left_patch = Screen('MakeTexture', wPtr, left_patch);
-        Screen('DrawTexture', wPtr, show_left_patch, [], [xc-res*5-500 yc-res*5 xc+res*5-500 yc+res*5]);   % xc, yc indicates the coordinates of the middle of the screen
-        show_right_patch = Screen('MakeTexture', wPtr, right_patch);
-        Screen('DrawTexture', wPtr, show_right_patch, [], [xc-res*5+500 yc-res*5 xc+res*5+500 yc+res*5]);
-        end
-        %}
-        
-        
         Screen('DrawText', wPtr, sprintf('Current Trial - #%d', Data.current_trial), xc-600, yc+250, 0);   % Unobtrusive output to screen of the current trial number
         onset = Screen('Flip', wPtr);
         
