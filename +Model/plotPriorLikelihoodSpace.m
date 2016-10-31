@@ -9,12 +9,11 @@ ll = ll(:);
 % Generate data
 trials = 1000;
 frames = 12;
-prefix = sprintf('%dx%d_norminvlike', trials, frames);
 
 parfor i=1:numel(pp)
     prior = pp(i);
     likelihood = ll(i);
-    [data, var_e] = Model.genDataWithPriorLikelihood(trials, frames, prior, likelihood);
+    [data, var_e, prefix] = Model.genDataWithPriorLikelihood(trials, frames, prior, likelihood);
     sampling_params_copy = sampling_params;
     sampling_params_copy.var_e = var_e;
     sampling_params_copy.p_x = prior;
