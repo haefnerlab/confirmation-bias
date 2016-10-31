@@ -25,7 +25,7 @@ end
 sub_prior = 1:5:length(priors);
 sub_like = 1:5:length(likelihoods);
 
-imagesc(correct); axis image; colorbar;
+imagesc(correct, [0.5 1.0]); axis image; colorbar;
 set(gca, 'XTick', sub_like);
 set(gca, 'YTick', sub_prior);
 set(gca, 'XTickLabel', arrayfun(@num2str, likelihoods(sub_like), 'UniformOutput', false));
