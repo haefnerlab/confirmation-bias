@@ -29,7 +29,7 @@ while GetSecs() - start < tracker_info.fixationTime / 1000
         [center, gaze_bbox] = get_bbox(coordinates_history(indices_within_minimum_hold, 2:3));
         bbox_width = gaze_bbox(3) - gaze_bbox(1);
         bbox_height = gaze_bbox(4) - gaze_bbox(2);
-        if bbox_width < tracker_info.fixationRect(1) && bbox_height < tracker_info.fixationRect(2)
+        if bbox_width < 2*tracker_info.fixationRadius && bbox_height < 2*tracker_info.fixationRadius
             is_holding = true;
             break;
         end
@@ -38,8 +38,8 @@ while GetSecs() - start < tracker_info.fixationTime / 1000
         end
     end
     if tracker_info.debug
-        % draw target box
-        Screen('FrameRect', wPtr, [255 255 255], ptbCenteredRect(tracker_info.fixationCenter, tracker_info.fixationRect));
+        % draw target area
+        Screen('FrameOval', wPtr, [255 255 255], ptbCenteredRect(tracker_info.fixationCenter, 2*tracker_info.fixationRadius*ones(1,2)));
         % draw crosshairs on gaze location
         Screen('DrawLine', wPtr, [255 0 0], gx - 10, gy, gx + 10, gy);
         Screen('DrawLine', wPtr, [255 0 0], gx, gy - 10, gx, gy + 10);

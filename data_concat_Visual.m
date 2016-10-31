@@ -6,10 +6,10 @@ function [] = data_concat_Visual(subjectID1, subjectID2, subjectID_output, direc
 % experiment session
 % directory allows this code to be able to create and save files of the subject data on any computer
 
-% Example command line input: data_concat_Visual('MatthewFirstSession', 'MatthewSecondSession', MatthewCombinedSession', '/Users/bcs206/Documents/Summer/RawData/')
+% Example command line input: data_concat_Visual('MatthewFirstSession', 'MatthewSecondSession', MatthewCombinedSession', '/Users/bcs206/Documents/Summer/RawData')
 
-fileName1 = sprintf('%s%s-VisualTest.mat', directory, subjectID1);   %Only concat test files, never the prelims
-fileName2 = sprintf('%s%s-VisualTest.mat', directory, subjectID2);
+fileName1 = fullfile(directory, 'RawData', [subjectID '-VisualTest.mat']);   %Only concat test files, never the prelims
+fileName2 = fullfile(directory, 'RawData', [subjectID '-VisualTest.mat']);
 if ~exist(fileName1, 'file') || ~exist(fileName2, 'file')
     disp(strcat('ERROR! Missing File: ', fileName1));
     disp(strcat('ERROR! Missing File: ', fileName2));
@@ -40,6 +40,6 @@ Test_Data.screen_resolution = Data1.Test_Data.screen_resolution;
 Test_Data.flash_rate = [Data1.Test_Data.flash_rate, Data2.Test_Data.flash_rate];
 
 
-fileNameEnd = sprintf('%s%s-VisualTest.mat', directory, subjectID_output);
+fileNameEnd = fullfile(directory, 'RawData', [subjectID '-VisualTest.mat']);
 save(fileNameEnd, 'Test_Data');
 end

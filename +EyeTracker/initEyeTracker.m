@@ -14,11 +14,11 @@ tracker_info = struct(...
     'fixationSymbolSize', [10, 10], ... % pixel size of fixation symbol, independent of the 'Rect' below
     'fixationSymbolColors', [255 255 255; 0 0 0], ... % primary/secondary color of fixation symbol
     'fixationTime', 1000, ... % ms. Max time allowed in getFixation()
-    'fixationMinimumHold', 500, ... % Time required within fixationRect to consider it held.
+    'fixationMinimumHold', 500, ... % Time required within fixation area to consider it held.
     ... % parameters for isFixation()
     'fixationCorrection', [0 0], ... % Add this to [gx, gy] to get corrected position (this is set automatically during getFixation)
     'fixationCenter', [resolution.width/2, resolution.height/2], ...
-    'fixationRect', [10 10], ... % true size of rectangle for fixation requirement (separate from the symbol size above)
+    'fixationRadius', 10, ... % true size for fixation requirement (separate from the symbol size above)
     ... % parameters for smoothing
     'smoothing_n_points', 4, ... % how far in the past to average together
     ... % parameters for calibration

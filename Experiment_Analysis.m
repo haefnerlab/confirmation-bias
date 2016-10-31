@@ -55,7 +55,7 @@ if opts.automatic == 0
     if opts.preliminary == 1 || opts.preliminary == 2
         %load the preliminary visual data
         if opts.phase == 0
-            prelimFile = [opts.directory 'RawData/' opts.subjectID '-VisualDataContrast.mat'];
+            prelimFile = [opts.directory 'RawData' opts.subjectID '-VisualDataContrast.mat'];
             if ~exist(prelimFile, 'file')
                 disp(strcat('ERROR! Missing File: ', prelimFile));  % Return an error message for missing file
                 disp(strcat('Maybe the Preliminary phase is saved under a different name?'));
@@ -87,7 +87,7 @@ if opts.automatic == 0
             title('Reaction Time by Trial Number')
         elseif opts.phase == 1
             % Analyze the ratio data
-            prelimFile = [opts.directory 'RawData/' opts.subjectID '-VisualDataRatio.mat'];
+            prelimFile = [opts.directory 'RawData' opts.subjectID '-VisualDataRatio.mat'];
             if ~exist(prelimFile, 'file')
                 disp(strcat('ERROR! Missing File: ', prelimFile));  % Return an error message for missing file
                 disp(strcat('Maybe the Preliminary phase is saved under a different name?'));
@@ -124,9 +124,9 @@ if opts.automatic == 0
     if opts.preliminary == 0 || opts.preliminary == 2
         if opts.phase == 0
             if opts.manual == 0
-                filename = [[opts.directory 'RawData/'] opts.subjectID '-VisualTestContrast.mat'];
+                filename = [[opts.directory 'RawData'] opts.subjectID '-VisualTestContrast.mat'];
                 if ~exist(filename, 'file')
-                    filename = [[opts.directory 'RawData/'] opts.subjectID '-VisualNoisyTest.mat'];  % Are you trying to analyze the older data with the older file name?
+                    filename = [[opts.directory 'RawData'] opts.subjectID '-VisualNoisyTest.mat'];  % Are you trying to analyze the older data with the older file name?
                     %else
                     disp(strcat('ERROR! Missing File: ', filename));  % Return an error message for missing file
                     return;
@@ -134,9 +134,9 @@ if opts.automatic == 0
                     load(filename);  % Will load Test_Data
                 end
             elseif opts.manual == 1
-                filename = [[opts.directory 'RawData/'] opts.subjectID '-VisualTestContrastManual.mat'];
+                filename = [[opts.directory 'RawData'] opts.subjectID '-VisualTestContrastManual.mat'];
                 if ~exist(filename, 'file')
-                    filename = [[opts.directory 'RawData/'] opts.subjectID '-VisualNoisyTest.mat'];  % Are you trying to analyze the older data with the older file name?
+                    filename = [[opts.directory 'RawData'] opts.subjectID '-VisualNoisyTest.mat'];  % Are you trying to analyze the older data with the older file name?
                     %else
                     disp(strcat('ERROR! Missing File: ', filename));  % Return an error message for missing file
                     return;
@@ -146,9 +146,9 @@ if opts.automatic == 0
             end
         elseif opts.phase == 1
             if opts.manual == 0
-                filename = [[opts.directory 'RawData/'] opts.subjectID '-VisualTestRatio.mat'];
+                filename = [[opts.directory 'RawData'] opts.subjectID '-VisualTestRatio.mat'];
                 if ~exist(filename, 'file')
-                    filename = [[opts.directory 'RawData/'] opts.subjectID '-VisualNoisyTest.mat'];  % Are you trying to analyze the older data with the older file name?
+                    filename = [[opts.directory 'RawData'] opts.subjectID '-VisualNoisyTest.mat'];  % Are you trying to analyze the older data with the older file name?
                     %else
                     disp(strcat('ERROR! Missing File: ', filename));  % Return an error message for missing file
                     return;
@@ -156,9 +156,9 @@ if opts.automatic == 0
                     load(filename);  % Will load Test_Data
                 end
             elseif opts.manual == 1
-                filename = [[opts.directory 'RawData/'] opts.subjectID '-VisualTestRatioManual.mat'];
+                filename = [[opts.directory 'RawData'] opts.subjectID '-VisualTestRatioManual.mat'];
                 if ~exist(filename, 'file')
-                    filename = [[opts.directory 'RawData/'] opts.subjectID '-VisualNoisyTest.mat'];  % Are you trying to analyze the older data with the older file name?
+                    filename = [[opts.directory 'RawData'] opts.subjectID '-VisualNoisyTest.mat'];  % Are you trying to analyze the older data with the older file name?
                     %else
                     disp(strcat('ERROR! Missing File: ', filename));  % Return an error message for missing file
                     return;
@@ -174,7 +174,7 @@ elseif opts.automatic == 1
     if opts.preliminary == 1 || opts.preliminary == 2
         %load the first preliminary auditory data
         if opts.phase == 0
-            prelimFile = [opts.directory 'RawData/' opts.subjectID '-AuditoryDataVolume.mat'];
+            prelimFile = [opts.directory 'RawData' opts.subjectID '-AuditoryDataVolume.mat'];
             if ~exist(prelimFile, 'file')
                 disp(strcat('ERROR! Missing File: ', prelimFile));  % Return an error message for missing file
                 disp(strcat('Maybe the Preliminary phase is saved under a different name?'));
@@ -206,7 +206,7 @@ elseif opts.automatic == 1
             xlabel('Trial'), ylabel('Reaction Time in msecs')
             title('Reaction Time by Trial Number')
         elseif opts.phase == 1
-            prelimFile = [opts.directory 'RawData/' opts.subjectID '-AuditoryDataRatio.mat'];
+            prelimFile = [opts.directory 'RawData' opts.subjectID '-AuditoryDataRatio.mat'];
             if ~exist(prelimFile, 'file')
                 disp(strcat('ERROR! Missing File: ', prelimFile));  % Return an error message for missing file
                 disp(strcat('Maybe the Preliminary phase is saved under a different name?'));
@@ -243,7 +243,7 @@ elseif opts.automatic == 1
     if opts.preliminary == 0 || opts.preliminary == 2
         if opts.phase == 0
             if opts.manual == 0
-                filename = [[opts.directory 'RawData/'] opts.subjectID '-AuditoryTestVolume.mat'];
+                filename = [[opts.directory 'RawData'] opts.subjectID '-AuditoryTestVolume.mat'];
                 if ~exist(filename, 'file')
                     disp(strcat('ERROR! Missing File: ', filename));  % Return an error message for missing file
                     disp(strcat('Maybe the test data is saved under a different name?'));
@@ -252,7 +252,7 @@ elseif opts.automatic == 1
                     load(filename);  % Will load Test_Data
                 end
             elseif opts.manual == 1
-                filename = [[opts.directory 'RawData/'] opts.subjectID '-AuditoryTestVolumeManual.mat'];
+                filename = [[opts.directory 'RawData'] opts.subjectID '-AuditoryTestVolumeManual.mat'];
                 if ~exist(filename, 'file')
                     disp(strcat('ERROR! Missing File: ', filename));  % Return an error message for missing file
                     disp(strcat('Maybe the test data is saved under a different name?'));
@@ -282,7 +282,7 @@ elseif opts.automatic == 1
             
         elseif opts.phase == 1
             if opts.manual == 0
-                filename = [[opts.directory 'RawData/'] opts.subjectID '-AuditoryTestRatio.mat'];
+                filename = [[opts.directory 'RawData'] opts.subjectID '-AuditoryTestRatio.mat'];
                 if ~exist(filename, 'file')
                     disp(strcat('ERROR! Missing File: ', filename));  % Return an error message for missing file
                     disp(strcat('Maybe the test data is saved under a different name?'));
@@ -291,7 +291,7 @@ elseif opts.automatic == 1
                     load(filename);  % Will load Test_Data
                 end
             elseif opts.manual == 1
-                filename = [[opts.directory 'RawData/'] opts.subjectID '-AuditoryTestRatioManual.mat'];
+                filename = [[opts.directory 'RawData'] opts.subjectID '-AuditoryTestRatioManual.mat'];
                 if ~exist(filename, 'file')
                     disp(strcat('ERROR! Missing File: ', filename));  % Return an error message for missing file
                     disp(strcat('Maybe the test data is saved under a different name?'));
@@ -567,7 +567,7 @@ if opts.preliminary == 0 || opts.preliminary == 2
         axis tight
         
         
-        fileName = sprintf('%s%s-result.mat',[opts.directory 'RawData/'],opts.subjectID); % create a name for the data you want to save
+        fileName = fullfile(directory, 'RawData', [subjectID '-result.mat']); % create a name for the data you want to save
         save(fileName, 'result');
         %plotPsych(result,plotOptions);
         

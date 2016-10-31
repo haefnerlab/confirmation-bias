@@ -1,28 +1,24 @@
-function stimulus_properties = trialStimuliAuditory(screen, subjectID, Data, current_trial, automatic, phase, add_noise, directory)
+function stimulus_properties = trialStimuliAuditory(screen, subjectID, Data, current_trial, automatic, phase, add_noise, directory, settings)
 % trialStimuli will play the sound several clicks into both ears,
 % headphones are required
 
-% Ex. trialStimuliAuditory(0, 'subject', Test_Data, 50, 50, 0)
+% Ex. trialStimuliAuditory(0, 'subject', Test_Data, 50, 50, 0, pwd, LoadSettings(pwd))
 
 
-whichScreen = 0; %allow to choose the display if there's more than one
+whichScreen = settings.whichScreen; %allow to choose the display if there's more than one
 ResolutionScreen = Screen('Resolution', whichScreen); % Gets screen resolution
 ScreenSize = [0 0 ResolutionScreen.width ResolutionScreen.height]; % Sets full screen
 xc = ScreenSize(3)/2; %	Gets the middle of the horizontal axis
 yc = ScreenSize(4)/2; % Gets the middle of the vertical axis
-%Screen('Preference', 'SkipSyncTests', 1); % Opens Screen
 
 white = [255 255 255];          % Sets the color to be white
 black = [0 0 0];
 
 % Set up variables for keyboard functions
 KbName('UnifyKeyNames');
-spaceKey = KbName('space');
-escapeKey = KbName('ESCAPE');
-left = KbName('leftArrow');
-right = KbName('rightArrow');
-up = KbName('upArrow');
-down = KbName('downArrow');
+exitKey = KbName(settings.keyExit);
+leftKey = KbName(settings.keyLeft);
+rightKey = KbName(settings.keyRight);
 
 try    % If there is ever an error during an experiment, the PsychToolBox screen will automatically exit in the catch block
     
@@ -123,19 +119,19 @@ try    % If there is ever an error during an experiment, the PsychToolBox screen
         %start(tt);
         tstart=tic;
         [~, keyCode, ~] = KbPressWait([], 2);
-        while ~keyCode(left) && ~keyCode(right) && toc(tstart)<=1 %strcmp(get(tt,'Running'),'on') % wait for press
+        while ~keyCode(leftKey) && ~keyCode(rightKey) && toc(tstart)<=1 %strcmp(get(tt,'Running'),'on') % wait for press
             %             [~,~,keyCode] = KbCheck;
             [~, keyCode, ~] = KbPressWait([], 2);
             
-            if keyCode(escapeKey)
+            if keyCode(exitKey)
                 
-                if ~exist([directory 'RawData/'], 'dir')
-                    mkdir([directory 'RawData/']);
+                if ~exist(fullfile(directory, 'RawData'), 'dir')
+                    mkdir(fullfile(directory, 'RawData'));
                     
-                    fileName = sprintf('%s%s-AuditoryQuit.mat',[directory 'RawData/'],subjectID); % create a name for the data you want to save as a csv
+                    fileName = fullfile(directory, 'RawData', [subjectID '-AuditoryQuit.mat']); % create a name for the data you want to save as a csv
                     save(fileName, 'Data'); % save the data
                 else
-                    fileName = sprintf('%s%s-AuditoryQuit.mat',[directory 'RawData/'],subjectID); % create a name for the data you want to save as a csv
+                    fileName = fullfile(directory, 'RawData', [subjectID '-AuditoryQuit.mat']); % create a name for the data you want to save as a csv
                     save(fileName, 'Data'); % save the data
                 end
                 sca; % closes screen
@@ -153,13 +149,13 @@ try    % If there is ever an error during an experiment, the PsychToolBox screen
         %             [~,~,keyCode] = KbCheck;
         %             if keyCode(escapeKey)
         %
-        %                 if ~exist([directory 'RawData/'], 'dir')
-        %                     mkdir([directory 'RawData/']);
+        %                 if ~exist(fullfile(directory, 'RawData'), 'dir')
+        %                     mkdir(fullfile(directory, 'RawData'));
         %
-        %                     fileName = sprintf('%s%s-AuditoryQuit.mat',[directory 'RawData/'],subjectID); % create a name for the data you want to save as a csv
+        %                     fileName = fullfile(directory, 'RawData', [subjectID '-AuditoryQuit.mat']); % create a name for the data you want to save as a csv
         %                     save(fileName, 'Data'); % save the data
         %                 else
-        %                     fileName = sprintf('%s%s-AuditoryQuit.mat',[directory 'RawData/'],subjectID); % create a name for the data you want to save as a csv
+        %                     fileName = fullfile(directory, 'RawData', [subjectID '-AuditoryQuit.mat']); % create a name for the data you want to save as a csv
         %                     save(fileName, 'Data'); % save the data
         %                 end
         %                 sca; % closes screen
@@ -171,9 +167,9 @@ try    % If there is ever an error during an experiment, the PsychToolBox screen
         
         stimulus_properties.reaction = (offset - onset)*1000;  % Records reaction time in ms times a thousand
         
-        if keyCode(left)% == KbCheck
+        if keyCode(leftKey)% == KbCheck
             stimulus_properties.choice = 1;        % The subject chose left orientation
-        elseif keyCode(right)% == KbCheck
+        elseif keyCode(rightKey)% == KbCheck
             stimulus_properties.choice = 0;        % The subject chose right orientation
         else
             stimulus_properties.choice = nan;

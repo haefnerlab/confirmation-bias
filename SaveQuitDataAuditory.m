@@ -1,7 +1,7 @@
 function [] = SaveQuitDataAuditory(subjectID, phase, loops_consider, preliminary_trials, directory)
 
 if phase == 0       % load the volume data
-    filename = [directory 'RawData/' subjectID '-AuditoryDataVolume.mat'];
+    filename = fullfile(directory, 'RawData', [subjectID '-AuditoryDataVolume.mat']);
     if ~exist(filename, 'file')
         disp(strcat('ERROR! Missing File: ', filename));  % Return an error message for missing file
         disp(strcat('Maybe the Preliminary phase is saved under a different name?'));
@@ -10,7 +10,7 @@ if phase == 0       % load the volume data
         load(filename); % Load Preliminary_Data
     end
 elseif phase == 1       % load the ratio data
-    filename = [directory 'RawData/' subjectID '-AuditoryDataRatio.mat'];
+    filename = fullfile(directory, 'RawData', [subjectID '-AuditoryDataRatio.mat']);
     if ~exist(filename, 'file')
         disp(strcat('ERROR! Missing File: ', filename));  % Return an error message for missing file
         disp(strcat('Maybe the Preliminary phase is saved under a different name?'));
@@ -46,6 +46,7 @@ Preliminary_Data.average_clicks(:,point+1:end) = [];      % Average number of cl
 Preliminary_Data.number_of_frames = 60 * Preliminary_Data.stimulus_duration; % How many 'frames' or chances for a click per second in a trial?
 
 Preliminary_Data.order_of_clicks(point+1:end,:,:) = [];
+
 if phase ==0
     %% Save final data to folder
     if ~exist([directory 'RawData/'], 'dir') % Check the directory actually exists

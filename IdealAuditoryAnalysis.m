@@ -1,5 +1,5 @@
 function [] = IdealAuditoryAnalysis(subjectID, directory)
-prelimFile = [directory 'RawData/' subjectID '-AuditoryDataVolume.mat'];
+prelimFile = fullfile(directory, 'RawData', [subjectID '-AuditoryDataVolume.mat']);
 if ~exist(prelimFile, 'file')
     disp(strcat('ERROR! Missing File: ', prelimFile));  % Return an error message for missing file
     disp(strcat('Maybe the Preliminary phase is saved under a different name?'));

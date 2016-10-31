@@ -4,7 +4,7 @@ function [] = Gabor_Analysis(subjectID_prelim,subjectID, groupings, preliminary,
 if preliminary == 1 || preliminary == 2
     %load the preliminary data
     if phase == 0
-        filename = [directory 'RawData/' subjectID_prelim '-GaborDataContrast.mat'];
+        filename = fullfile(directory, 'RawData', [subjectID_prelim '-GaborDataContrast.mat']);
         if ~exist(filename, 'file')
             disp(strcat('ERROR! Missing File: ', filename));  % Return an error message for missing file
             disp(strcat('Maybe the Preliminary phase is saved under a different name?'));
@@ -24,7 +24,7 @@ if preliminary == 1 || preliminary == 2
         title('Contrast Level by Trial Number')
         
     elseif phase == 1
-        filename = [directory 'RawData/' subjectID_prelim '-GaborDataRatio.mat'];
+        filename = fullfile(directory, 'RawData', [subjectID_prelim '-GaborDataRatio.mat']);
         if ~exist(filename, 'file')
             disp(strcat('ERROR! Missing File: ', filename));  % Return an error message for missing file
             disp(strcat('Maybe the Preliminary phase is saved under a different name?'));
@@ -53,7 +53,7 @@ if preliminary == 0 || preliminary == 2
     if phase == 0
         % Load data for test gabor experiment
         if manual == 0
-            filename = [directory 'RawData/' subjectID '-GaborTestContrast.mat'];
+            filename = fullfile(directory, 'RawData', [subjectID '-GaborTestContrast.mat']);
             if ~exist(filename, 'file')
                 disp(strcat('ERROR! Missing File: ', filename));  % Return an error message for missing file
                 return;
@@ -61,7 +61,7 @@ if preliminary == 0 || preliminary == 2
                 results = load(filename); % Will load Test_Data
             end
         elseif manual == 1
-            filename = [directory 'RawData/' subjectID '-GaborTestContrastManual.mat'];
+            filename = fullfile(directory, 'RawData', [subjectID '-GaborTestContrastManual.mat']);
             if ~exist(filename, 'file')
                 disp(strcat('ERROR! Missing File: ', filename));  % Return an error message for missing file
                 return;
@@ -72,7 +72,7 @@ if preliminary == 0 || preliminary == 2
     elseif phase == 1
         % Load data for test gabor experiment
         if manual == 0
-            filename = [directory 'RawData/' subjectID '-GaborTestRatio.mat'];
+            filename = fullfile(directory, 'RawData', [subjectID '-GaborTestRatio.mat']);
             if ~exist(filename, 'file')
                 disp(strcat('ERROR! Missing File: ', filename));  % Return an error message for missing file
                 return;
@@ -80,7 +80,7 @@ if preliminary == 0 || preliminary == 2
                 results = load(filename);  % Will load Test_Data
             end
         elseif manual == 1
-            filename = [directory 'RawData/' subjectID '-GaborTestRatioManual.mat'];
+            filename = fullfile(directory, 'RawData', [subjectID '-GaborTestRatioManual.mat']);
             if ~exist(filename, 'file')
                 disp(strcat('ERROR! Missing File: ', filename));  % Return an error message for missing file
                 return;

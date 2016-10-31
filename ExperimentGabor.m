@@ -18,55 +18,53 @@ end
 
 % directory allows this code to be able to create and save files of the subject data on any computer
 
+settings = LoadSettings(directory);
 
 %% Set Up the Initialization of the expeirment
-cd([directory 'Code/']) % Set the current directory
-directory = [directory 'RawData/'];  % Directory to save the data and files to
+cd(fullfile(directory, 'Code')) % Set the current directory
 commandwindow; % Moves the cursor to the commandwindow
 
-InitializeMatlabOpenGL
+if settings.useOpenGL, InitializeMatlabOpenGL; end
 
 % Screen set up
-whichScreen = 0; %allow to choose the display if there's more than one
+whichScreen = settings.whichScreen; %allow to choose the display if there's more than one
 ResolutionScreen = Screen('Resolution', whichScreen); % Gets screen resolution
 ScreenSize = [0 0 ResolutionScreen.width ResolutionScreen.height]; % Sets full screen
 xc = ScreenSize(3)/2; %	Gets the middle of the horizontal axis
 yc = ScreenSize(4)/2; % Gets the middle of the vertical axis
-Screen('Preference', 'SkipSyncTests', 0); % Opens Screen
+Screen('Preference', 'SkipSyncTests', settings.ptbSkipSyncTests); % Opens Screen
 
 white = [255 255 255];          % Sets the color to be white
 black = [0 0 0];                % Sets the color to be black
 
-load('ColorCal2MeasurementsNoHotMirror.mat');
-gammaTable = gammaTable2;
-% Screen('LoadNormalizedGammaTable', win, gammaTable*[1 1 1]);
 [wPtr, ~] = Screen('OpenWindow', whichScreen, black, [], 32); % Opens window, sets background as black, sets screensize
 %[wPtr, ~] = Screen('OpenWindow', whichScreen, black, [xc-900 yc-500 xc+900 yc+500], 32);
 % Creates a small window instead of using the full screen
 % Mainly to allow screenshots
 
+if ~isempty(settings.gammaTableFile)
+    gtdata = load(settings.gammaTableFile);
+    Screen('LoadNormalizedGammaTable', wPtr, gtdata.(settings.gammaTable)*[1 1 1]);
+end
+
 tracker_info = EyeTracker.initEyeTracker(whichScreen, ...
     'fixationSymbol', 'b', ...
-    'fixationCenter', [xc, yc+150], ...
+    'fixationCenter', [xc, ScreenSize(4)-50], ...
     'fixationSymbolSize', [30 30], ...
     varargin{:});
 
-%Screen('LoadNormalizedGammaTable', wPtr, gammaTable*[1 1 1]);
-
 % Set up keyboard functions
 KbName('UnifyKeyNames');
-spaceKey = KbName('space');
-escapeKey = KbName('ESCAPE');
-left = KbName('leftArrow');
-right = KbName('rightArrow');
-up = KbName('upArrow');
-down = KbName('downArrow');
+goKey = KbName(settings.keyGo);
+exitKey = KbName(settings.keyExit);
 
 % This is the first preliminary phase with a constant ratio (20, 4) and finding the threshold contrast
 HideCursor(whichScreen)
 if phase == 0
     
-    fileName = sprintf('%s%s-GaborDataContrast.mat',directory,subjectID); % Set the desired filename of the experimental data
+    EyeTracker.AutoCalibrate(tracker_info);
+    
+    fileName = fullfile(directory, 'RawData', [subjectID '-GaborDataContrast.mat']); % Set the desired filename of the experimental data
     if ~exist(fileName, 'file') % Check to see if the subject has already done the preliminary phase or not
         
 		%% Instruction Screen
@@ -75,12 +73,12 @@ if phase == 0
 		Screen('DrawText', wPtr, 'You are required to keep your eyes on the bull''s eye target below the images.', xc-500, yc-100, white);
 		Screen('DrawText', wPtr, 'Then you will be shown two images.', xc-500, yc-50, white);
 		Screen('DrawText', wPtr, 'You will have to decide which image appeared more frequently.', xc-500, yc, white);
-		Screen('DrawText', wPtr, 'Select the image positioned to the left or right by pressing the corresponding arrow key.', xc-500, yc+50, white);
+		Screen('DrawText', wPtr, sprintf('Select the image positioned to the left or right by pressing %s or %s respectively', settings.keyLeftName, settings.keyRightName), xc-500, yc+50, white);
 		Screen('DrawText', wPtr, 'Ask the researcher if you need further clarification.', xc-500, yc+100, white);
-		Screen('DrawText', wPtr, 'Press the space bar to begin.', xc-500, yc+150, white);    % Display text colored white
+		Screen('DrawText', wPtr, sprintf('Press %s to begin.', settings.keyGoName), xc-500, yc+150, white);    % Display text colored white
 		Screen('Flip', wPtr); % Function to flip to the next screen image
 		[~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
-		while ~keyCode(spaceKey)        % While loop to wait fo rhte spacebar to be pressed
+		while ~keyCode(goKey)        % While loop to wait for the spacebar to be pressed
 			[~, ~, keyCode] = KbCheck;
 		end
 		Screen('Flip', wPtr); % Function to flip to the next screen image
@@ -148,15 +146,15 @@ if phase == 0
                 if i~=1
                     flag=flag+1;
                     if automatic == 0 && flag==1
-                        sounds(-1);
+                        sounds(-1, 1.5);
                         Screen('TextSize', wPtr, 20); % Set text size to 20
                         Screen('DrawText', wPtr, 'You have completed a block.', xc-500, yc-150, white);
                         Screen('DrawText', wPtr, 'You may take a break if you want!', xc-500, yc-100, white);
-                        Screen('DrawText', wPtr, 'Press the spacebar whenever you are ready again.', xc-500, yc-50, white);
+                        Screen('DrawText', wPtr, sprintf('Press %s whenever you are ready again.', settings.keyGoName), xc-500, yc-50, white);
                         
                         Screen('Flip', wPtr); % Function to flip to the next screen image
                         [~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
-                        while ~keyCode(spaceKey)        % While loop to wait fo rhte spacebar to be pressed
+                        while ~keyCode(goKey)        % While loop to wait for the spacebar to be pressed
                             [~, ~, keyCode] = KbCheck;
                         end
                         Screen('Flip', wPtr);
@@ -215,11 +213,11 @@ if phase == 0
             % Pass in the contrast level, all of the images, screen being
             % used, subject ID, the struct with all of the data, and the
             % fact it's the person or computer running the experiment
-            [I, eye_tracker_points, broke_fixation] = trialStimuliGabor(i, image_array, wPtr, subjectID, Preliminary_Data, automatic, phase, directory, tracker_info);
+            [I, eye_tracker_points, broke_fixation] = trialStimuliGabor(i, image_array, wPtr, subjectID, Preliminary_Data, automatic, phase, directory, tracker_info, settings);
             
             if broke_fixation
                 Screen('Flip', wPtr);
-                sounds(0);
+                sounds(0, 0.2);
                 pause(1);
                 continue;
             end
@@ -243,7 +241,7 @@ if phase == 0
             if (Preliminary_Data.choice(i) == 1 && Preliminary_Data.correct_answer(i) == 1) || (Preliminary_Data.choice(i) == 0 && Preliminary_Data.correct_answer(i) == 0)
                 Preliminary_Data.accuracy(i) = 1;	% 1 is true for accuracy
                 if automatic == 0
-                    sounds(1);              % Beep for correct when it's the person running the experiment
+                    sounds(1, 0.2);              % Beep for correct when it's the person running the experiment
                 end
                 %{
                 move_on = move_on + 1;	% if right, we increment move_on and later check it to decrease contrast level
@@ -255,7 +253,7 @@ if phase == 0
             elseif (Preliminary_Data.choice(i) == 1 && Preliminary_Data.correct_answer(i) == 0) || (Preliminary_Data.choice(i) == 0 && Preliminary_Data.correct_answer(i) == 1)
                 Preliminary_Data.accuracy(i) = 0;	% 0 is false for inaccuracy
                 if automatic == 0
-                    sounds(0);              % Buzz for wrong when it's the person running the experiment
+                    sounds(0, 0.2);              % Buzz for wrong when it's the person running the experiment
                 end
                 %{
                 move_on = 0;            % if wrong, we reset move_on to 0 and later increase the contrast level
@@ -267,7 +265,7 @@ if phase == 0
             elseif (isnan(Preliminary_Data.choice(i)) )
                 %Preliminary_Data.accuracy(i) = 0;	% 0 is false for inaccuracy
                 if automatic == 0
-                    sounds(0);              % Buzz for wrong when it's the person running the experiment
+                    sounds(2, 0.2);              % Buzz for wrong when it's the person running the experiment
                 end
             end
             
@@ -330,10 +328,10 @@ if phase == 0
         %% Save final data to folder
         if ~exist(directory, 'dir') % Check the directory actually exists
             mkdir(directory);
-            fileName = sprintf('%s%s-GaborDataContrast.mat',directory,subjectID); % create a name for the data you want to save
+            fileName = fullfile(directory, 'RawData', [subjectID '-GaborDataContrast.mat']); % create a name for the data you want to save
             save(fileName, 'Preliminary_Data', 'image_collection'); % save the data
         else
-            fileName = sprintf('%s%s-GaborDataContrast.mat',directory,subjectID); % create a name for the data you want to save
+            fileName = fullfile(directory, 'RawData', [subjectID '-GaborDataContrast.mat']); % create a name for the data you want to save
             save(fileName, 'Preliminary_Data', 'image_collection'); % save the data
         end
     end
@@ -342,7 +340,7 @@ elseif phase == 1
     
     % This is the second preliminary phase with a constant contrast (max contrast of 223) and finding the threshold ratio
     
-    fileName = sprintf('%s%s-GaborDataRatio.mat',directory,subjectID); % Set the desired filename of the experimental data
+    fileName = fullfile(directory, 'RawData', [subjectID '-GaborDataRatio.mat']); % Set the desired filename of the experimental data
     if ~exist(fileName, 'file') % Check to see if the subject has already done the preliminary phase or not
         
 		%% Instruction Screen
@@ -351,12 +349,12 @@ elseif phase == 1
 		Screen('DrawText', wPtr, 'You are required to keep your eyes on the bull''s eye target below the images.', xc-500, yc-100, white);
 		Screen('DrawText', wPtr, 'Then you will be shown two images.', xc-500, yc-50, white);
 		Screen('DrawText', wPtr, 'You will have to decide which image appeared more frequently.', xc-500, yc, white);
-		Screen('DrawText', wPtr, 'Select the image positioned to the left or right by pressing the corresponding arrow key.', xc-500, yc+50, white);
+		Screen('DrawText', wPtr, sprintf('Select the image positioned to the left or right by pressing %s or %s respectively', settings.keyLeftName, settings.keyRightName), xc-500, yc+50, white);
 		Screen('DrawText', wPtr, 'Ask the researcher if you need further clarification.', xc-500, yc+100, white);
-		Screen('DrawText', wPtr, 'Press the space bar to begin.', xc-500, yc+150, white);    % Display text colored white
+		Screen('DrawText', wPtr, sprintf('Press %s to begin.', settings.keyGoName), xc-500, yc+150, white);    % Display text colored white
 		Screen('Flip', wPtr); % Function to flip to the next screen image
 		[~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
-		while ~keyCode(spaceKey)        % While loop to wait fo rhte spacebar to be pressed
+		while ~keyCode(goKey)        % While loop to wait for the spacebar to be pressed
 			[~, ~, keyCode] = KbCheck;
 		end
 		Screen('Flip', wPtr); % Function to flip to the next screen image
@@ -418,15 +416,15 @@ elseif phase == 1
                 if i~=1
                     flag=flag+1;
                     if automatic == 0 && flag==1
-                        sounds(-1);
+                        sounds(-1, 1.5);
                         Screen('TextSize', wPtr, 20); % Set text size to 20
                         Screen('DrawText', wPtr, 'You finished a block.', xc-500, yc-150, white);
                         Screen('DrawText', wPtr, 'You may take a break!', xc-500, yc-100, white);
-                        Screen('DrawText', wPtr, 'Press the spacebar whenever you are ready again.', xc-500, yc-50, white);
+                        Screen('DrawText', wPtr, sprintf('Press %s whenever you are ready again.', settings.keyGoName), xc-500, yc-50, white);
                         
                         Screen('Flip', wPtr); % Function to flip to the next screen image
                         [~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
-                        while ~keyCode(spaceKey)        % While loop to wait fo rhte spacebar to be pressed
+                        while ~keyCode(goKey)        % While loop to wait for the spacebar to be pressed
                             [~, ~, keyCode] = KbCheck;
                         end
                         Screen('Flip', wPtr);
@@ -483,7 +481,7 @@ elseif phase == 1
             % Pass in the contrast level, all of the images, screen being
             % used, subject ID, the struct with all of the data, and the
             % fact it's the person or computer running the experiment
-            I = trialStimuliGabor(i, image_array, wPtr, subjectID, Preliminary_Data, automatic, phase, directory);
+            I = trialStimuliGabor(i, image_array, wPtr, subjectID, Preliminary_Data, automatic, phase, directory, tracker_info, settings);
             
             % The staircase is based on the actual click rate, not on the underlying number of clicks each ear hears
             if sum(Preliminary_Data.order_of_orientations(i,:)) > Preliminary_Data.number_of_images/2
@@ -512,7 +510,7 @@ elseif phase == 1
             if (Preliminary_Data.choice(i) == 1 && Preliminary_Data.correct_answer(i) == 1) || (Preliminary_Data.choice(i) == 0 && Preliminary_Data.correct_answer(i) == 0)
                 Preliminary_Data.accuracy(i) = 1;	% 1 is true for accuracy
                 if automatic == 0
-                    sounds(1);              % Beep for correct when it's the person running the experiment
+                    sounds(1, 0.2);              % Beep for correct when it's the person running the experiment
                 end
                 %{
                 move_on = move_on + 1;	% if right, we increment move_on and later check it to decrease contrast level
@@ -524,7 +522,7 @@ elseif phase == 1
             elseif (Preliminary_Data.choice(i) == 1 && Preliminary_Data.correct_answer(i) == 0) || (Preliminary_Data.choice(i) == 0 && Preliminary_Data.correct_answer(i) == 1)
                 Preliminary_Data.accuracy(i) = 0;	% 0 is false for inaccuracy
                 if automatic == 0
-                    sounds(0);              % Buzz for wrong when it's the person running the experiment
+                    sounds(0, 0.2);              % Buzz for wrong when it's the person running the experiment
                 end
                 %{
                 move_on = 0;            % if wrong, we reset move_on to 0 and later increase the contrast level
@@ -536,7 +534,7 @@ elseif phase == 1
             elseif (isnan(Preliminary_Data.choice(i)) )
                 %Preliminary_Data.accuracy(i) = 0;	% 0 is false for inaccuracy
                 if automatic == 0
-                    sounds(0);              % Buzz for wrong when it's the person running the experiment
+                    sounds(2, 0.2);              % Buzz for wrong when it's the person running the experiment
                 end
             end
             
@@ -600,10 +598,10 @@ elseif phase == 1
         %% Save final data to folder
         if ~exist(directory, 'dir') % Check the directory actually exists
             mkdir(directory);
-            fileName = sprintf('%s%s-GaborDataRatio.mat',directory,subjectID); % create a name for the data you want to save
+            fileName = fullfile(directory, 'RawData', [subjectID '-GaborDataRatio.mat']); % create a name for the data you want to save
             save(fileName, 'Preliminary_Data', 'image_collection'); % save the data
         else
-            fileName = sprintf('%s%s-GaborDataRatio.mat',directory,subjectID); % create a name for the data you want to save
+            fileName = fullfile(directory, 'RawData', [subjectID '-GaborDataRatio.mat']); % create a name for the data you want to save
             save(fileName, 'Preliminary_Data', 'image_collection'); % save the data
         end
     end

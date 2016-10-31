@@ -7,14 +7,14 @@ function [] = data_concat_Gabor(subjectID1, subjectID2, subjectID_output, phase,
 % phase=0 means contrast concatenation and phase=1 means ratio concatenation
 % directory allows this code to be able to create and save files of the subject data on any computer
 
-% Example command line input: data_concat_Gabor('MatthewFirstSession', 'MatthewSecondSession', MatthewCombinedSession', '/Users/bcs206/Documents/Summer/RawData/')
+% Example command line input: data_concat_Gabor('MatthewFirstSession', 'MatthewSecondSession', MatthewCombinedSession', '/Users/bcs206/Documents/Summer/RawData')
 
-%fileName1 = sprintf('%s%s-GaborTest.mat', directory, subjectID1);   %Only concat test files, never the prelims
-%fileName2 = sprintf('%s%s-GaborTest.mat', directory, subjectID2);
+%fileName1 = fullfile(directory, 'RawData', [subjectID '-GaborTest.mat']);   %Only concat test files, never the prelims
+%fileName2 = fullfile(directory, 'RawData', [subjectID '-GaborTest.mat']);
 
 if phase==0 || phase==2
-    filename1 = [directory 'RawData/' subjectID1 '-GaborTestContrast.mat'];
-    filename2 = [directory 'RawData/' subjectID2 '-GaborTestContrast.mat'];
+    fileName1 = fullfile(directory, 'RawData', [subjectID1 '-GaborTestContrast.mat']);
+    fileName2 = fullfile(directory, 'RawData', [subjectID2 '-GaborTestContrast.mat']);
     
     if ~exist(fileName1, 'file') || ~exist(fileName2, 'file')
         disp(strcat('ERROR! Missing File: ', fileName1));
@@ -58,13 +58,13 @@ if phase==0 || phase==2
     image_collection(trials1+1:end, :, :, :) = Data2.image_collection;
     
     
-    fileNameEnd = sprintf('%s%s-GaborTestContrast.mat', [ directory 'RawData/'], subjectID_output);
+    fileNameEnd = fullfile(directory, 'RawData', [subjectID '-GaborTestContrast.mat']);
     save(fileNameEnd, 'image_collection', 'Test_Data');
 end
 
 if phase==1 || phase==2
-    filename1 = [directory 'RawData/' subjectID1 '-GaborTestRatio.mat'];
-    filename2 = [directory 'RawData/' subjectID2 '-GaborTestRatio.mat'];
+    fileName1 = fullfile(directory, 'RawData', [subjectID1 '-GaborTestRatio.mat']);
+    fileName2 = fullfile(directory, 'RawData', [subjectID2 '-GaborTestRatio.mat']);
     if ~exist(fileName1, 'file') || ~exist(fileName2, 'file')
         disp(strcat('ERROR! Missing File: ', fileName1));
         disp(strcat('ERROR! Missing File: ', fileName2));
@@ -107,7 +107,7 @@ if phase==1 || phase==2
     image_collection(trials1+1:end, :, :, :) = Data2.image_collection;
     
     
-    fileNameEnd = sprintf('%s%s-GaborTestRatio.mat', [ directory 'RawData/'], subjectID_output);
+    fileNameEnd = fullfile(directory, 'RawData', [subjectID '-GaborTestRatio.mat']);
     save(fileNameEnd, 'image_collection', 'Test_Data');
 end
 end

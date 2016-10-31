@@ -17,21 +17,22 @@ end
 
 % directory allows this code to be able to create and save files of the subject data on any computer
 
+settings = LoadSettings(directory);
 
 %% Set Up the Initialization of the expeirment
-cd([directory 'Code/']) % Set the current directory
-directory = [directory 'RawData/'];  % Directory to save the data and files to
+cd(fullfile(directory, 'Code')) % Set the current directory
+directory = fullfile(directory, 'RawData');  % Directory to save the data and files to
 commandwindow; % Moves the cursor to the commandwindow
 
-InitializeMatlabOpenGL
+if settings.useOpenGL, InitializeMatlabOpenGL; end
 
 % Screen set up
-whichScreen = 0; %allow to choose the display if there's more than one
+whichScreen = settings.whichScreen; %allow to choose the display if there's more than one
 ResolutionScreen = Screen('Resolution', whichScreen); % Gets screen resolution
 ScreenSize = [0 0 ResolutionScreen.width ResolutionScreen.height]; % Sets full screen
 xc = ScreenSize(3)/2; %	Gets the middle of the horizontal axis
 yc = ScreenSize(4)/2; % Gets the middle of the vertical axis
-Screen('Preference', 'SkipSyncTests', 0); % Opens Screen
+Screen('Preference', 'SkipSyncTests', settings.ptbSkipSyncTests); % Opens Screen
 
 white = [255 255 255];          % Sets the color to be white
 black = [0 0 0];                % Sets the color to be black
@@ -43,31 +44,25 @@ black = [0 0 0];                % Sets the color to be black
 
 % Set up keyboard functions
 KbName('UnifyKeyNames');
-spaceKey = KbName('space');
-escapeKey = KbName('ESCAPE');
-%% Instruction Screen
-left = KbName('leftArrow');
-right = KbName('rightArrow');
-up = KbName('upArrow');
-down = KbName('downArrow');
-
+goKey = KbName(settings.keyGo);
+exitKey = KbName(settings.keyExit);
 
 Screen('TextSize', wPtr, 20); % Set text size to 20
 Screen('DrawText', wPtr, 'You will see two bars flashing very quickly in the middle of the screen with a background of static.', xc-500, yc-150, white);
 Screen('DrawText', wPtr, 'You are required to keep your eyes on the bull''s eye target between the bars', xc-500, yc-100, white);
 Screen('DrawText', wPtr, 'Then you will be asked which side had the more frequently appearing bar.', xc-500, yc-50, white);
-Screen('DrawText', wPtr, 'Select the left or right side by pressing the corresponding arrow key.', xc-500, yc, white);
+Screen('DrawText', wPtr, sprintf('Select the left or right side by pressing %s or %s respectively', settings.keyLeftName, settings.keyRightName), xc-500, yc, white);
 Screen('DrawText', wPtr, 'Ask the researcher if you need further clarification.', xc-500, yc+50, white);
-Screen('DrawText', wPtr, 'Press the spacebar to begin.', xc-500, yc+100, white);    % Display text colored white
+Screen('DrawText', wPtr, sprintf('Press %s to begin.', settings.keyGoName), xc-500, yc+100, white);    % Display text colored white
 Screen('Flip', wPtr); % Function to flip to the next screen image
 [~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
-while ~keyCode(spaceKey)        % While loop to wait fo rhte spacebar to be pressed
+while ~keyCode(goKey)        % While loop to wait for the spacebar to be pressed
     [~, ~, keyCode] = KbCheck;
 end
 Screen('Flip', wPtr); % Function to flip to the next screen image
 
 if automatic == 0     % If automatic == 1, skip the preliminary phase since it's the computer running the experiment
-    fileName = sprintf('%s%s-VisualPreliminary.mat',[directory 'RawData/'],subjectID); % Set the desired filename of the experimental data
+    fileName = fullfile(directory, 'RawData', [subjectID '-VisualPreliminary.mat']); % Set the desired filename of the experimental data
     if ~exist(fileName, 'file') % Check to see if the subject has already done the preliminary phase or not
         
         %% Preliminary Calibration Phase
@@ -139,7 +134,7 @@ if automatic == 0     % If automatic == 1, skip the preliminary phase since it's
             % Pass in the screen being used, subject ID, the struct with
             % all of the data, and the fact it's the person or computer
             % running the experiment
-            I = trialStimuliVisual(wPtr, subjectID, Preliminary_Data, automatic, directory);
+            I = trialStimuliVisual(wPtr, subjectID, Preliminary_Data, automatic, directory, settings);
             
             
             Preliminary_Data.reaction_time(i) = I.reaction;
@@ -151,7 +146,7 @@ if automatic == 0     % If automatic == 1, skip the preliminary phase since it's
             if ((I.choice == 1 && Preliminary_Data.correct_answer(i) == 1)  ||  (I.choice == 0 && Preliminary_Data.correct_answer(i) == 0))
                 Preliminary_Data.accuracy(i) = 1;	% 1 is true for accuracy
                 if automatic == 0
-                    sounds(1);              % Beep for correct when it's the person running the experiment
+                    sounds(1, 0.2);              % Beep for correct when it's the person running the experiment
                 end
                 move_on = move_on + 1;	% If right, we increment move_on and later check it to decrease contrast level
                 if previous_trial == 0    % If the subject got the last trial wrong
@@ -161,7 +156,7 @@ if automatic == 0     % If automatic == 1, skip the preliminary phase since it's
             elseif ((I.choice == 1 && Preliminary_Data.correct_answer(i) == 0)  ||  (I.choice == 0 && Preliminary_Data.correct_answer(i) == 1))
                 Preliminary_Data.accuracy(i) = 0;	% 0 is false for inaccuracy
                 if automatic == 0
-                    sounds(0);              % Buzz for wrong when it's the person running the experiment
+                    sounds(0, 0.2);              % Buzz for wrong when it's the person running the experiment
                 end
                 move_on = 0;            % if wrong, we reset move_on to 0 and later increase the contrast level
                 if previous_trial == 1    % if the subject got the last trial right
@@ -199,12 +194,12 @@ if automatic == 0     % If automatic == 1, skip the preliminary phase since it's
             end
             
             %% Save the data after every trial
-            if ~exist([directory 'RawData/'], 'dir') % Check the directory actually exists
-                mkdir([directory 'RawData/']);
-                fileName = sprintf('%s%s-VisualPreliminary.mat',directory,subjectID); % create a name for the data you want to save
+            if ~exist(fullfile(directory, 'RawData'), 'dir') % Check the directory actually exists
+                mkdir(fullfile(directory, 'RawData'));
+                fileName = fullfile(directory, 'RawData', [subjectID '-VisualPreliminary.mat']); % create a name for the data you want to save
                 save(fileName, 'Preliminary_Data'); % save the data
             else
-                fileName = sprintf('%s%s-VisualPreliminary.mat',directory,subjectID); % create a name for the data you want to save
+                fileName = fullfile(directory, 'RawData', [subjectID '-VisualPreliminary.mat']); % create a name for the data you want to save
                 save(fileName, 'Preliminary_Data'); % save the data
             end
             
@@ -227,10 +222,10 @@ if automatic == 0     % If automatic == 1, skip the preliminary phase since it's
     
     contrast = average_contrast/average_last_trials;
 	
-	fileName = sprintf('%s%s-VisualTest.mat',[directory 'RawData/'],subjectID);
+	fileName = fullfile(directory, 'RawData', [subjectID '-VisualTest.mat']);
 	while exist(fileName, 'file')
 		subjectID = [subjectID, 'I'];
-		fileName = sprintf('%s%s-VisualTest.mat',[directory 'RawData/'],subjectID);
+		fileName = fullfile(directory, 'RawData', [subjectID '-VisualTest.mat']);
 	end
 else
     contrast = 1.0;   % When running the experiment for the computer, just set the contrast to an abitrary value
@@ -242,12 +237,12 @@ Screen('DrawText', wPtr, 'This time the brightness of the bars will not change o
 Screen('DrawText', wPtr, 'You will see two bars flashing very quickly in the middle of the screen with a background of static.', xc-500, yc-150, white);
 Screen('DrawText', wPtr, 'You are required to keep your eyes on the bull''s eye target between the bars', xc-500, yc-100, white);
 Screen('DrawText', wPtr, 'Then you will be asked which side had the more frequently appearing bar.', xc-500, yc-50, white);
-Screen('DrawText', wPtr, 'Select the left or right side by pressing the corresponding arrow key.', xc-500, yc, white);
+Screen('DrawText', wPtr, sprintf('Select the left or right side by pressing %s or %s respectively', settings.keyLeftName, settings.keyRightName), xc-500, yc, white);
 Screen('DrawText', wPtr, 'Ask the researcher if you need further clarification.', xc-500, yc+50, white);
-Screen('DrawText', wPtr, 'Press the spacebar to begin.', xc-500, yc+100, white);    % Display text colored white
+Screen('DrawText', wPtr, sprintf('Press %s to begin.', settings.keyGoName), xc-500, yc+100, white);    % Display text colored white
 Screen('Flip', wPtr); % Function to flip to the next screen image
 [~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
-while ~keyCode(spaceKey)        % While loop to wait fo rhte spacebar to be pressed
+while ~keyCode(goKey)        % While loop to wait for the spacebar to be pressed
     [~, ~, keyCode] = KbCheck;
 end
 Screen('Flip', wPtr); % Function to flip to the next screen image
@@ -282,10 +277,10 @@ for i = 1:test_trials
 		Screen('DrawText', wPtr, 'You are now halfway through the experiment.', xc-500, yc-100, white);
 		Screen('DrawText', wPtr, 'While the task will be identical as before,', xc-500, yc-50, white);
 		Screen('DrawText', wPtr, 'the brightness of the bar will be much lower and harder to see.', xc-500, yc, white);
-		Screen('DrawText', wPtr, 'Press the spacebar to continue.', xc-500, yc+50, white);
+		Screen('DrawText', wPtr, sprintf('Press %s to continue.', settings.keyGoName), xc-500, yc+50, white);
 		Screen('Flip', wPtr); % Function to flip to the next screen image
 		[~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
-		while ~keyCode(spaceKey)        % While loop to wait fo rhte spacebar to be pressed
+		while ~keyCode(goKey)        % While loop to wait for the spacebar to be pressed
 			[~, ~, keyCode] = KbCheck;
 		end
 		Screen('Flip', wPtr); % Function to flip to the next screen image
@@ -393,7 +388,7 @@ for i = 1:test_trials
     % Pass in the screen being used, subject ID, the struct with
     % all of the data, and the fact it's the person or computer
     % running the experiment
-    I = trialStimuliVisual(wPtr, subjectID, Test_Data, automatic, directory);
+    I = trialStimuliVisual(wPtr, subjectID, Test_Data, automatic, directory, settings);
     
     Test_Data.reaction_time(i) = I.reaction;
     
@@ -404,35 +399,35 @@ for i = 1:test_trials
     if ((I.choice == 1 && Test_Data.correct_answer(i) == 1)  ||  (I.choice == 0 && Test_Data.correct_answer(i) == 0))
         Test_Data.accuracy(i) = 1;	% 1 is true for accuracy
         if automatic == 0   % only sound when there's a subject
-            sounds(1);              % Beep for correct
+            sounds(1, 0.2);              % Beep for correct
         end
     elseif ((I.choice == 1 && Test_Data.correct_answer(i) == 0)  ||  (I.choice == 0 && Test_Data.correct_answer(i) == 1))
         Test_Data.accuracy(i) = 0;	% 0 is false for inaccuracy
         if automatic == 0   % only sound when there's a subject
-            sounds(0);              % Buzz for wrong
+            sounds(0, 0.2);              % Buzz for wrong
         end
     end
     
     
     %% Save the data after every trial
-    if ~exist([directory 'RawData/'], 'dir')
-        mkdir([directory 'RawData/']);
-        fileName = sprintf('%s%s-VisualTest.mat',directory,subjectID); % create a name for the data you want to save
+    if ~exist(fullfile(directory, 'RawData'), 'dir')
+        mkdir(fullfile(directory, 'RawData'));
+        fileName = fullfile(directory, 'RawData', [subjectID '-VisualTest.mat']); % create a name for the data you want to save
         save(fileName, 'Test_Data'); % save the data
     else
-        fileName = sprintf('%s%s-VisualTest.mat',directory,subjectID); % create a name for the data you want to save
+        fileName = fullfile(directory, 'RawData', [subjectID '-VisualTest.mat']); % create a name for the data you want to save
         save(fileName, 'Test_Data'); % save the data
     end
 end
 %%%% May not need this part hence commented!!!!!!!!!!!!!!!!!
 %% Save final data to folder
-%if ~exist([directory 'RawData/'], 'dir')
-   % mkdir([directory 'RawData/']);
+%if ~exist(fullfile(directory, 'RawData'), 'dir')
+   % mkdir(fullfile(directory, 'RawData'));
     
-    %fileName = sprintf('%s%s-VisualTest.mat',[directory 'RawData/'],subjectID); % create a name for the data you want to save as a csv
+    %fileName = fullfile(directory, 'RawData', [subjectID '-VisualTest.mat']); % create a name for the data you want to save as a csv
     %save(fileName, 'Test_Data'); % save the data
 %else
-    %fileName = sprintf('%s%s-VisualTest.mat',[directory 'RawData/'],subjectID); % create a name for the data you want to save as a csv
+    %fileName = fullfile(directory, 'RawData', [subjectID '-VisualTest.mat']); % create a name for the data you want to save as a csv
     %save(fileName, 'Test_Data'); % save the data
 %end
 
