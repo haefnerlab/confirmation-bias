@@ -16,10 +16,7 @@ if nargin < 4, recompute = false; end
 datadir = fullfile('+Model', 'saved results');
 if ~exist(datadir, 'dir'), mkdir(datadir); end
 
-savename = sprintf('sampling_run_%s_ve%.2f_vx%.2f_px%.2f_pD%.2f_gam%.2f_S%d.mat', ...
-    prefix, sampling_params.var_e, sampling_params.var_x, ...
-    sampling_params.p_x, sampling_params.prior_D, ...
-    sampling_params.gamma, sampling_params.samples);
+savename = ['sampling_run_' Model.getModelStringID(prefix, sampling_params) '.mat'];
 savefile = fullfile(datadir, savename);
 
 if exist(savefile, 'file') && ~recompute
