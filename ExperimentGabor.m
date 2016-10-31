@@ -2,21 +2,23 @@ function [] = ExperimentGabor(subjectID, automatic, phase, directory, varargin)
 
 % Example Input - ExperimentGabor('Matthew', 0, '/Users/bcs206/Documents/Summer/')
 
-if ~exist('automatic','var') || ~exist('directory','var')
-    automatic = 0;       % 0 = normal subject, 1 = ideal observer auto running the experiment
-    phase = 0;           % 0 = contrast experiment, 1 = ratio experiment
-    directory = pwd;     % Make it equal to the current directory
-end
-
 % This functions initializes and runs an experiment using PsychToolBox
 
 % subjectID is a string to dictate which subject is currently running the
 % experiment. Ex. Experiment('01')
 
 % automatic determines if it's to be a person or the computer running the experiment
-% Ex. Experiment('01', 0) = person, Experiment('01', 1) = computer auto-runs the idela observer
+% Ex. Experiment('01', 0) = person, Experiment('01', 1) = computer auto-runs the ideal observer
 
 % directory allows this code to be able to create and save files of the subject data on any computer
+
+
+
+if ~exist('automatic','var') || ~exist('directory','var')
+    automatic = 0;       % 0 = normal subject, 1 = ideal observer auto running the experiment
+    phase = 0;           % 0 = contrast experiment, 1 = ratio experiment
+    directory = pwd;     % Make it equal to the current directory
+end
 
 settings = LoadSettings(directory);
 
@@ -37,10 +39,12 @@ Screen('Preference', 'SkipSyncTests', settings.ptbSkipSyncTests); % Opens Screen
 white = [255 255 255];          % Sets the color to be white
 black = [0 0 0];                % Sets the color to be black
 
-[wPtr, ~] = Screen('OpenWindow', whichScreen, black, [], 32); % Opens window, sets background as black, sets screensize
-%[wPtr, ~] = Screen('OpenWindow', whichScreen, black, [xc-900 yc-500 xc+900 yc+500], 32);
-% Creates a small window instead of using the full screen
+%% Creates a small window instead of using the full screen
 % Mainly to allow screenshots
+
+[wPtr, ~] = Screen('OpenWindow', whichScreen, black, [], 32); % Opens window, sets background as black, sets screensize
+
+
 
 if ~isempty(settings.gammaTableFile)
     gtdata = load(settings.gammaTableFile);
@@ -53,12 +57,12 @@ tracker_info = EyeTracker.initEyeTracker(whichScreen, ...
     'fixationSymbolSize', [30 30], ...
     varargin{:});
 
-% Set up keyboard functions
+%% Set up keyboard functions
 KbName('UnifyKeyNames');
 goKey = KbName(settings.keyGo);
 exitKey = KbName(settings.keyExit);
 
-% This is the first preliminary phase with a constant ratio (20, 4) and finding the threshold contrast
+%% This is the first preliminary phase with a constant ratio (10, 0) and finding the threshold contrast
 HideCursor(whichScreen)
 if phase == 0
     
@@ -86,8 +90,8 @@ if phase == 0
         %% Preliminary Calibration Phase
         
         % Set up struct to store data/answers
-        preliminary_trials = 40;
-        loops = 2;
+        preliminary_trials = 100;
+        loops = 4;
         
         Preliminary_Data.move_on = zeros(1,preliminary_trials*loops);          % Is the subject ready to move on or not? Always 0 or 1 for how many trials they got right so far
         Preliminary_Data.step_size = zeros(1,preliminary_trials*loops);        % By how much to adjust the contrast [1.5, 1.2, or 1.1]
@@ -105,7 +109,7 @@ if phase == 0
         Preliminary_Data.average_orientations = zeros(2,preliminary_trials*loops);
         
         Preliminary_Data.current_trial = 0;
-        Preliminary_Data.test_phase = ([1:loops].*preliminary_trials) - preliminary_trials + 1;
+        
         
         Preliminary_Data.screen_frame = 12;	% how long each image will show on screen in frame rates
         Preliminary_Data.screen_resolution = 25;          % how many pixels correspond to a single datapoint of a gabor
@@ -243,25 +247,13 @@ if phase == 0
                 if automatic == 0
                     sounds(1, 0.2);              % Beep for correct when it's the person running the experiment
                 end
-                %{
-                move_on = move_on + 1;	% if right, we increment move_on and later check it to decrease contrast level
-                if previous_trial == 0    % if the subject got the last trial wrong
-                    previous_trial = 1;       % staircase is reversing
-                    reversal_counter = reversal_counter+1;
-                end
-                %}
+                
             elseif (Preliminary_Data.choice(i) == 1 && Preliminary_Data.correct_answer(i) == 0) || (Preliminary_Data.choice(i) == 0 && Preliminary_Data.correct_answer(i) == 1)
                 Preliminary_Data.accuracy(i) = 0;	% 0 is false for inaccuracy
                 if automatic == 0
                     sounds(0, 0.2);              % Buzz for wrong when it's the person running the experiment
                 end
-                %{
-                move_on = 0;            % if wrong, we reset move_on to 0 and later increase the contrast level
-                if previous_trial == 1    % if the subject got the last trial right
-                    previous_trial = 0;       % staircase is reversing
-                    reversal_counter = reversal_counter+1;
-                end
-                %}
+                
             elseif (isnan(Preliminary_Data.choice(i)) )
                 %Preliminary_Data.accuracy(i) = 0;	% 0 is false for inaccuracy
                 if automatic == 0
@@ -269,7 +261,7 @@ if phase == 0
                 end
             end
             
-            %% Staircase method
+            %% Staircase method to move on 
             if (Preliminary_Data.choice(i) == 1 && Preliminary_Data.staircase_answer(i) == 1) || (Preliminary_Data.choice(i) == 0 && Preliminary_Data.staircase_answer(i) == 0)
                 
                 move_on = move_on + 1;	% if right, we increment move_on and later check it to decrease volume level
@@ -289,7 +281,7 @@ if phase == 0
                 pause(.5); % Pause for 500 ms after feedback before next trial
             end
             
-            if reversal_counter == 15       % It's a rule of thumb for when it's time to change the step size, since the subject has reversed 15 times
+            if reversal_counter == 10       % It's a rule of thumb for when it's time to change the step size, since the subject has reversed 15 times
                 reversal_counter = 0; % Reset counter
                 if step_size == 2.0
                     step_size = 1.5;
@@ -298,8 +290,7 @@ if phase == 0
                 elseif step_size == 1.2      % Note that we never go back up a step size
                     step_size = 1.1;
                 else
-                    Preliminary_Data.test_phase(ceil(i/preliminary_trials)) = i; % This is when the preliminary phase ends and the test phase data starts
-                    reversal_counter = 16;
+                    reversal_counter = 11;
                 end
             end
             
@@ -338,7 +329,9 @@ if phase == 0
     
 elseif phase == 1
     
-    % This is the second preliminary phase with a constant contrast (max contrast of 223) and finding the threshold ratio
+    %% This is the second preliminary phase with a constant contrast (max contrast of 223) and finding the threshold ratio
+    
+    EyeTracker.AutoCalibrate(tracker_info);
     
     fileName = fullfile(directory, 'RawData', [subjectID '-GaborDataRatio.mat']); % Set the desired filename of the experimental data
     if ~exist(fileName, 'file') % Check to see if the subject has already done the preliminary phase or not
@@ -362,7 +355,7 @@ elseif phase == 1
         %% Preliminary Calibration Phase
         
         % Set up struct to store data/answers
-        preliminary_trials = 200;
+        preliminary_trials = 100;
         loops = 4;
         
         Preliminary_Data.move_on = zeros(1,preliminary_trials*loops);          % Is the subject ready to move on or not? Always 0 or 1 for how many trials they got right so far
@@ -381,7 +374,7 @@ elseif phase == 1
         Preliminary_Data.average_orientations = zeros(2,preliminary_trials*loops);
         
         Preliminary_Data.current_trial = 0;
-        Preliminary_Data.test_phase = ([1:loops].*preliminary_trials) - preliminary_trials + 1;
+        
         
         Preliminary_Data.screen_frame = 12;	% how long each image will show on screen in frame rates
         Preliminary_Data.screen_resolution = 25;          % how many pixels correspond to a single datapoint of a gabor
@@ -391,8 +384,7 @@ elseif phase == 1
         Preliminary_Data.image_template1 = zeros(preliminary_trials*loops,Preliminary_Data.number_of_images);
         Preliminary_Data.image_template2 = zeros(preliminary_trials*loops,Preliminary_Data.number_of_images);
         Preliminary_Data.image_template_difference = zeros(preliminary_trials*loops,Preliminary_Data.number_of_images);
-        
-        %image_collection = zeros(preliminary_trials,Preliminary_Data.number_of_images,Preliminary_Data.gabor_step,Preliminary_Data.gabor_step);
+    
         image_collection = zeros(preliminary_trials*loops, Preliminary_Data.number_of_images, ...
             Preliminary_Data.image_length_x*Preliminary_Data.screen_resolution, Preliminary_Data.image_length_y*Preliminary_Data.screen_resolution);
         
@@ -512,27 +504,15 @@ elseif phase == 1
                 if automatic == 0
                     sounds(1, 0.2);              % Beep for correct when it's the person running the experiment
                 end
-                %{
-                move_on = move_on + 1;	% if right, we increment move_on and later check it to decrease contrast level
-                if previous_trial == 0    % if the subject got the last trial wrong
-                    previous_trial = 1;       % staircase is reversing
-                    reversal_counter = reversal_counter+1;
-                end
-                %}
+               
             elseif (Preliminary_Data.choice(i) == 1 && Preliminary_Data.correct_answer(i) == 0) || (Preliminary_Data.choice(i) == 0 && Preliminary_Data.correct_answer(i) == 1)
                 Preliminary_Data.accuracy(i) = 0;	% 0 is false for inaccuracy
                 if automatic == 0
                     sounds(0, 0.2);              % Buzz for wrong when it's the person running the experiment
                 end
-                %{
-                move_on = 0;            % if wrong, we reset move_on to 0 and later increase the contrast level
-                if previous_trial == 1    % if the subject got the last trial right
-                    previous_trial = 0;       % staircase is reversing
-                    reversal_counter = reversal_counter+1;
-                end
-                %}
+                
             elseif (isnan(Preliminary_Data.choice(i)) )
-                %Preliminary_Data.accuracy(i) = 0;	% 0 is false for inaccuracy
+                
                 if automatic == 0
                     sounds(2, 0.2);              % Buzz for wrong when it's the person running the experiment
                 end
@@ -565,7 +545,6 @@ elseif phase == 1
                 elseif step_size == 0.5
                     step_size = 0.25;
                 else
-                    Preliminary_Data.test_phase(ceil(i/preliminary_trials)) = i; % This is when the preliminary phase ends and the test phase data starts
                     reversal_counter = 6;
                 end
             end
