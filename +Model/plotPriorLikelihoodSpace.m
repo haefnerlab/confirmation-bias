@@ -1,7 +1,7 @@
 function [correct] = plotPriorLikelihoodSpace(priors, likelihoods, sampling_params)
 
 % Get cartesian product of priors x likelihoods
-[pp, ll] = meshgrid(priors, likelihoods);
+[ll, pp] = meshgrid(likelihoods, priors);
 correct = zeros(size(pp));
 pp = pp(:);
 ll = ll(:);
