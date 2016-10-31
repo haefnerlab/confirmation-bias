@@ -25,14 +25,9 @@ function results = runSamplingModel(data, params)
 %   results.walk    - [trials x frames+1] posterior log odds of D=+1/D=-1
 %                     (where walk(1) is the prior, hence size frames+1)
 
+if nargin < 2, params = Model.newSamplingParams(); end
+
 %% Initialize return values
-if nargin < 2, params = struct(); end
-if ~isfield(params, 'var_e'), params.var_e = 0.1; end
-if ~isfield(params, 'var_x'), params.var_x = 0.5; end
-if ~isfield(params, 'p_x'), params.p_x = 1; end
-if ~isfield(params, 'prior_D'), params.prior_D = 0.5; end
-if ~isfield(params, 'gamma'), params.gamma = 0; end
-if ~isfield(params, 'samples'), params.samples = 1; end
 
 [trials, frames] = size(data);
 
