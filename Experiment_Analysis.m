@@ -45,7 +45,7 @@ if ~isfield(opts, 'automatic'),   opts.automatic =   1; end
 if ~isfield(opts, 'preliminary'), opts.preliminary = 2; end
 if ~isfield(opts, 'phase'),       opts.phase =       0; end
 if ~isfield(opts, 'manual'),      opts.manual =      0; end
-if ~isfield(opts, 'median'),      opts.median =      0; end
+if ~isfield(opts, 'median'),      opts.median =      2; end
 if ~isfield(opts, 'version'),     opts.version =     0; end
 if ~isfield(opts, 'difference'),  opts.difference =  0; end
 if ~isfield(opts, 'directory'),   opts.directory =   '../'; end
@@ -70,8 +70,8 @@ if opts.automatic == 0
             y = Preliminary_Data.contrast(1:Preliminary_Data.current_trial);
             e = plot(x,y);
             set(e,'Linewidth',2);
-            p = plot(Preliminary_Data.test_phase, Preliminary_Data.contrast(Preliminary_Data.test_phase),'r*.');    % Plot the points where we switch from preliminary to test phase
-            set(p,'Linewidth',2);
+            %p = plot(Preliminary_Data.test_phase, Preliminary_Data.contrast(Preliminary_Data.test_phase),'r*.');    % Plot the points where we switch from preliminary to test phase
+            %set(p,'Linewidth',2);
             xlabel('Trial'), ylabel('Contrast Level')
             title('Contrast Level by Trial Number')
             
@@ -81,8 +81,8 @@ if opts.automatic == 0
             y = Preliminary_Data.reaction_time(1:Preliminary_Data.current_trial);
             e = plot(x,y);
             set(e,'Linewidth',2);
-            p = plot(Preliminary_Data.test_phase, Preliminary_Data.reaction_time(Preliminary_Data.test_phase),'r*.');    % Plot the points where we switch from preliminary to test phase
-            set(p,'Linewidth',2);
+            %p = plot(Preliminary_Data.test_phase, Preliminary_Data.reaction_time(Preliminary_Data.test_phase),'r*.');    % Plot the points where we switch from preliminary to test phase
+            %set(p,'Linewidth',2);
             xlabel('Trial'), ylabel('Reaction Time in msecs')
             title('Reaction Time by Trial Number')
         elseif opts.phase == 1
@@ -102,8 +102,8 @@ if opts.automatic == 0
             y = Preliminary_Data.ratio(1:Preliminary_Data.current_trial);
             e = plot(x,y);
             set(e,'Linewidth',2);
-            p = plot(Preliminary_Data.test_phase, Preliminary_Data.ratio(Preliminary_Data.test_phase),'r*.');    % Plot the points where we switch from preliminary to test phase
-            set(p,'Linewidth',2);
+            %p = plot(Preliminary_Data.test_phase, Preliminary_Data.ratio(Preliminary_Data.test_phase),'r*.');    % Plot the points where we switch from preliminary to test phase
+            %set(p,'Linewidth',2);
             xlabel('Trial'), ylabel('Ratio Level')
             title('Ratio Level by Trial Number')
             
@@ -113,8 +113,8 @@ if opts.automatic == 0
             y = Preliminary_Data.reaction_time(1:Preliminary_Data.current_trial);
             e = plot(x,y);
             set(e,'Linewidth',2);
-            p = plot(Preliminary_Data.test_phase, Preliminary_Data.reaction_time(Preliminary_Data.test_phase),'r*.');    % Plot the points where we switch from preliminary to test phase
-            set(p,'Linewidth',2);
+            %p = plot(Preliminary_Data.test_phase, Preliminary_Data.reaction_time(Preliminary_Data.test_phase),'r*.');    % Plot the points where we switch from preliminary to test phase
+            %set(p,'Linewidth',2);
             xlabel('Trial'), ylabel('Reaction Time')
             title('Reaction Time by Trial Number')
         end
@@ -190,8 +190,8 @@ elseif opts.automatic == 1
             y = Preliminary_Data.volume(1, 1:Preliminary_Data.current_trial);
             e = plot(x,y);
             set(e,'Linewidth',2);hold on;
-            p = plot(Preliminary_Data.test_phase, Preliminary_Data.volume(Preliminary_Data.test_phase),'bs');    % Plot the points where we switch from preliminary to test phase
-            set(p,'Linewidth',2);hold on;
+            %p = plot(Preliminary_Data.test_phase, Preliminary_Data.volume(Preliminary_Data.test_phase),'bs');    % Plot the points where we switch from preliminary to test phase
+            %set(p,'Linewidth',2);hold on;
             xlabel('Trial'), ylabel('Volume Level')
             title('Volume by Trials')
             
@@ -201,8 +201,8 @@ elseif opts.automatic == 1
             y = Preliminary_Data.reaction_time(1:Preliminary_Data.current_trial);
             e = plot(x,y);
             set(e,'Linewidth',2);hold on;
-            p = plot(Preliminary_Data.test_phase, Preliminary_Data.reaction_time(Preliminary_Data.test_phase),'rs');   % Plot the points where we switch from preliminary to test phase
-            set(p,'Linewidth',2);hold on;
+            %p = plot(Preliminary_Data.test_phase, Preliminary_Data.reaction_time(Preliminary_Data.test_phase),'rs');   % Plot the points where we switch from preliminary to test phase
+            %set(p,'Linewidth',2);hold on;
             xlabel('Trial'), ylabel('Reaction Time in msecs')
             title('Reaction Time by Trial Number')
         elseif opts.phase == 1
@@ -221,8 +221,8 @@ elseif opts.automatic == 1
             y = Preliminary_Data.ratio(1, 1:Preliminary_Data.current_trial);
             e = plot(x,y);
             set(e,'Linewidth',2);hold on;
-            p = plot(Preliminary_Data.test_phase, Preliminary_Data.ratio(Preliminary_Data.test_phase),'bs');   % Plot the points where we switch from preliminary to test phase
-            set(p,'Linewidth',2);hold on;
+            %p = plot(Preliminary_Data.test_phase, Preliminary_Data.ratio(Preliminary_Data.test_phase),'bs');   % Plot the points where we switch from preliminary to test phase
+            %set(p,'Linewidth',2);hold on;
             xlabel('Trial'), ylabel('Ratio Level')
             title('Ratio by Trials')
             
@@ -232,8 +232,8 @@ elseif opts.automatic == 1
             y = Preliminary_Data.reaction_time(1:Preliminary_Data.current_trial);
             e = plot(x,y);
             set(e,'Linewidth',2);hold on;
-            p = plot(Preliminary_Data.test_phase, Preliminary_Data.reaction_time(Preliminary_Data.test_phase),'rs');    % Plot the points where we switch from preliminary to test phase
-            set(p,'Linewidth',2);hold on;
+            %p = plot(Preliminary_Data.test_phase, Preliminary_Data.reaction_time(Preliminary_Data.test_phase),'rs');    % Plot the points where we switch from preliminary to test phase
+            %set(p,'Linewidth',2);hold on;
             xlabel('Trial'), ylabel('Reaction Time in msecs')
             title('Reaction Time by Trial Number')
         end
@@ -326,6 +326,7 @@ end
 if opts.preliminary == 0 || opts.preliminary == 2
     
     m = mean(Test_Data.volume(:));
+    %{
     Trial_Data = Test_Data;
     if opts.median == 1
         Trial_Data.order_of_flashes(find(Test_Data.contrast(:)> m),:,:) = [];
@@ -343,7 +344,8 @@ if opts.preliminary == 0 || opts.preliminary == 2
         Trial_Data.choice(find(Test_Data.contrast(:)<=m)) = [];
         Trial_Data.current_trial = length(find(Test_Data.contrast(:)>m));
     end
-    Test_Data = Trial_Data;
+    %}
+    %Test_Data = Trial_Data;
     [prob_correct_left, prob_correct_right, prob_wrong_left, prob_wrong_right] = Serial_Dependencies(Test_Data);     % Print out the serial dependencies
     f=Get_Figure('Serial Dependences');
     axis off;
@@ -362,8 +364,10 @@ if opts.preliminary == 0 || opts.preliminary == 2
     %unique_contrast_conditions = sort(unique_contrast_conditions);
     
     % How many different types trials did the subject see?
-    
-    [unique_ratio_conditions,~,IC] = unique(Test_Data.flash_rate(1,:) - Test_Data.flash_rate(2,:));
+    temp=Test_Data.flash_rate(1,:) - Test_Data.flash_rate(2,:);
+    temp
+    [unique_ratio_conditions,~,IC] = unique(temp);
+    size(unique_ratio_conditions)
     num_trials_at_x_ratio = zeros(length(unique_ratio_conditions),1);
     for i=1:length(unique_ratio_conditions)
         num_trials_at_x_ratio(i) = sum(IC == i);
@@ -489,6 +493,7 @@ if opts.preliminary == 0 || opts.preliminary == 2
     end
     
     %}
+    size(unique_ratio_conditions)
     
     %addpath(genpath('psignifit-master'));
     addpath(genpath([opts.directory 'Code']));
@@ -647,18 +652,23 @@ if opts.preliminary == 0 || opts.preliminary == 2
     Y = Test_Data.choice(:); % 1 x trials
     %size(X)
     %size(Y)
-    wmle=glmfit(X(:,1:end-1), Y, 'binomial');
-    [wAR1,~,SDebars,~] = autoRegress_logisticAR1(X, Y, 2*Test_Data.number_of_images, 0.01, 10.^(0:6)', [.1 .5 .75 .9 .95 .99]'); % Call on Jake's functions
+    %wmle=glmfit(X(:,1:end-1), Y, 'binomial');
+    %[wAR1,~,SDebars,~] = autoRegress_logisticAR1(X, Y, 2*Test_Data.number_of_images, 0.01, 10.^(0:6)', [.1 .5 .75 .9 .95 .99]'); % Call on Jake's functions
     %[wAR1,~,SDebars,~] = autoRegress_logisticRidge(X, ...
      %      Y, [1 2*Test_Data.number_of_images], 0.01, 10.^(0:6)',wmle);
-    wAR1(end)=[];      % Remove bias term
-    SDebars(end)=[];
+    %wAR1(end)=[];      % Remove bias term
+    %SDebars(end)=[];
     %SDebars_diff = SDebars;   % Save this for the difference in weights
     
-    
+    %weights=wAR1;
+    %errors=SDebars;
     % Plot the subject's left weights
-    
-    e = errorbar(wAR1(1:Test_Data.number_of_images), SDebars(1:Test_Data.number_of_images),'.-b');
+    %[weights,~ , errors] = CustomRegression.PsychophysicalKernel(X, Y, 1000, 1000, 100000,true);
+    [weights,~ , errors,a,b,c] = CustomRegression.PsychophysicalKernel(X, Y,[1], [0],[100000],true);
+    e = errorbar(weights(1:Test_Data.number_of_images), errors(1:Test_Data.number_of_images),'.-b');
+    disp(a);
+    disp(b);
+    disp(c);
     set(e,'Linewidth',2); hold on;
    
     %{
@@ -719,7 +729,7 @@ if opts.preliminary == 0 || opts.preliminary == 2
     end
     
     % Plot the subject's right weights
-     e = errorbar(wAR1(Test_Data.number_of_images+1:end), SDebars(Test_Data.number_of_images+1:end), '.-r');  % Red Line
+     e = errorbar(weights(Test_Data.number_of_images+1:end-1), errors(Test_Data.number_of_images+1:end-1), '.-r');  % Red Line
      set(e,'Linewidth',2); hold on;
      legend('Left weights', 'Right weights','Location','northoutside')
     % To print out the subject's/Ideal Observer's right bar weights, uncomment the following:
@@ -755,12 +765,38 @@ if opts.preliminary == 0 || opts.preliminary == 2
     
     if opts.difference == 0
         % Graph the difference in the weights for the left and right side
-        wdiff =wAR1(1:Test_Data.number_of_images) - wAR1(Test_Data.number_of_images+1:end);
+        wdiff =weights(1:Test_Data.number_of_images) - weights(Test_Data.number_of_images+1:end-1);
+        average_over=30;
+        avg_wt=zeros(Test_Data.number_of_images/average_over);
+        r=zeros(Test_Data.number_of_images/average_over);
+        s=0;
+        counter=1;
+        k=1;
+        
+        for i=1:Test_Data.number_of_images
+            if counter<=average_over
+                s=s+wdiff(i);
+                counter=counter+1;
+            end
+            if counter>average_over
+                counter=1;
+                r(k)=(k-1)*average_over+average_over/2;
+                avg_wt(k)=s/average_over;
+                s=0;
+                k=k+1;
+                
+            end
+        end
+        %r(end)=Test_Data.number_of_images;
+        f=plot(r,avg_wt,'o-r');
+        set(f,'Linewidth',2); 
+        
         %SDebars = LRWeightsErrors{1,2}+LRWeightsErrors{2,2};
         %s = SDebars(1:length(wAR1)/2) + SDebars(length(wAR1)/2+1:end);
         %e = errorbar([1:Test_Data.number_of_images], w', s', '.-k');
         e= plot(wdiff, '.-k');
         set(e,'Linewidth',2); hold on;
+        
     else
         % Take the difference in the flash/click rates and feed the difference into the regresssion model
         % and then graph the output with errorbars
@@ -770,17 +806,42 @@ if opts.preliminary == 0 || opts.preliminary == 2
         X = [X ones(size(X,1),1)];  % Add a bias term
         Y = Test_Data.choice; % 1 x trials
         %wmle=glmfit(X(:,1:end-1), Y', 'binomial');
-        [wAR1,~,SDebars,~] = autoRegress_logisticAR1_2D(X, Y', [2 Test_Data.number_of_images/2], 0.01, 10.^(0:6)', [.1 .5 .75 .9 .95 .99]');
+        %[wAR1,~,SDebars,~] = autoRegress_logisticAR1_2D(X, Y', [2 Test_Data.number_of_images/2], 0.01, 10.^(0:6)', [.1 .5 .75 .9 .95 .99]');
         
         %[wAR1,~,SDebars,~] = autoRegress_logisticRidge(X, ...
         %   Y', [1 Test_Data.number_of_images], 0.01, 10.^(0:6)',wmle);
-        size(X)
-        size(Y)
+        %size(X)
+        %size(Y)
         %[wAR1,~,SDebars,~] = autoRegress_logisticAR1(X, ...
         %   Y', Test_Data.number_of_images, 0.01, 10.^(0:6)', [.1 .5 .75 .9 .95 .99]');
-        wAR1(end)=[];
-        SDebars(end)=[];
-        e = errorbar(wAR1(1:end), SDebars(1:end),'.-k');
+        %wAR1(end)=[];
+        %SDebars(end)=[];
+        [weights,~ , errors] = CustomRegression.PsychophysicalKernel(X, Y, [1000], [0], [100000]);
+        average_over=10;
+        avg_wt=zeros(Test_Data.number_of_images/average_over);
+        r=zeros(Test_Data.number_of_images/average_over);
+        s=0;
+        counter=1;
+        k=1;
+        
+        for i=1:Test_Data.number_of_images
+            if counter<=average_over
+                s=s+weights(i);
+                counter=counter+1;
+            end
+            if counter>average_over
+                counter=1;
+                r(k)=(k-1)*average_over+average_over/2;
+                avg_wt(k)=s/average_over;
+                s=0;
+                k=k+1;
+                
+            end
+        end
+        
+        f=plot(r,avg_wt,'.-r');
+        set(f,'Linewidth',4); hold on;
+        e = errorbar(weights(1:end-1), errors(1:end-1),'.-k');
         set(e,'Linewidth',2); hold on;
     end
     
@@ -789,9 +850,9 @@ if opts.preliminary == 0 || opts.preliminary == 2
     xlabel('Frames')
     ylabel('Weights')
     if opts.phase == 0
-        legend('Volume','Location','southoutside')
+        legend('Average Weights','Volume','Location','southoutside')
     elseif opts.phase == 1
-        legend('Ratio','Location','southoutside')
+        legend('Average Weights','Ratio','Location','southoutside')
     end
     
     
@@ -907,8 +968,7 @@ if opts.preliminary == 0 || opts.preliminary == 2
     p1(end+1)=fitValuesr(inflection_point2);
     best_fit1 = plot(u1,p1,'b-');
     best_fit2 = plot(unique_ratio_conditions(inflection_point1:end),fitValuesr(inflection_point1:end),'r-');
-    size(fitValuesr)
-    size(unique_ratio_conditions)
+    
     set(best_fit1,'Linewidth',2); hold on;   % Make the lines thicker
     set(best_fit2,'Linewidth',2); hold on;   % Make the lines thicker
     axis([0 inf 0 inf])

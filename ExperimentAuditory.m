@@ -83,8 +83,8 @@ if phase == 0
         %% Preliminary Calibration Phase
         
         % Set up struct to store data/answers
-        preliminary_trials = 100;
-        loops = 4;
+        preliminary_trials =100;
+        loops = 2;
         
         Preliminary_Data.move_on = zeros(1,preliminary_trials*loops);          % Is the subject ready to move on or not? Always 0 or 1 for how many trials they got right so far
         Preliminary_Data.step_size = zeros(1,preliminary_trials*loops);        % By how much to adjust the contrast [1.5, 1.2, or 1.1]
@@ -294,7 +294,7 @@ if phase == 0
             fileName = sprintf('%s%s-AuditoryDataVolume.mat',[directory 'RawData/'],subjectID); % create a name for the data you want to save
             save(fileName, 'Preliminary_Data'); % save the data
         end
-        
+        %{
         test_start = 1;
         test_end = 0;
         Test_Data.current_trial = 0;
@@ -323,6 +323,7 @@ if phase == 0
             Test_Data.staircase_answer(test_start:test_end) = Preliminary_Data.staircase_answer(stage:preliminary_trials*t);
             
             test_start = test_end+1;
+        
         end
         
         %% Save final data to folder
@@ -334,6 +335,7 @@ if phase == 0
             fileName = sprintf('%s%s-AuditoryTestVolume.mat',[directory 'RawData/'],subjectID); % create a name for the data you want to save
             save(fileName, 'Test_Data'); % save the data
         end
+        %}
     end
     
 elseif phase == 1
@@ -583,7 +585,7 @@ elseif phase == 1
             fileName = sprintf('%s%s-AuditoryDataRatio.mat',[directory 'RawData/'],subjectID); % create a name for the data you want to save
             save(fileName, 'Preliminary_Data'); % save the data
         end
-        
+        %{
         test_start = 1;
         test_end = 0;
         Test_Data.current_trial = 0;
@@ -612,6 +614,7 @@ elseif phase == 1
             Test_Data.staircase_answer(test_start:test_end) = Preliminary_Data.staircase_answer(stage:preliminary_trials*t);
             
             test_start = test_end+1;
+        
         end
         
         %% Save final data to folder
@@ -623,6 +626,7 @@ elseif phase == 1
             fileName = sprintf('%s%s-AuditoryTestRatio.mat',[directory 'RawData/'],subjectID); % create a name for the data you want to save
             save(fileName, 'Test_Data'); % save the data
         end
+        %}
     end
 end
 

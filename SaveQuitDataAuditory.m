@@ -46,15 +46,25 @@ Preliminary_Data.average_clicks(:,point+1:end) = [];      % Average number of cl
 Preliminary_Data.number_of_frames = 60 * Preliminary_Data.stimulus_duration; % How many 'frames' or chances for a click per second in a trial?
 
 Preliminary_Data.order_of_clicks(point+1:end,:,:) = [];
-
-%% Save final data to folder
-if ~exist([directory 'RawData/'], 'dir') % Check the directory actually exists
-    mkdir([directory 'RawData/']);
-    fileName = sprintf('%s%s-AuditoryDataVolume.mat',[directory 'RawData/'],subjectID); % create a name for the data you want to save
-    save(fileName, 'Preliminary_Data'); % save the data
-else
-    fileName = sprintf('%s%s-AuditoryDataVolume.mat',[directory 'RawData/'],subjectID); % create a name for the data you want to save
-    save(fileName, 'Preliminary_Data'); % save the data
+if phase ==0
+    %% Save final data to folder
+    if ~exist([directory 'RawData/'], 'dir') % Check the directory actually exists
+        mkdir([directory 'RawData/']);
+        fileName = sprintf('%s%s-AuditoryDataVolume.mat',[directory 'RawData/'],subjectID); % create a name for the data you want to save
+        save(fileName, 'Preliminary_Data'); % save the data
+    else
+        fileName = sprintf('%s%s-AuditoryDataVolume.mat',[directory 'RawData/'],subjectID); % create a name for the data you want to save
+        save(fileName, 'Preliminary_Data'); % save the data
+    end
+elseif phase ==1
+    %% Save final data to folder
+    if ~exist([directory 'RawData/'], 'dir') % Check the directory actually exists
+        mkdir([directory 'RawData/']);
+        fileName = sprintf('%s%s-AuditoryDataRatio.mat',[directory 'RawData/'],subjectID); % create a name for the data you want to save
+        save(fileName, 'Preliminary_Data'); % save the data
+    else
+        fileName = sprintf('%s%s-AuditoryDataRatio.mat',[directory 'RawData/'],subjectID); % create a name for the data you want to save
+        save(fileName, 'Preliminary_Data'); % save the data
+    end
 end
-
 end
