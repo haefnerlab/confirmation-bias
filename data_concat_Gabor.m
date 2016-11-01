@@ -43,13 +43,23 @@ if phase==0 || phase==2
     Test_Data.screen_resolution = Data1.Test_Data.screen_resolution;
     
     Test_Data.log_odds = [Data1.Test_Data.log_odds, Data2.Test_Data.log_odds];
-    Test_Data.ratios = [Data1.Test_Data.ratios, Data2.Test_Data.ratios];
+    Test_Data.ratio = [Data1.Test_Data.ratio, Data2.Test_Data.ratio];
     
     Test_Data.image_template1 = [Data1.Test_Data.image_template1; Data2.Test_Data.image_template1];  % squeeze?
     Test_Data.image_template2 = [Data1.Test_Data.template2; Data2.Test_Data.template2];  % squeeze?
     Test_Data.image_template_difference = [Data1.Test_Data.image_template_difference; Data2.Test_Data.image_template_difference];  % squeeze?
     % Note this is a row-wise concatenation instead of column-wise
     
+    
+    Test_Data.move_on = [Data1.Test_Data.move_on, Data2.Test_Data.move_on];
+    Test_Data.step_size = [Data1.Test_Data.step_size, Data2.Test_Data.step_size];
+    Test_Data.reversal_counter = [Data1.Test_Data.reversal_counter, Data2.Test_Data.reversal_counter ];
+    Test_Data.staircase_answer = [Data1.Test_Data.staircase_answer, Data2.Test_Data.staircase_answer];
+    Test_Data.average_orientations = [Data1.Test_Data.average_orientations, Data2.Test_Data.average_orientations];
+    %%Test_Data.eye_tracker_points = {};
+    Test_Data.left_template = Data1.Test_Data.left_template;
+    Test_Data.right_template = Data1.Test_Data.right_template;
+  
     
     [trials1, frames1, length_x1, length_y1] = size(Data1.image_collection);
     [trials2, frames2, length_x2, length_y2] = size(Data2.image_collection);
@@ -92,12 +102,22 @@ if phase==1 || phase==2
     Test_Data.screen_resolution = Data1.Test_Data.screen_resolution;
     
     Test_Data.log_odds = [Data1.Test_Data.log_odds, Data2.Test_Data.log_odds];
-    Test_Data.ratios = [Data1.Test_Data.ratios, Data2.Test_Data.ratios];
+    Test_Data.ratio = [Data1.Test_Data.ratio, Data2.Test_Data.ratio];
     
     Test_Data.image_template1 = [Data1.Test_Data.image_template1; Data2.Test_Data.image_template1];  % squeeze?
     Test_Data.image_template2 = [Data1.Test_Data.template2; Data2.Test_Data.template2];  % squeeze?
     Test_Data.image_template_difference = [Data1.Test_Data.image_template_difference; Data2.Test_Data.image_template_difference];  % squeeze?
     % Note this is a row-wise concatenation instead of column-wise
+    
+    Test_Data.move_on = [Data1.Test_Data.move_on, Data2.Test_Data.move_on];
+    Test_Data.step_size = [Data1.Test_Data.step_size, Data2.Test_Data.step_size];
+    Test_Data.reversal_counter = [Data1.Test_Data.reversal_counter, Data2.Test_Data.reversal_counter ];
+    Test_Data.staircase_answer = [Data1.Test_Data.staircase_answer, Data2.Test_Data.staircase_answer];
+    Test_Data.average_orientations = [Data1.Test_Data.average_orientations, Data2.Test_Data.average_orientations];
+    %%Test_Data.eye_tracker_points = {};
+    Test_Data.left_template = Data1.Test_Data.left_template;
+    Test_Data.right_template = Data1.Test_Data.right_template;
+  
     
     
     [trials1, frames1, length_x1, length_y1] = size(Data1.image_collection);

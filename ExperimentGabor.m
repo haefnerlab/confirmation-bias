@@ -465,7 +465,7 @@ elseif phase == 1
             % and an collection of the gabors which will be displayed to the screen, image_array
             image_array = makeImages(Preliminary_Data, order_of_orientations, contrast);
             
-            % Store all images shown
+            % Store all images shownimage_
             image_collection(i,:,:,:) = image_array;
             
             Preliminary_Data.order_of_orientations(i,:) = order_of_orientations;  % Record random ordering of all orientations
