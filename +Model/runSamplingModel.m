@@ -20,8 +20,6 @@ function results = runSamplingModel(data, params)
 %   results.choices - [trials x 1] array of {-1, +1} values
 %   results.x       - [trials x (frames*samples+1)] sampled values of x
 %                     (including extra 'initial' sample)
-%   results.D       - [trials x (frames*samples+1)] sampled values of D
-%                     (including extra 'initial' sample)
 %   results.walk    - [trials x frames+1] posterior log odds of D=+1/D=-1
 %                     (where walk(1) is the prior, hence size frames+1)
 
@@ -42,29 +40,18 @@ results = struct(...
     'params', params, ...
     'choices', zeros(trials, 1), ...
     'x', zeros(trials, frames*samples+1), ...
-    'D', zeros(trials, frames*samples+1), ...
     'walk', zeros(trials, frames+1));
 
-% Anonymous function to create mixture-of-gaussians p(x|D)
-p_x_D = @(D) [+D sqrt(var_x) p_x; -D sqrt(var_x) 1-p_x];
-p_x_Dp = p_x_D(+1); % 'p' for plus
-p_x_Dm = p_x_D(-1); % 'm' for minus
+% Anonymous function to create (scaled) mixture-of-gaussians p(x|D)
+p_x_D = @(D, pD) [+D sqrt(var_x) p_x*pD; -D sqrt(var_x) (1-p_x)*pD];
+p_x_Dp = p_x_D(+1, 1); % 'p' for plus
+p_x_Dm = p_x_D(-1, 1); % 'm' for minus
 
 %% Run sampler in parallel
-
-    function x = sample_x(e, D)
-        mog_prior = p_x_D(D);
+    function x = sample_x(e, pDp)
+        mog_prior = [p_x_D(+1, pDp); p_x_D(-1, 1-pDp)];
         likelihood = [e, sqrt(var_e), 1];
         x = mogsample(mogprod(mog_prior, likelihood));
-    end
-
-    function D = sample_D(x, post_D)
-        % pDp is "propability of D plus one", and pDm is "probability of D
-        % minus one"
-        pDp = post_D * mogpdf(x, p_x_Dp);
-        pDm = (1 - post_D) * mogpdf(x, p_x_Dm);
-        pDp = pDp / (pDp + pDm);
-        D = sign(pDp - rand); % this gives +1 with probability pDp
     end
 
 % TODO - use parfor
@@ -75,8 +62,8 @@ for i=1:trials
     results.walk(i, 1) = log_post_D(1) - log_post_D(2);
 
     % draw initial samples using ancestral sampling
-    results.D(i, 1) = sign(prior_D - rand); % this gives +1 with probability prior_D
-    results.x(i, 1) = mogsample(p_x_D(results.D(i, 1)));
+    D = sign(prior_D - rand); % this gives +1 with probability prior_D
+    results.x(i, 1) = mogsample(p_x_D(D, 1));
 
     % loop over evidence frames
     s_idx = 2;
@@ -86,11 +73,9 @@ for i=1:trials
         % post_D contains [p(D=+1|e_1,...,e_j-1), p(D=-1|e_1,...,e_j-1)]
         post_D = exp(log_post_D); post_D = post_D / sum(post_D);
         for s=1:samples
-            % sample x conditioned on the previous D
-            results.x(i, s_idx) = sample_x(e, results.D(i, s_idx-1));
-            % sample D conditioned on the just-sampled x
-            results.D(i, s_idx) = sample_D(results.x(i, s_idx), post_D);
-            % accumulate estimate of p(e|D) using current x
+            % sample x using best posterior estimate of D
+            results.x(i, s_idx) = sample_x(e, post_D(1));
+            % accumulate estimate of p(e|D) using this sample of x
             like_e_D_cur = [mogpdf(results.x(i, s_idx), p_x_Dp), ...
                             mogpdf(results.x(i, s_idx), p_x_Dm)];
             like_e_D = like_e_D + like_e_D_cur / sum(like_e_D_cur);

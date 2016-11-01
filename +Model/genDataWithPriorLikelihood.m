@@ -1,4 +1,4 @@
-function [data, var_e] = genDataWithPriorLikelihood(trials, frames, prior, likelihood)
+function [data, var_e, descriptor] = genDataWithPriorLikelihood(trials, frames, prior, likelihood)
 %GENDATAWITHPRIORLIKELIHOOD generates a set of 'trials' (a 1xframes vector of real numbers),
 %all with correct choice +1.
 
@@ -17,4 +17,6 @@ centers = sign(prior - rand(trials, frames));
 
 % draw signal from around the center with stdev calculated above.
 data = normrnd(centers, stdev_e);
+
+descriptor = sprintf('%dx%d_norminvlike', trials, frames);
 end

@@ -1,4 +1,7 @@
-function [correct] = plotPriorLikelihoodSpace(priors, likelihoods, sampling_params)
+function [correct] = plotPriorLikelihoodSpace(trials, frames, priors, likelihoods, sampling_params)
+
+savedir = fullfile('+Model', 'figures');
+if ~exist(savedir, 'dir'), mkdir(savedir); end
 
 % Get cartesian product of priors x likelihoods
 [ll, pp] = meshgrid(likelihoods, priors);
@@ -6,15 +9,10 @@ correct = zeros(size(pp));
 pp = pp(:);
 ll = ll(:);
 
-% Generate data
-trials = 1000;
-frames = 12;
-prefix = sprintf('%dx%d_norminvlike', trials, frames);
-
 parfor i=1:numel(pp)
     prior = pp(i);
     likelihood = ll(i);
-    [data, var_e] = Model.genDataWithPriorLikelihood(trials, frames, prior, likelihood);
+    [data, var_e, prefix] = Model.genDataWithPriorLikelihood(trials, frames, prior, likelihood);
     sampling_params_copy = sampling_params;
     sampling_params_copy.var_e = var_e;
     sampling_params_copy.p_x = prior;
@@ -34,5 +32,8 @@ set(gca, 'YDir', 'Normal');
 xlabel('P_{likelihood}');
 ylabel('P_{prior}');
 title('Percent Correct in prior-likelihood space');
-saveas(gcf, 'PLSpace.fig');
+figname = sprintf('PLSpace_%dx%d_vx%.2f_pD%.2f_gam%.2f_S%d.fig', ...
+    trials, frames, sampling_params.var_x, sampling_params.prior_D, ...
+    sampling_params.gamma, sampling_params.samples);
+saveas(gcf, fullfile(savedir, figname));
 end
