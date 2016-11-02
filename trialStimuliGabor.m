@@ -3,7 +3,7 @@ function [image_properties, eye_tracker_points, broke_fixation] = trialStimuliGa
 % succession to the subject, or runs through a single trial of the
 % experiment.
 
-%screen_frame = Data.screen_frame * .01667; % This is because the refresh rate is 60 Hz
+
 screen_frame = Data.screen_frame * .0083; % This is because the refresh rate is 120 Hz
 % This tells me how many ms each image will be on the screen
 

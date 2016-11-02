@@ -347,13 +347,13 @@ if opts.preliminary == 0 || opts.preliminary == 2
     %}
     %Test_Data = Trial_Data;
     [prob_correct_left, prob_correct_right, prob_wrong_left, prob_wrong_right] = Serial_Dependencies(Test_Data);     % Print out the serial dependencies
-    f=Get_Figure('Serial Dependences');
+    f=Get_Figure('Serial Dependences: Probability of choosing Left');
     axis off;
     %t=uitable(f,'Position',[150 180 260 60]);
-    t=uitable(f,'Position',[150 180 260 60],'RowName',{'%Correct';'%Incorrect'});
+    t=uitable(f,'Position',[150 180 260 60],'RowName',{'Correct in prev trial';'Incorrect in prev trial'});
     d={prob_correct_left, prob_correct_right;prob_wrong_left, prob_wrong_right};
     t.Data=d;
-    t.ColumnName={'Left','Right'};
+    t.ColumnName={'Chose Left in prev trial','Chose Right in prev trial'};
     
     
     [unique_contrast_conditions, ~, IC] = unique(Test_Data.contrast);
@@ -365,7 +365,7 @@ if opts.preliminary == 0 || opts.preliminary == 2
     
     % How many different types trials did the subject see?
     temp=Test_Data.flash_rate(1,:) - Test_Data.flash_rate(2,:);
-    temp
+   
     [unique_ratio_conditions,~,IC] = unique(temp);
     size(unique_ratio_conditions)
     num_trials_at_x_ratio = zeros(length(unique_ratio_conditions),1);
@@ -493,7 +493,7 @@ if opts.preliminary == 0 || opts.preliminary == 2
     end
     
     %}
-    size(unique_ratio_conditions)
+    
     
     %addpath(genpath('psignifit-master'));
     addpath(genpath([opts.directory 'Code']));
