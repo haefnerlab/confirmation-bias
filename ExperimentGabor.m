@@ -35,8 +35,6 @@ ScreenSize = [0 0 ResolutionScreen.width ResolutionScreen.height]; % Sets full s
 xc = ScreenSize(3)/2; %	Gets the middle of the horizontal axis
 yc = ScreenSize(4)/2; % Gets the middle of the vertical axis
 Screen('Preference', 'SkipSyncTests', settings.ptbSkipSyncTests); % Opens Screen
-Screen('Preference', 'SkipSyncTests', 1); % Opens Screen
-
 
 white = [255 255 255];          % Sets the color to be white
 black = [0 0 0];                % Sets the color to be black
@@ -55,7 +53,7 @@ end
 
 tracker_info = EyeTracker.initEyeTracker(whichScreen, ...
     'fixationSymbol', 'b', ...
-    'fixationCenter', [xc, ScreenSize(4)-50], ...
+    'fixationCenter', [xc, 50], ...
     'fixationSymbolSize', [30 30], ...
     varargin{:});
 
