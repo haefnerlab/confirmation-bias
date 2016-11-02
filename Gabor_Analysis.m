@@ -403,8 +403,7 @@ if preliminary == 0 || preliminary == 2
     
     %========================================
     
-    %{
-    Image * (T1 - T2)
+    % Image * (T1 - T2)
     im=zeros(trials, h, w, number_of_images);
     for i=1:trials
         for j=1:number_of_images
@@ -418,11 +417,10 @@ if preliminary == 0 || preliminary == 2
         
     end
     
-    data=.....;
-        
-    [weights, postVal, errors] = PsychophysicalKernelImage(data, test_choice, ...
-        hpr_ridge, hpr_ar1, hpr_curvature, ...
-        hpr_sp_ridge, hpr_sp_ar1, hpr_sp_curvature);
+    cell_images = mat2cell(im, ones(trials, 1), h, w, number_of_images);
+    cell_images = cellfun(@squeeze, cell_images, 'UniformOutput', false);
+    [weights, ~, errors] = ...
+        CustomRegression.PsychophysicalKernelImage(cell_images, test_choice, 1, 0, 10, 1, 0, 10);
 
 
 
@@ -435,7 +433,7 @@ if preliminary == 0 || preliminary == 2
     %Get_Figure('Gabor Logistic');
     %subplot(1,1,1); hold on;
     subplot(2,4,[3,4,7,8]);hold on;
-    errorbar([1:number_of_images], weights(h*w+1:end-1), errors(h*w+1:end-1));  % Blue plot
+    errorbar(1:number_of_images, weights(h*w+1:end-1), errors(h*w+1:end-1));  % Blue plot
     plot([mean(reshape(1:number_of_images, [sublength groupings]))], [sum(reshape(weights(h*w+1:end-1), [sublength groupings]))],'r*-');    % Red plot
 
     %x=squeeze(mean(reshape(permute(X, [2 1]), [sublength groupings length(choice)])))';
