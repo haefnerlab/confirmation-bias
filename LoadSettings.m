@@ -18,7 +18,7 @@ if ~isfield(settings, 'gammaTable'), settings.gammaTable = ''; end
 % PTB settings
 if ~isfield(settings, 'whichScreen'), settings.whichScreen = 0; end
 if ~isfield(settings, 'useOpenGL'), settings.useOpenGL = true; end
-if ~isfield(settings, 'ptbSkipSyncTests'), settings.ptbSkipSyncTests = false; end
+if ~isfield(settings, 'ptbSkipSyncTests'), settings.ptbSkipSyncTests = 0; end
 % Interface settings - which keys do what
 if ~isfield(settings, 'keyGo'), settings.keyGo = 'space'; end
 if ~isfield(settings, 'keyGoName'), settings.keyGoName = 'the space bar'; end
