@@ -407,7 +407,7 @@ if preliminary == 0 || preliminary == 2
     im=zeros(trials, h, w, number_of_images);
     for i=1:trials
         for j=1:number_of_images
-            v=mat2cell(test_collection_of_images(i,j,:,:), res*ones(1,h), res*ones(1,w));
+            v=mat2cell(squeeze(test_collection_of_images(i,j,:,:)), res*ones(1,h), res*ones(1,w));
             for k=1:length(v)
                 for l=1:length(v)
                     im(i,k,l,j)=sum(v{k,l}(:))/(res*res);
@@ -420,7 +420,7 @@ if preliminary == 0 || preliminary == 2
     cell_images = mat2cell(im, ones(trials, 1), h, w, number_of_images);
     cell_images = cellfun(@squeeze, cell_images, 'UniformOutput', false);
     [weights, ~, errors] = ...
-        CustomRegression.PsychophysicalKernelImage(cell_images, test_choice, 1, 0, 10, 1, 0, 10);
+        CustomRegression.PsychophysicalKernelImage(cell_images, test_choice, 0, 0, 10, 0, 0, 0);
 
 
 
@@ -450,7 +450,7 @@ if preliminary == 0 || preliminary == 2
 
     Get_Figure('Image Kernel');
     r=reshape(weights(1:h*w), [h w]);
-    pcolor(r);
+    imagesc(r);
     colorbar;
 
 
