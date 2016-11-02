@@ -55,6 +55,7 @@ tracker_info = EyeTracker.initEyeTracker(whichScreen, ...
     'fixationSymbol', 'b', ...
     'fixationCenter', [xc, 50], ...
     'fixationSymbolSize', [30 30], ...
+    'fixationRadius', 18, ...
     varargin{:});
 
 %% Set up keyboard functions
@@ -71,23 +72,23 @@ if phase == 0
     fileName = fullfile(directory, 'RawData', [subjectID '-GaborDataContrast.mat']); % Set the desired filename of the experimental data
     if ~exist(fileName, 'file') % Check to see if the subject has already done the preliminary phase or not
         
-		%% Instruction Screen
-		Screen('TextSize', wPtr, 20); % Set text size to 20
+        %% Instruction Screen
+        Screen('TextSize', wPtr, 20); % Set text size to 20
         Screen('FillRect', wPtr, 127);
-		Screen('DrawText', wPtr, 'You will see a series of images flashing very quickly in the middle of the screen.', xc-500, yc-150, white);
-		Screen('DrawText', wPtr, 'You are required to keep your eyes on the bull''s eye target below the images.', xc-500, yc-100, white);
-		Screen('DrawText', wPtr, 'Then you will be shown two images.', xc-500, yc-50, white);
-		Screen('DrawText', wPtr, 'You will have to decide which image appeared more frequently.', xc-500, yc, white);
-		Screen('DrawText', wPtr, sprintf('Select the image positioned to the left or right by pressing %s or %s respectively', settings.keyLeftName, settings.keyRightName), xc-500, yc+50, white);
-		Screen('DrawText', wPtr, 'Ask the researcher if you need further clarification.', xc-500, yc+100, white);
-		Screen('DrawText', wPtr, sprintf('Press %s to begin.', settings.keyGoName), xc-500, yc+150, white);    % Display text colored white
-		Screen('Flip', wPtr); % Function to flip to the next screen image
-		[~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
-		while ~keyCode(goKey)        % While loop to wait for the spacebar to be pressed
-			[~, ~, keyCode] = KbCheck;
-		end
-		Screen('Flip', wPtr); % Function to flip to the next screen image
-		
+        Screen('DrawText', wPtr, 'You will see a series of images flashing very quickly in the middle of the screen.', xc-500, yc-150, white);
+        Screen('DrawText', wPtr, 'You are required to keep your eyes on the bull''s eye target below the images.', xc-500, yc-100, white);
+        Screen('DrawText', wPtr, 'Then you will be shown two images.', xc-500, yc-50, white);
+        Screen('DrawText', wPtr, 'You will have to decide which image appeared more frequently.', xc-500, yc, white);
+        Screen('DrawText', wPtr, sprintf('Select the image positioned to the left or right by pressing %s or %s respectively', settings.keyLeftName, settings.keyRightName), xc-500, yc+50, white);
+        Screen('DrawText', wPtr, 'Ask the researcher if you need further clarification.', xc-500, yc+100, white);
+        Screen('DrawText', wPtr, sprintf('Press %s to begin.', settings.keyGoName), xc-500, yc+150, white);    % Display text colored white
+        Screen('Flip', wPtr); % Function to flip to the next screen image
+        [~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
+        while ~keyCode(goKey)        % While loop to wait for the spacebar to be pressed
+            [~, ~, keyCode] = KbCheck;
+        end
+        Screen('Flip', wPtr); % Function to flip to the next screen image
+        
         %% Preliminary Calibration Phase
         
         % Set up struct to store data/answers
@@ -197,7 +198,7 @@ if phase == 0
                 desired_orientations = 0;        % Right Orientation
                 probabilities = [1];             % 100% chance of only one orientation
                 Preliminary_Data.correct_answer(i) = 0;	% Since right appears >= than the left orientation, it's the correct answer
-               % Preliminary_Data.staircase_answer(i) = 0;
+                % Preliminary_Data.staircase_answer(i) = 0;
                 Preliminary_Data.ratio(i) = Preliminary_Data.number_of_images;  % Use only the one orientation
             end
             
@@ -284,7 +285,7 @@ if phase == 0
                 end
             end
             
-            %% Staircase method to move on 
+            %% Staircase method to move on
             if (Preliminary_Data.choice(i) == 1 && Preliminary_Data.staircase_answer(i) == 1) || (Preliminary_Data.choice(i) == 0 && Preliminary_Data.staircase_answer(i) == 0)
                 
                 move_on = move_on + 1;	% if right, we increment move_on and later check it to decrease contrast level
@@ -359,23 +360,23 @@ elseif phase == 1
     fileName = fullfile(directory, 'RawData', [subjectID '-GaborDataRatio.mat']); % Set the desired filename of the experimental data
     if ~exist(fileName, 'file') % Check to see if the subject has already done the preliminary phase or not
         
-		%% Instruction Screen
-		Screen('TextSize', wPtr, 20); % Set text size to 20
+        %% Instruction Screen
+        Screen('TextSize', wPtr, 20); % Set text size to 20
         Screen('FillRect', wPtr, 127);
-		Screen('DrawText', wPtr, 'You will see a series of images flashing very quickly in the middle of the screen.', xc-500, yc-150, white);
-		Screen('DrawText', wPtr, 'You are required to keep your eyes on the bull''s eye target below the images.', xc-500, yc-100, white);
-		Screen('DrawText', wPtr, 'Then you will be shown two images.', xc-500, yc-50, white);
-		Screen('DrawText', wPtr, 'You will have to decide which image appeared more frequently.', xc-500, yc, white);
-		Screen('DrawText', wPtr, sprintf('Select the image positioned to the left or right by pressing %s or %s respectively', settings.keyLeftName, settings.keyRightName), xc-500, yc+50, white);
-		Screen('DrawText', wPtr, 'Ask the researcher if you need further clarification.', xc-500, yc+100, white);
-		Screen('DrawText', wPtr, sprintf('Press %s to begin.', settings.keyGoName), xc-500, yc+150, white);    % Display text colored white
-		Screen('Flip', wPtr); % Function to flip to the next screen image
-		[~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
-		while ~keyCode(goKey)        % While loop to wait for the spacebar to be pressed
-			[~, ~, keyCode] = KbCheck;
-		end
-		Screen('Flip', wPtr); % Function to flip to the next screen image
-		
+        Screen('DrawText', wPtr, 'You will see a series of images flashing very quickly in the middle of the screen.', xc-500, yc-150, white);
+        Screen('DrawText', wPtr, 'You are required to keep your eyes on the bull''s eye target below the images.', xc-500, yc-100, white);
+        Screen('DrawText', wPtr, 'Then you will be shown two images.', xc-500, yc-50, white);
+        Screen('DrawText', wPtr, 'You will have to decide which image appeared more frequently.', xc-500, yc, white);
+        Screen('DrawText', wPtr, sprintf('Select the image positioned to the left or right by pressing %s or %s respectively', settings.keyLeftName, settings.keyRightName), xc-500, yc+50, white);
+        Screen('DrawText', wPtr, 'Ask the researcher if you need further clarification.', xc-500, yc+100, white);
+        Screen('DrawText', wPtr, sprintf('Press %s to begin.', settings.keyGoName), xc-500, yc+150, white);    % Display text colored white
+        Screen('Flip', wPtr); % Function to flip to the next screen image
+        [~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
+        while ~keyCode(goKey)        % While loop to wait for the spacebar to be pressed
+            [~, ~, keyCode] = KbCheck;
+        end
+        Screen('Flip', wPtr); % Function to flip to the next screen image
+        
         %% Preliminary Calibration Phase
         
         % Set up struct to store data/answers
@@ -408,7 +409,7 @@ elseif phase == 1
         Preliminary_Data.image_template1 = zeros(preliminary_trials*loops,Preliminary_Data.number_of_images);
         Preliminary_Data.image_template2 = zeros(preliminary_trials*loops,Preliminary_Data.number_of_images);
         Preliminary_Data.image_template_difference = zeros(preliminary_trials*loops,Preliminary_Data.number_of_images);
-    
+        
         image_collection = zeros(preliminary_trials*loops, Preliminary_Data.number_of_images, ...
             Preliminary_Data.image_length_x*Preliminary_Data.screen_resolution, Preliminary_Data.image_length_y*Preliminary_Data.screen_resolution);
         
@@ -459,6 +460,13 @@ elseif phase == 1
             Preliminary_Data.step_size(i) = step_size;
             Preliminary_Data.reversal_counter(i) = reversal_counter;
             Preliminary_Data.contrast(i) = contrast;
+            
+            res = Preliminary_Data.screen_resolution;
+            Preliminary_Data.left_template = zeros(res * 5);
+            for i=1:5
+                Preliminary_Data.left_template((i-1)*res+1:i*res, (i-1)*res+1:i*res) = 1;
+            end
+            Preliminary_Data.right_template = rot90(Preliminary_Data.left_template);
             
             
             % This sets the orientations, the probabilities for each
@@ -554,7 +562,7 @@ elseif phase == 1
                 if automatic == 0
                     sounds(1, 0.2);              % Beep for correct when it's the person running the experiment
                 end
-               
+                
             elseif (Preliminary_Data.choice(i) == 1 && Preliminary_Data.correct_answer(i) == 0) || (Preliminary_Data.choice(i) == 0 && Preliminary_Data.correct_answer(i) == 1)
                 Preliminary_Data.accuracy(i) = 0;	% 0 is false for inaccuracy
                 if automatic == 0
@@ -617,7 +625,7 @@ elseif phase == 1
             if ratio > max_ratio
                 ratio = max_ratio;  % Just an insurance measure to keep the contrast from going over the maximum value allowed
             end
-			
+            
             % Maybe save the data after every nth trial? Remember, you're saving images too, so there's a noticiable delay between trials for the subjects
             if ~isnan(Preliminary_Data.choice(i))
                 i=i+1;
