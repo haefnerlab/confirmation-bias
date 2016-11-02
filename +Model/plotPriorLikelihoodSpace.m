@@ -1,7 +1,9 @@
-function [correct] = plotPriorLikelihoodSpace(trials, frames, priors, likelihoods, sampling_params)
+function [correct] = plotPriorLikelihoodSpace(trials, frames, priors, likelihoods, sampling_params, ideal_observer)
 
 savedir = fullfile('+Model', 'figures');
 if ~exist(savedir, 'dir'), mkdir(savedir); end
+
+if nargin < 6, ideal_observer = false; end
 
 % Get cartesian product of priors x likelihoods
 [ll, pp] = meshgrid(likelihoods, priors);
@@ -16,7 +18,11 @@ parfor i=1:numel(pp)
     sampling_params_copy = sampling_params;
     sampling_params_copy.var_e = var_e;
     sampling_params_copy.p_x = prior;
-    results = Model.loadOrRunSamplingModel(data, prefix, sampling_params_copy);
+    if ~ideal_observer
+        results = Model.loadOrRunSamplingModel(data, prefix, sampling_params_copy);
+    else
+        results = Model.runIdealObserver(data, sampling_params_copy);
+    end
     correct(i) = sum(results.choices == +1) / trials;
 end
 
@@ -32,8 +38,12 @@ set(gca, 'YDir', 'Normal');
 xlabel('P_{likelihood}');
 ylabel('P_{prior}');
 title('Percent Correct in prior-likelihood space');
-figname = sprintf('PLSpace_%dx%d_vx%.2f_pD%.2f_gam%.2f_S%d.fig', ...
-    trials, frames, sampling_params.var_x, sampling_params.prior_D, ...
-    sampling_params.gamma, sampling_params.samples);
+if ~ideal_observer
+    figname = sprintf('PLSpace_%dx%d_vx%.2f_pD%.2f_gam%.2f_S%d.fig', ...
+        trials, frames, sampling_params.var_x, sampling_params.prior_D, ...
+        sampling_params.gamma, sampling_params.samples);
+else
+    figname = sprintf('PLSpace_%dx%d_ideal.fig', trials, frames);
+end
 saveas(gcf, fullfile(savedir, figname));
 end
