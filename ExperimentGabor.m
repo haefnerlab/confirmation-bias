@@ -142,7 +142,6 @@ if phase == 0
         reversal_counter = 0;	% Tracks how many reversals the subject has gotten so far
         
         % Begin Preliminary Trials
-        EyeTracker.AutoCalibrate(tracker_info);
         flag=0;
         i=1;
         while i <= preliminary_trials * loops
@@ -243,6 +242,7 @@ if phase == 0
             
             
             if broke_fixation
+                Screen('FillRect', wPtr, 127);
                 Screen('Flip', wPtr);
                 sounds(2, 0.2);
                 pause(1);
@@ -423,7 +423,6 @@ elseif phase == 1
         contrast = 64;      % High Contrast
         
         % Begin Preliminary Trials
-        EyeTracker.AutoCalibrate(tracker_info);
         i=1;
         flag=0;
         while i <= preliminary_trials * loops
@@ -518,6 +517,7 @@ elseif phase == 1
             
             
             if broke_fixation
+                Screen('FillRect', wPtr, 127);
                 Screen('Flip', wPtr);
                 sounds(2, 0.2);
                 pause(1);
