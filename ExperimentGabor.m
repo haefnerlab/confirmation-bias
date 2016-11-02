@@ -29,7 +29,7 @@ commandwindow; % Moves the cursor to the commandwindow
 if settings.useOpenGL, InitializeMatlabOpenGL; end
 
 % Screen set up
-whichScreen = 0;%settings.whichScreen; %allow to choose the display if there's more than one
+whichScreen = settings.whichScreen; %allow to choose the display if there's more than one
 ResolutionScreen = Screen('Resolution', whichScreen); % Gets screen resolution
 ScreenSize = [0 0 ResolutionScreen.width ResolutionScreen.height]; % Sets full screen
 xc = ScreenSize(3)/2; %	Gets the middle of the horizontal axis
@@ -73,6 +73,7 @@ if phase == 0
         
 		%% Instruction Screen
 		Screen('TextSize', wPtr, 20); % Set text size to 20
+        Screen('FillRect', wPtr, 127);
 		Screen('DrawText', wPtr, 'You will see a series of images flashing very quickly in the middle of the screen.', xc-500, yc-150, white);
 		Screen('DrawText', wPtr, 'You are required to keep your eyes on the bull''s eye target below the images.', xc-500, yc-100, white);
 		Screen('DrawText', wPtr, 'Then you will be shown two images.', xc-500, yc-50, white);
@@ -360,6 +361,7 @@ elseif phase == 1
         
 		%% Instruction Screen
 		Screen('TextSize', wPtr, 20); % Set text size to 20
+        Screen('FillRect', wPtr, 127);
 		Screen('DrawText', wPtr, 'You will see a series of images flashing very quickly in the middle of the screen.', xc-500, yc-150, white);
 		Screen('DrawText', wPtr, 'You are required to keep your eyes on the bull''s eye target below the images.', xc-500, yc-100, white);
 		Screen('DrawText', wPtr, 'Then you will be shown two images.', xc-500, yc-50, white);
