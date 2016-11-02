@@ -22,9 +22,9 @@ if ~isfield(settings, 'ptbSkipSyncTests'), settings.ptbSkipSyncTests = 0; end
 % Interface settings - which keys do what
 if ~isfield(settings, 'keyGo'), settings.keyGo = 'space'; end
 if ~isfield(settings, 'keyGoName'), settings.keyGoName = 'the space bar'; end
-if ~isfield(settings, 'keyLeft'), settings.keyLeft = 'left'; end
+if ~isfield(settings, 'keyLeft'), settings.keyLeft = 'LeftArrow'; end
 if ~isfield(settings, 'keyLeftName'), settings.keyLeftName = 'the left arrow key'; end
-if ~isfield(settings, 'keyRight'), settings.keyRight = 'right'; end
+if ~isfield(settings, 'keyRight'), settings.keyRight = 'RightArrow'; end
 if ~isfield(settings, 'keyRightName'), settings.keyRightName = 'the right arrow key'; end
 if ~isfield(settings, 'keyExit'), settings.keyExit = 'escape'; end
 if ~isfield(settings, 'keyExitName'), settings.keyExitName = 'ESCAPE'; end
