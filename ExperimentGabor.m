@@ -29,12 +29,14 @@ commandwindow; % Moves the cursor to the commandwindow
 if settings.useOpenGL, InitializeMatlabOpenGL; end
 
 % Screen set up
-whichScreen = settings.whichScreen; %allow to choose the display if there's more than one
+whichScreen = 0;%settings.whichScreen; %allow to choose the display if there's more than one
 ResolutionScreen = Screen('Resolution', whichScreen); % Gets screen resolution
 ScreenSize = [0 0 ResolutionScreen.width ResolutionScreen.height]; % Sets full screen
 xc = ScreenSize(3)/2; %	Gets the middle of the horizontal axis
 yc = ScreenSize(4)/2; % Gets the middle of the vertical axis
 Screen('Preference', 'SkipSyncTests', settings.ptbSkipSyncTests); % Opens Screen
+Screen('Preference', 'SkipSyncTests', 1); % Opens Screen
+
 
 white = [255 255 255];          % Sets the color to be white
 black = [0 0 0];                % Sets the color to be black
@@ -189,7 +191,7 @@ if phase == 0
                 desired_orientations = 1;        % Left Orientation
                 probabilities = [1];             % 100% chance of only one orientation
                 Preliminary_Data.correct_answer(i) = 1;	% Since left appears >= than the right orientation, it's the correct answer
-                Preliminary_Data.staircase_answer(i) = 1;
+                %Preliminary_Data.staircase_answer(i) = 1;
                 Preliminary_Data.ratio(i) = Preliminary_Data.number_of_images;  % Use only the one orientation
             else            % The right ear will hear more clicks
                 Preliminary_Data.average_orientations(1,i) = 0;
@@ -197,7 +199,7 @@ if phase == 0
                 desired_orientations = 0;        % Right Orientation
                 probabilities = [1];             % 100% chance of only one orientation
                 Preliminary_Data.correct_answer(i) = 0;	% Since right appears >= than the left orientation, it's the correct answer
-                Preliminary_Data.staircase_answer(i) = 0;
+               % Preliminary_Data.staircase_answer(i) = 0;
                 Preliminary_Data.ratio(i) = Preliminary_Data.number_of_images;  % Use only the one orientation
             end
             
@@ -217,11 +219,33 @@ if phase == 0
             % Pass in the contrast level, all of the images, screen being
             % used, subject ID, the struct with all of the data, and the
             % fact it's the person or computer running the experiment
-            [I, eye_tracker_points, broke_fixation] = trialStimuliGabor(i, image_array, wPtr, subjectID, Preliminary_Data, automatic, phase, directory, tracker_info, settings);
+            [I, eye_tracker_points, broke_fixation,quit] = trialStimuliGabor(i, image_array, wPtr, subjectID, Preliminary_Data, automatic, phase, directory, tracker_info, settings);
+            
+            
+            if quit==1
+                
+                if ~exist(directory, 'dir')
+                    mkdir(directory);
+                    
+                    fileName = fullfile(directory, 'RawData', [subjectID '-GaborDataContrastQuit.mat']); % create a name for the data you want to save as a csv
+                    save(fileName, 'Preliminary_Data','image_collection'); % save the data
+                else
+                    fileName = fullfile(directory, 'RawData', [subjectID '-GaborDataContrastQuit.mat']); % create a name for the data you want to save as a csv
+                    save(fileName, 'Preliminary_Data','image_collection'); % save the data
+                end
+                
+                ShowCursor([],whichScreen)
+                sca; % closes screen
+                return
+            end
+            
+            
+            
+            
             
             if broke_fixation
                 Screen('Flip', wPtr);
-                sounds(0, 0.2);
+                sounds(2, 0.2);
                 pause(1);
                 continue;
             end
@@ -264,14 +288,14 @@ if phase == 0
             %% Staircase method to move on 
             if (Preliminary_Data.choice(i) == 1 && Preliminary_Data.staircase_answer(i) == 1) || (Preliminary_Data.choice(i) == 0 && Preliminary_Data.staircase_answer(i) == 0)
                 
-                move_on = move_on + 1;	% if right, we increment move_on and later check it to decrease volume level
+                move_on = move_on + 1;	% if right, we increment move_on and later check it to decrease contrast level
                 if previous_trial == 0    % if the subject got the last trial wrong
                     previous_trial = 1;       % staircase is reversing
                     reversal_counter = reversal_counter+1;
                 end
             elseif (Preliminary_Data.choice(i) == 1 && Preliminary_Data.staircase_answer(i) == 0) || (Preliminary_Data.choice(i) == 0 && Preliminary_Data.staircase_answer(i) == 1)
                 
-                move_on = 0;            % if wrong, we reset move_on to 0 and later increase the volume level
+                move_on = 0;            % if wrong, we reset move_on to 0 and later increase the contrast level
                 if previous_trial == 1    % if the subject got the last trial right
                     previous_trial = 0;       % staircase is reversing
                     reversal_counter = reversal_counter+1;
@@ -311,7 +335,7 @@ if phase == 0
             end
             
             % Maybe save the data after every nth trial? Remember, you're saving images too, so there's a noticiable delay between trials for the subjects
-            if ~isnan(Preliminary_Data.choice(i))
+            if ~isnan(Preliminary_Data.choice(i)) || Preliminary_Data.choice(i)==-1
                 i=i+1;
             end
         end
@@ -473,9 +497,35 @@ elseif phase == 1
             % Pass in the contrast level, all of the images, screen being
             % used, subject ID, the struct with all of the data, and the
             % fact it's the person or computer running the experiment
-            I = trialStimuliGabor(i, image_array, wPtr, subjectID, Preliminary_Data, automatic, phase, directory, tracker_info, settings);
+            [I, eye_tracker_points, broke_fixation,quit] = trialStimuliGabor(i, image_array, wPtr, subjectID, Preliminary_Data, automatic, phase, directory, tracker_info, settings);
             
-            % The staircase is based on the actual click rate, not on the underlying number of clicks each ear hears
+            if quit==1
+                
+                if ~exist(directory, 'dir')
+                    mkdir(directory);
+                    
+                    fileName = fullfile(directory, 'RawData', [subjectID '-GaborDataRatioQuit.mat']); % create a name for the data you want to save as a csv
+                    save(fileName, 'Preliminary_Data','image_collection'); % save the data
+                else
+                    fileName = fullfile(directory, 'RawData', [subjectID '-GaborDataRatioQuit.mat']); % create a name for the data you want to save as a csv
+                    save(fileName, 'Preliminary_Data','image_collection'); % save the data
+                end
+                
+                ShowCursor([],whichScreen)
+                sca; % closes screen
+                return
+            end
+            
+            
+            if broke_fixation
+                Screen('Flip', wPtr);
+                sounds(2, 0.2);
+                pause(1);
+                continue;
+            end
+            Preliminary_Data.eye_tracker_points{i} = eye_tracker_points;
+            
+            %% The staircase is based on the actual click rate, not on the underlying number of clicks each ear hears
             if sum(Preliminary_Data.order_of_orientations(i,:)) > Preliminary_Data.number_of_images/2
                 Preliminary_Data.staircase_answer(i) = 1;     % If 1, the answer was left, and if 0, the answer was right
             elseif sum(Preliminary_Data.order_of_orientations(i,:)) < Preliminary_Data.number_of_images/2
@@ -522,14 +572,14 @@ elseif phase == 1
             
             if (Preliminary_Data.choice(i) == 1 && Preliminary_Data.staircase_answer(i) == 1) || (Preliminary_Data.choice(i) == 0 && Preliminary_Data.staircase_answer(i) == 0)
                 
-                move_on = move_on + 1;	% if right, we increment move_on and later check it to decrease volume level
+                move_on = move_on + 1;	% if right, we increment move_on and later check it to decrease contrast level
                 if previous_trial == 0    % if the subject got the last trial wrong
                     previous_trial = 1;       % staircase is reversing
                     reversal_counter = reversal_counter+1;
                 end
             elseif (Preliminary_Data.choice(i) == 1 && Preliminary_Data.staircase_answer(i) == 0) || (Preliminary_Data.choice(i) == 0 && Preliminary_Data.staircase_answer(i) == 1)
                 
-                move_on = 0;            % if wrong, we reset move_on to 0 and later increase the volume level
+                move_on = 0;            % if wrong, we reset move_on to 0 and later increase the contrast level
                 if previous_trial == 1    % if the subject got the last trial right
                     previous_trial = 0;       % staircase is reversing
                     reversal_counter = reversal_counter+1;
@@ -557,7 +607,7 @@ elseif phase == 1
                     ratio = max_ratio;  % Just an insurance measure to keep the ratio from going too high
                 end
             elseif move_on == 2 && ~isnan(Preliminary_Data.choice(i))
-                move_on = 0;                    	% Subject got two trials right and it's time to decrease the volume level
+                move_on = 0;                    	% Subject got two trials right and it's time to decrease the contrast level
                 ratio = ratio - step_size;
                 if ratio < ratio_sum/2
                     ratio = ratio_sum/2;  % To set a minimum level for the staircase

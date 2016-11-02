@@ -1,4 +1,6 @@
-function [] = SaveQuitDataGabor(subjectID, phase, loops_consider, preliminary_trials, directory)
+%function [] = SaveQuitDataGabor(subjectID, phase, loops_consider, preliminary_trials,extra, directory)
+function [] = SaveQuitDataGabor(subjectID, phase, consider_trials, directory)
+%% Very important to remember that you should save till BEFORE current trial and not upto current trial!!That is consider_trials<current_trial
 
 if phase == 0       % load the volume data
     filename = fullfile(directory, 'RawData', [subjectID '-GaborDataContrast.mat']);
@@ -20,7 +22,8 @@ elseif phase == 1       % load the ratio data
     end
 end
 
-point = loops_consider*preliminary_trials;
+%point = loops_consider*preliminary_trials+extra;
+point=consider_trials;
 Preliminary_Data.move_on (point+1:end) = [];          % Is the subject ready to move on or not? Always 0 or 1 for how many trials they got right so far
 Preliminary_Data.step_size (point+1:end) = [];        % By how much to adjust the contrast [1.5, 1.2, or 1.1]
 Preliminary_Data.reversal_counter (point+1:end) = [];   % How many trials has the subject got wrong? When to change the step size?
@@ -37,18 +40,37 @@ Preliminary_Data.ratio(point+1:end) = [];
 Preliminary_Data.average_orientations(:,point+1) = [];
 
 Preliminary_Data.current_trial = 0;
-Preliminary_Data.test_phase = ([1:loops].*preliminary_trials) - preliminary_trials + 1;
+
 
 Preliminary_Data.screen_frame = 12;	% how long each image will show on screen in frame rates
 Preliminary_Data.screen_resolution = 25;          % how many pixels correspond to a single datapoint of a gabor
-Preliminary_Data.image_length_x = 4;  % Size of the image along x-axis
-Preliminary_Data.image_length_y = 4;
+Preliminary_Data.image_length_x = 5;  % Size of the image along x-axis
+Preliminary_Data.image_length_y = 5;
 
-Preliminary_Data.image_template1 = zeros(preliminary_trials*loops,Preliminary_Data.number_of_images);
-Preliminary_Data.image_template2 = zeros(preliminary_trials*loops,Preliminary_Data.number_of_images);
-Preliminary_Data.image_template_difference = zeros(preliminary_trials*loops,Preliminary_Data.number_of_images);
+Preliminary_Data.image_template1(point+1:end,:)=[];
+Preliminary_Data.image_template2(point+1:end,:)=[];
+Preliminary_Data.image_template_difference(point+1:end,:)=[];
 
 
-image_collection = zeros(preliminary_trials*loops, Preliminary_Data.number_of_images, ...
-    Preliminary_Data.image_length_x*Preliminary_Data.screen_resolution, Preliminary_Data.image_length_y*Preliminary_Data.screen_resolution);
+image_collection(point+1:end,:,:,:)=[];
+
+if phase==0
+    if ~exist(directory, 'dir') % Check the directory actually exists
+        mkdir(directory);
+        fileName = fullfile(directory, 'RawData', [subjectID '-GaborDataContrast.mat']); % create a name for the data you want to save
+        save(fileName, 'Preliminary_Data','image_collection'); % save the data
+    else
+        fileName = fullfile(directory, 'RawData', [subjectID '-GaborDataContrast.mat']); % create a name for the data you want to save
+        save(fileName, 'Preliminary_Data','image_collection'); % save the data
+    end
+elseif phase==1
+    if ~exist(directory, 'dir') % Check the directory actually exists
+        mkdir(directory);
+        fileName = fullfile(directory, 'RawData', [subjectID '-GaborDataRatio.mat']); % create a name for the data you want to save
+        save(fileName, 'Preliminary_Data','image_collection'); % save the data
+    else
+        fileName = fullfile(directory, 'RawData', [subjectID '-GaborDataRatio.mat']); % create a name for the data you want to save
+        save(fileName, 'Preliminary_Data','image_collection'); % save the data
+    end
+end
 end

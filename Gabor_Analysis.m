@@ -1,10 +1,10 @@
-function [] = Gabor_Analysis(subjectID_prelim,subjectID, groupings, preliminary, phase, directory)
+function [] = Gabor_Analysis(subjectID, groupings, preliminary, phase, directory)
 
 %% Analyze All Data
 if preliminary == 1 || preliminary == 2
     %load the preliminary data
     if phase == 0
-        filename = fullfile(directory, 'RawData', [subjectID_prelim '-GaborDataContrast.mat']);
+        filename = fullfile(directory, 'RawData', [subjectID '-GaborDataContrast.mat']);
         if ~exist(filename, 'file')
             disp(strcat('ERROR! Missing File: ', filename));  % Return an error message for missing file
             disp(strcat('Maybe the Preliminary phase is saved under a different name?'));
@@ -27,12 +27,12 @@ if preliminary == 1 || preliminary == 2
         x = 1:Preliminary_Data.current_trial;
         y = Preliminary_Data.reaction_time(1:Preliminary_Data.current_trial);
         e = plot(x,y);
-        set(e,'Linewidth',2);
+        %set(e,'Linewidth',2);
         xlabel('Trial'), ylabel('Reaction Time in msecs')
         title('Reaction Time by Trial Number')
         
     elseif phase == 1
-        filename = fullfile(directory, 'RawData', [subjectID_prelim '-GaborDataRatio.mat']);
+        filename = fullfile(directory, 'RawData', [subjectID '-GaborDataRatio.mat']);
         if ~exist(filename, 'file')
             disp(strcat('ERROR! Missing File: ', filename));  % Return an error message for missing file
             disp(strcat('Maybe the Preliminary phase is saved under a different name?'));
@@ -55,7 +55,7 @@ if preliminary == 1 || preliminary == 2
         x = 1:Preliminary_Data.current_trial;
         y = Preliminary_Data.reaction_time(1:Preliminary_Data.current_trial);
         e = plot(x,y);
-        set(e,'Linewidth',2);
+        %set(e,'Linewidth',2);
         xlabel('Trial'), ylabel('Reaction Time in msecs')
         title('Reaction Time by Trial Number')
     end
@@ -72,7 +72,7 @@ if preliminary == 1 || preliminary == 2
     temp2=Preliminary_Data.number_of_images - temp1;
     temp= temp1-temp2;
     [unique_ratio_conditions,~,IC] = unique(temp);
-    size(unique_ratio_conditions)
+    
     num_trials_at_x_ratio = zeros(length(unique_ratio_conditions),1);
     for i=1:length(unique_ratio_conditions)
         num_trials_at_x_ratio(i) = sum(IC == i);
@@ -81,10 +81,10 @@ if preliminary == 1 || preliminary == 2
     average_over_contrast_trials = zeros(1,length(unique_contrast_conditions)); % This will be figuring out how often the subject chose left for each type of trial
     average_over_ratio_trials = zeros(1,length(unique_ratio_conditions)); % This will be figuring out how often the subject chose left for each type of trial
     
-    choice = Test_Data.choice;
-    accuracy = Test_Data.accuracy;
+    choice = Preliminary_Data.choice;
+    accuracy = Preliminary_Data.accuracy;
     
-    contrast = Test_Data.contrast;
+    contrast = Preliminary_Data.contrast;
     % We need to know the contrast values and how many different kind of trials did the subject encounter?
     
     
@@ -127,7 +127,7 @@ end
 %% Analyze Test Data
 if preliminary == 0 || preliminary == 2
     
-    Serial_Dependencies(Test_Data);     % Print out the serial dependencies
+    
     
     if phase == 0
         % Load data for test gabor experiment
@@ -157,7 +157,7 @@ if preliminary == 0 || preliminary == 2
     [prob_correct_left, prob_correct_right, prob_wrong_left, prob_wrong_right] = Serial_Dependencies(results.Test_Data);     % Print out the serial dependencies
     f=Get_Figure('Serial Dependences: Probability of choosing Left');
     axis off;
-    t=uitable(f,'Position',[150 180 260 60],'RowName',{'Correct in prev trial';'Incorrect in prev trial'});
+    t=uitable(f,'Position',[1 180 500 70],'RowName',{'Correct in prev trial';'Incorrect in prev trial'});
     d={prob_correct_left, prob_correct_right;prob_wrong_left, prob_wrong_right};
     t.Data=d;
     t.ColumnName={'Chose Left in prev trial','Chose Right in prev trial'};
@@ -266,7 +266,7 @@ if preliminary == 0 || preliminary == 2
     
     %}
     
-    addpath(genpath([opts.directory 'Code']));
+    addpath(genpath([directory 'Code']));
     Get_Figure('Psychometric Curve And Analysis');
     subplot(2,4,[1,2,5,6]); hold on;  % Plot the psychometric function of the high and low contrast/volume condition
     if phase == 0
@@ -322,7 +322,8 @@ if preliminary == 0 || preliminary == 2
         
         h = plotPsych(result,plotOptions);hold on;
         f = errorbar(unique_contrast_conditions,average_over_contrast_trials,contrast_stderror,'bs');  % Black line
-        set(f,'Linewidth',2); hold on;   % Make the lines thicker
+        %set(f,'Linewidth',2); 
+        hold on;   % Make the lines thicker
         axis tight
         
     elseif phase == 1
@@ -376,14 +377,18 @@ if preliminary == 0 || preliminary == 2
         
         h = plotPsych(result,plotOptions);hold on;
         f = errorbar(unique_ratio_conditions,average_over_ratio_trials,ratio_stderror,'bs');  % Black line
-        set(f,'Linewidth',2); hold on;   % Make the lines thicker
+        %set(f,'Linewidth',2); 
+        hold on;   % Make the lines thicker
         axis tight
         legend('Ratio Trials', 'Location','southeast')
         
+        x = unique_contrast_conditions;
+        fitValuesr = (1-result.Fit(3)-result.Fit(4))*arrayfun(@(x) result.options.sigmoidHandle(x,result.Fit(1),result.Fit(2)),x)+result.Fit(4);
+
         
     end
     
-    test_collection_of_images = results.test_image_collection;
+    test_collection_of_images = results.image_collection_test;
     test_image_template_difference = results.Test_Data.image_template_difference;
     test_choice = results.Test_Data.choice;
     
@@ -398,7 +403,8 @@ if preliminary == 0 || preliminary == 2
     
     %========================================
     
-    % Image * (T1 - T2)
+    %{
+    Image * (T1 - T2)
     im=zeros(trials, h, w, number_of_images);
     for i=1:trials
         for j=1:number_of_images
@@ -451,7 +457,7 @@ if preliminary == 0 || preliminary == 2
 
 
 
-
+    %}
 
 
     if phase ==0
@@ -506,10 +512,13 @@ if preliminary == 0 || preliminary == 2
 
         h = plotPsych(result,plotOptions);hold on;
         f = errorbar(unique_ratio_conditions,average_over_ratio_trials,ratio_stderror,'bs');  % Black line
-        set(f,'Linewidth',2); hold on;   % Make the lines thicker
+        %set(f,'Linewidth',2); 
+        hold on;   % Make the lines thicker
         axis tight
         legend('Ratio Trials', 'Location','southeast')
-
+        
+        x = unique_ratio_conditions;
+        fitValuesr = (1-result.Fit(3)-result.Fit(4))*arrayfun(@(x) result.options.sigmoidHandle(x,result.Fit(1),result.Fit(2)),x)+result.Fit(4);
 
 
     end
@@ -545,7 +554,7 @@ if preliminary == 0 || preliminary == 2
         title('Psychometric Curve of absolute ratio');
         xlabel('|Ratio Difference|')
         ylabel('Percentage of chosing left')
-        legend('Absolute Ratio PS for volume trials(<=0)', 'Absolute Ratio PS for volume trials(>=0)','Location','southoutside')
+        legend('Absolute Ratio PS for volume trials(<=0)', 'Absolute Ratio PS for contrast trials(>=0)','Location','southoutside')
     end
     if phase==1
         title('Psychometric Curve of absolute ratio');

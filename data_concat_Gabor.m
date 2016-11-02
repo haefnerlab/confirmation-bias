@@ -56,7 +56,8 @@ if phase==0 || phase==2
     Test_Data.reversal_counter = [Data1.Test_Data.reversal_counter, Data2.Test_Data.reversal_counter ];
     Test_Data.staircase_answer = [Data1.Test_Data.staircase_answer, Data2.Test_Data.staircase_answer];
     Test_Data.average_orientations = [Data1.Test_Data.average_orientations, Data2.Test_Data.average_orientations];
-    %%Test_Data.eye_tracker_points = {};
+    Test_Data.eye_tracker_points = [Data1.Test_Data.eye_tracker_points; Data2.Test_Data.eye_tracker_points];
+     % Note above is a row-wise concatenation instead of column-wise
     Test_Data.left_template = Data1.Test_Data.left_template;
     Test_Data.right_template = Data1.Test_Data.right_template;
   
@@ -68,8 +69,8 @@ if phase==0 || phase==2
     image_collection(trials1+1:end, :, :, :) = Data2.image_collection;
     
     
-    fileNameEnd = fullfile(directory, 'RawData', [subjectID '-GaborTestContrast.mat']);
-    save(fileNameEnd, 'image_collection', 'Test_Data');
+    fileNameEnd = fullfile(directory, 'RawData', [subjectID_output '-GaborTestContrast.mat']);
+    save(fileNameEnd, 'image_collection_test', 'Test_Data');
 end
 
 if phase==1 || phase==2
@@ -114,7 +115,8 @@ if phase==1 || phase==2
     Test_Data.reversal_counter = [Data1.Test_Data.reversal_counter, Data2.Test_Data.reversal_counter ];
     Test_Data.staircase_answer = [Data1.Test_Data.staircase_answer, Data2.Test_Data.staircase_answer];
     Test_Data.average_orientations = [Data1.Test_Data.average_orientations, Data2.Test_Data.average_orientations];
-    %%Test_Data.eye_tracker_points = {};
+    Test_Data.eye_tracker_points = [Data1.Test_Data.eye_tracker_points; Data2.Test_Data.eye_tracker_points];
+     % Note above is a row-wise concatenation instead of column-wise
     Test_Data.left_template = Data1.Test_Data.left_template;
     Test_Data.right_template = Data1.Test_Data.right_template;
   
@@ -127,7 +129,7 @@ if phase==1 || phase==2
     image_collection(trials1+1:end, :, :, :) = Data2.image_collection;
     
     
-    fileNameEnd = fullfile(directory, 'RawData', [subjectID '-GaborTestRatio.mat']);
-    save(fileNameEnd, 'image_collection', 'Test_Data');
+    fileNameEnd = fullfile(directory, 'RawData', [subjectID_output '-GaborTestRatio.mat']);
+    save(fileNameEnd, 'image_collection_test', 'Test_Data');
 end
 end

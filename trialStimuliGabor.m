@@ -1,4 +1,4 @@
-function [image_properties, eye_tracker_points, broke_fixation] = trialStimuliGabor(current_trial, image_array, screen, subjectID, Data, automatic, phase, directory, tracker_info, settings)
+function [image_properties, eye_tracker_points, broke_fixation,flag] = trialStimuliGabor(current_trial, image_array, screen, subjectID, Data, automatic, phase, directory, tracker_info, settings)
 % trialStimuli displays the animation of several gabor patches in quick
 % succession to the subject, or runs through a single trial of the
 % experiment.
@@ -6,7 +6,7 @@ function [image_properties, eye_tracker_points, broke_fixation] = trialStimuliGa
 
 screen_frame = Data.screen_frame * .0083; % This is because the refresh rate is 120 Hz
 % This tells me how many ms each image will be on the screen
-
+flag=0;
 eye_tracker_points = [];
 broke_fixation = false;
 
@@ -126,7 +126,8 @@ try
         while ~keyCode(leftKey) && ~keyCode(rightKey) && toc(tstart)<=1 % wait for press
             [~,~,keyCode] = KbCheck;
             if keyCode(exitKey)
-                
+                flag=1;
+               %{
                 if ~exist(directory, 'dir')
                     mkdir(directory);
                     
@@ -139,6 +140,7 @@ try
                 ShowCursor([],whichScreen)
                 sca; % closes screen
                 return
+                %}
             end
         end
         
@@ -150,9 +152,12 @@ try
             image_properties.choice = 1;        % The subject chose left orientation
         elseif keyCode(rightKey)% == KbCheck
             image_properties.choice = 0;        % The subject chose right orientation
+        elseif keyCode(exitKey)
+            image_properties.choice = -1;
         else
             image_properties.choice = nan;
         end
+        
         
         
     elseif automatic == 1
