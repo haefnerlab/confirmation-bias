@@ -3,8 +3,8 @@ function [data, descriptor] = genDataWithParams(trials, frames, params)
 %of real numbers), all with correct choice +1, with statistics matching the
 %given sampling params.
 
-% generate the 'center' of each frame according to 'prior'; with
-% probability 'prior' it is +1 and with probability '1-prior' it is -1.
+% generate the 'center' of each frame according to 'p_match'; with
+% probability 'p_match' it is +1 and with probability '1-p_match' it is -1.
 centers = sign(params.p_match - rand(trials, frames));
 
 % The net variance of p(e|D) is var_e + var_x.
