@@ -392,32 +392,16 @@ if preliminary == 0 || preliminary == 2
     test_image_template_difference = results.Test_Data.image_template_difference;
     test_choice = results.Test_Data.choice;
     
-    [trials, number_of_images, ht, wd] = size(test_collection_of_images);
+    [trials, number_of_images, h, w] = size(test_collection_of_images);
     % number of trials, images shown per trial, and the height and width of the image in the experiment
     
     sublength = number_of_images / groupings;
-    
-    res=results.Test_Data.screen_resolution;
-    h=ht/res;
-    w=wd/res;
-    
+        
     %========================================
     
-    % Image * (T1 - T2)
-    im=zeros(trials, h, w, number_of_images);
-    for i=1:trials
-        for j=1:number_of_images
-            v=mat2cell(squeeze(test_collection_of_images(i,j,:,:)), res*ones(1,h), res*ones(1,w));
-            for k=1:length(v)
-                for l=1:length(v)
-                    im(i,k,l,j)=sum(v{k,l}(:))/(res*res);
-                end
-            end
-        end
-        
-    end
+    % Spatial + Temporal regression
     
-    cell_images = mat2cell(im, ones(trials, 1), h, w, number_of_images);
+    cell_images = mat2cell(test_collection_of_images, ones(trials, 1), h, w, number_of_images);
     cell_images = cellfun(@squeeze, cell_images, 'UniformOutput', false);
     [weights, ~, errors] = ...
         CustomRegression.PsychophysicalKernelImage(cell_images, test_choice, 0, 0, 10, 0, 0, 0);
@@ -446,16 +430,11 @@ if preliminary == 0 || preliminary == 2
     legend('Actual Weight in each frame','Actual weights summed in groups','Location','southoutside')
 
 
-
-
+    
     Get_Figure('Image Kernel');
     r=reshape(weights(1:h*w), [h w]);
     imagesc(r);
     colorbar;
-
-
-
-    %}
 
 
     if phase ==0

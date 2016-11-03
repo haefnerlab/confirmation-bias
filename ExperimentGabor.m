@@ -124,16 +124,12 @@ if phase == 0
         
         Preliminary_Data.eye_tracker_points = {};
         
-        res = Preliminary_Data.screen_resolution;
-        Preliminary_Data.left_template = zeros(res * 5);
-        for i=1:5
-            Preliminary_Data.left_template((i-1)*res+1:i*res, (i-1)*res+1:i*res) = 1;
-        end
+        Preliminary_Data.left_template = eye(Preliminary_Data.image_length_y, Preliminary_Data.image_length_x);
         Preliminary_Data.right_template = rot90(Preliminary_Data.left_template);
         
         
         image_collection = zeros(preliminary_trials*loops, Preliminary_Data.number_of_images, ...
-            Preliminary_Data.image_length_x*Preliminary_Data.screen_resolution, Preliminary_Data.image_length_y*Preliminary_Data.screen_resolution);
+            Preliminary_Data.image_length_x, Preliminary_Data.image_length_y);
         
         max_contrast = 128.0;      % Starting background contrast level
         contrast = max_contrast;
@@ -411,7 +407,7 @@ elseif phase == 1
         Preliminary_Data.image_template_difference = zeros(preliminary_trials*loops,Preliminary_Data.number_of_images);
         
         image_collection = zeros(preliminary_trials*loops, Preliminary_Data.number_of_images, ...
-            Preliminary_Data.image_length_x*Preliminary_Data.screen_resolution, Preliminary_Data.image_length_y*Preliminary_Data.screen_resolution);
+            Preliminary_Data.image_length_x, Preliminary_Data.image_length_y);
         
         ratio_sum = Preliminary_Data.number_of_images;
         max_ratio = Preliminary_Data.number_of_images;      % Starting ratio of clicks, 20 for one ear and 4 for the other ear
@@ -461,11 +457,7 @@ elseif phase == 1
             Preliminary_Data.reversal_counter(i) = reversal_counter;
             Preliminary_Data.contrast(i) = contrast;
             
-            res = Preliminary_Data.screen_resolution;
-            Preliminary_Data.left_template = zeros(res * 5);
-            for i=1:5
-                Preliminary_Data.left_template((i-1)*res+1:i*res, (i-1)*res+1:i*res) = 1;
-            end
+            Preliminary_Data.left_template = eye(Preliminary_Data.image_length_y, Preliminary_Data.image_length_x);
             Preliminary_Data.right_template = rot90(Preliminary_Data.left_template);
             
             
@@ -496,7 +488,7 @@ elseif phase == 1
             % and an collection of the gabors which will be displayed to the screen, image_array
             image_array = makeImages(Preliminary_Data, order_of_orientations, contrast);
             
-            % Store all images shownimage_
+            % Store all images shown
             image_collection(i,:,:,:) = image_array;
             
             Preliminary_Data.order_of_orientations(i,:) = order_of_orientations;  % Record random ordering of all orientations

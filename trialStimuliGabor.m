@@ -72,14 +72,15 @@ try
         
         log_odds = log_odds + image_properties.log_regress(3,i);
         
+        large_image = imresize(image, Data.screen_resolution, 'nearest');
         
-        image_texture(i) = Screen('MakeTexture', wPtr, image);
+        image_texture(i) = Screen('MakeTexture', wPtr, large_image);
         
     end
     
     image_properties.log_odds = log_odds / Data.number_of_images;
     
-    stimulus_bbox = ptbCenteredRect([xc, ScreenSize(4)-size(image,1)], size(image));
+    stimulus_bbox = ptbCenteredRect([xc, ScreenSize(4)-size(large_image,1)], size(large_image));
     
     Screen('FillRect', wPtr, 127.0);        % Make the background gray
     [~, stimOnsetTime] = Screen('Flip', wPtr);
