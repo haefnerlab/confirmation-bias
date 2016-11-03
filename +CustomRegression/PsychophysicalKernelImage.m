@@ -42,7 +42,7 @@ pixels = height*width;
 % Reshape each image into a column vector so that each trial is a (pixels x
 % frames) matrix.
 flat_data = cellfun(@(trial) reshape(trial, [pixels, frames]), data, 'UniformOutput', false);
-init_weights = zeros(pixels + frames + 1, 1);
+init_weights = 0.01 * randn(pixels + frames + 1, 1);
 
 % Construct temporal priors.
 break_points = frames-1; % don't smooth onto bias term
