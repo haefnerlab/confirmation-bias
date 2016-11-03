@@ -1,5 +1,7 @@
 function [] = Gabor_Analysis(subjectID, groupings, preliminary, phase, directory)
 
+if ~exist('psignifit', 'file'), addpath('psignifit-master'); end
+
 %% Analyze All Data
 if preliminary == 1 || preliminary == 2
     %load the preliminary data
@@ -401,8 +403,8 @@ if preliminary == 0 || preliminary == 2
     
     % Spatial + Temporal regression
     
-    cell_images = mat2cell(test_collection_of_images, ones(trials, 1), h, w, number_of_images);
-    cell_images = cellfun(@squeeze, cell_images, 'UniformOutput', false);
+    cell_images = mat2cell(test_collection_of_images, ones(trials, 1), number_of_images, h, w);
+    cell_images = cellfun(@(im) permute(squeeze(im), [2 3 1]), cell_images, 'UniformOutput', false);
     [weights, ~, errors] = ...
         CustomRegression.PsychophysicalKernelImage(cell_images, test_choice, 0, 0, 10, 0, 0, 0);
 
