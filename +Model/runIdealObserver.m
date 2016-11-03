@@ -7,8 +7,8 @@ function results = runIdealObserver(data, params)
 % params, but not all are used. The following are used:
 %
 %   params.var_e   - variance of gaussian p(e|D)
-%   params.p_x     - weight of modes, i.e. p(e|D) =
-%                    p_x*N(D,var_e)+(1-p_x)*N(-D,var_e)
+%   params.p_match - weight of modes, i.e. p(e|D) =
+%                    p_match*N(D,var_e)+(1-p_match)*N(-D,var_e)
 %   params.prior_D - prior probability of D=+1
 %
 % The return value 'results' is a struct with the following fields:
@@ -23,10 +23,10 @@ results.params = params;
 
 % pDp is a mixture of gaussians, the probability that D is +1, and likewise
 % pDm is for D=-1
-pDp = [+1 sqrt(params.var_e) params.p_x;
-       -1 sqrt(params.var_e) 1-params.p_x];
-pDm = [-1 sqrt(params.var_e) params.p_x;
-       +1 sqrt(params.var_e) 1-params.p_x];
+pDp = [+1 sqrt(params.var_e) params.p_match;
+       -1 sqrt(params.var_e) 1-params.p_match];
+pDm = [-1 sqrt(params.var_e) params.p_match;
+       +1 sqrt(params.var_e) 1-params.p_match];
 
 % Compute log likelihood of each data point
 log_odds = log(arrayfun(@(e) mogpdf(e, pDp), data)) ...

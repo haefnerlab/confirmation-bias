@@ -17,7 +17,7 @@ parfor i=1:numel(pp)
     [data, var_e, prefix] = Model.genDataWithPriorLikelihood(trials, frames, prior, likelihood);
     sampling_params_copy = sampling_params;
     sampling_params_copy.var_e = var_e;
-    sampling_params_copy.p_x = prior;
+    sampling_params_copy.p_match = prior;
     if ~ideal_observer
         results = Model.loadOrRunSamplingModel(data, prefix, sampling_params_copy);
     else
