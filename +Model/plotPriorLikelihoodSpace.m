@@ -7,7 +7,7 @@ function [correct] = plotPriorLikelihoodSpace(trials, frames, I_prior, I_likelih
 savedir = fullfile('+Model', 'figures');
 if ~exist(savedir, 'dir'), mkdir(savedir); end
 
-if nargin < 7, ideal_observer = false; end
+if nargin < 6, ideal_observer = false; end
 
 % Check for bounds on alpha and beta imposed by var_x
 [alpha_min, beta_max] = getInformationBounds(params.var_x);
@@ -18,8 +18,7 @@ if nargin < 7, ideal_observer = false; end
 
 correct = nan(size(I_P));
 
-parfor i=1:numel(I_P)
-    if I_P(i) > beta_max || I_P(i) < alpha_min, continue; end
+for i=1:numel(I_P)
     params_copy = params;
     % Set variances for given 'information' contents.
     params_copy.var_e = 1 / I_L(i);
@@ -53,6 +52,14 @@ if ~ideal_observer
 else
     figname = sprintf('PLSpace_%dx%d_ideal.fig', trials, frames);
 end
+hold on;
+if min(I_prior) < alpha_min
+    disp(alpha_min);
+    line([1 length(I_likelihood)], alpha_min, 'Color', [1 0 0], 'LineWidth', 2);
+end
+if max(I_prior) > beta_max
+    line([1 length(I_likelihood)], beta_max, 'Color', [1 0 0], 'LineWidth', 2);
+end
 saveas(gcf, fullfile(savedir, figname));
 end
 
@@ -65,5 +72,6 @@ beta_max = 1 / var_x; % minimal variance of var_x when p is 1.
 end
 
 function p_match = solveForPriorParams(info_prior, var_x)
-p_match = (1 + sqrt(1 + 2*(var_x + 1/info_prior))) / 2;
+p_match = real((1 + sqrt(1 + 2*(var_x - 1./info_prior))) / 2);
+p_match = min(max(p_match, 0.5), 1);
 end
