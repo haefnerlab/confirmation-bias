@@ -81,7 +81,7 @@ for i=1:trials
             end
             % update log_post_D with log of p(e|D), subtracting out the
             % previous log[p(D|e)]
-            log_post_D = (1 - gamma) * log_post_D + ...
+            log_post_D = (1 - gamma / samples) * log_post_D + ...
                 log(like_e_D / sum(like_e_D)) / samples;
             % record the posterior log odds in results.walk
             results.walk(i, w_idx) = log_post_D(1) - log_post_D(2);
