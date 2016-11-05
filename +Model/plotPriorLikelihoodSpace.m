@@ -12,6 +12,11 @@ if nargin < 6, ideal_observer = false; end
 % Check for bounds on alpha and beta imposed by var_x
 [alpha_min, beta_max] = getInformationBounds(params.var_x);
 
+% Adjust I_prior range to fit; assume logspace.
+alpha = max(min(I_prior), alpha_min);
+beta = min(max(I_prior), beta_max);
+I_prior = logspace(log(alpha)/log(10), log(beta)/log(10), length(I_prior));
+
 % Get meshgrid of alpha:beta for both the prior (y) and likelihood (x)
 % axes.
 [I_L, I_P] = meshgrid(I_likelihood, I_prior);
@@ -52,14 +57,7 @@ if ~ideal_observer
 else
     figname = sprintf('PLSpace_%dx%d_vx%.2f_ideal.fig', trials, frames, params.var_x);
 end
-hold on;
-if min(I_prior) < alpha_min
-    disp(alpha_min);
-    line([1 length(I_likelihood)], alpha_min, 'Color', [1 0 0], 'LineWidth', 2);
-end
-if max(I_prior) > beta_max
-    line([1 length(I_likelihood)], beta_max, 'Color', [1 0 0], 'LineWidth', 2);
-end
+
 saveas(gcf, fullfile(savedir, figname));
 end
 
