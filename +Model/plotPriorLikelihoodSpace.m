@@ -50,7 +50,7 @@ if ~ideal_observer
         trials, frames, params.var_x, params.prior_D, ...
         params.gamma, params.samples);
 else
-    figname = sprintf('PLSpace_%dx%d_ideal.fig', trials, frames);
+    figname = sprintf('PLSpace_%dx%d_vx%.2f_ideal.fig', trials, frames, params.var_x);
 end
 hold on;
 if min(I_prior) < alpha_min
