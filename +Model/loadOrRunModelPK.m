@@ -1,7 +1,7 @@
 function [weights, errors, pk_id] = loadOrRunModelPK(stringID, data, ...
     results, pk_hprs, recompute)
 
-if nargin < 4, recompute = false; end
+if nargin < 5, recompute = false; end
 
 hpr_ridge = pk_hprs(1);
 hpr_ar1 = pk_hprs(2);
