@@ -648,7 +648,6 @@ if opts.preliminary == 0 || opts.preliminary == 2
     subplot(2,4,[3, 4]); hold on;    % Plot left and right weights for the high contrast/volume case
     X = order_of_flashes(:,:);
     X=X/std(X(:));
-    X=[X ones(size(X,1),1)];  % Add a bias term
     Y = Test_Data.choice(:); % 1 x trials
     %size(X)
     %size(Y)
@@ -803,7 +802,6 @@ if opts.preliminary == 0 || opts.preliminary == 2
         difference_in_stimuli = squeeze(Test_Data.order_of_flashes(:,1,:)) - squeeze(Test_Data.order_of_flashes(:,2,:));
         X = difference_in_stimuli;
         X = X/std(X(:));
-        X = [X ones(size(X,1),1)];  % Add a bias term
         Y = Test_Data.choice; % 1 x trials
         %wmle=glmfit(X(:,1:end-1), Y', 'binomial');
         %[wAR1,~,SDebars,~] = autoRegress_logisticAR1_2D(X, Y', [2 Test_Data.number_of_images/2], 0.01, 10.^(0:6)', [.1 .5 .75 .9 .95 .99]');
