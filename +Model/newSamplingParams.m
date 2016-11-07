@@ -10,20 +10,24 @@ function params = newSamplingParams(varargin)
 % Param keys are
 %   var_e   - variance of gaussian p(e|x)
 %   var_x   - variance of gaussian(s) p(x|D)
-%   p_x     - weight of x modes, i.e. p(x|D) =
-%             p_x*N(D,var_x)+(1-p_x)*N(-D,var_x)
+%   p_match - weight of x modes, i.e. p(x|D) =
+%             p_match*N(D,var_x)+(1-p_match)*N(-D,var_x)
 %   prior_D - prior probability of D=+1
 %   gamma   - value in [0,1]; how much the prior is 'subtracted
 %             out'. 0 = low variance, 1 = unbiased.
-%   samples - num samples per piece of evidence
+%   samples - num "effective" samples of x per frame of evidence. Also the
+%             number of updates to p(D) per frame.
+%   batch   - effective "dimensionality" of x; how many independent 
+%             measurements we get of x "per sample" 
 
 params = struct(...
     'var_e', 0.1, ...
     'var_x', 0.5, ...
-    'p_x', 1, ...
+    'p_match', 1, ...
     'prior_D', 0.5, ...
     'gamma', 0, ...
-    'samples', 1);
+    'samples', 1, ...
+    'batch', 1);
 
 % Parse any extra (..., 'key', value, ...) pairs passed in through
 % varargin.

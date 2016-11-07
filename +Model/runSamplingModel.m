@@ -3,25 +3,18 @@ function results = runSamplingModel(data, params)
 %
 % results = RUNSAMPLINGMODEL(data, params) gets model 'decisions' for data
 % 'data' ([trials x frames] observed values of e). 'params' controls the
-% behavior of the model:
-%
-%   params.var_e   - variance of gaussian p(e|x)
-%   params.var_x   - variance of gaussian(s) p(x|D)
-%   params.p_x     - weight of x modes, i.e. p(x|D) =
-%                    p_x*N(D,var_x)+(1-p_x)*N(-D,var_x)
-%   params.prior_D - prior probability of D=+1
-%   params.gamma   - value in [0,1]; how much the prior is 'subtracted
-%                    out'. 0 = low variance, 1 = unbiased.
-%   params.samples - num samples per piece of evidence
+% behavior of the model. See Model.newSamplingParams for a descriptions of
+% parameter options.
 %
 % The return value 'results' is a struct with the following fields:
 %
 %   results.params  - a copy of the 'params' argument
 %   results.choices - [trials x 1] array of {-1, +1} values
-%   results.x       - [trials x (frames*samples+1)] sampled values of x
-%                     (including extra 'initial' sample)
-%   results.walk    - [trials x frames+1] posterior log odds of D=+1/D=-1
-%                     (where walk(1) is the prior, hence size frames+1)
+%   results.x       - [trials x (frames*samples*batch+1)] sampled values of
+%                     x (including extra 'initial' sample)
+%   results.walk    - [trials x samples*frames+1] posterior log odds of
+%                     D=+1/D=-1 (where walk(1) is the prior, hence size 
+%                     frames+1)
 
 if nargin < 2, params = Model.newSamplingParams(); end
 
@@ -29,28 +22,29 @@ if nargin < 2, params = Model.newSamplingParams(); end
 
 [trials, frames] = size(data);
 
-var_e = params.var_e;
-var_x = params.var_x;
-p_x = params.p_x;
+sig_e = sqrt(params.var_e);
+sig_x = sqrt(params.var_x);
+p_match = params.p_match;
 prior_D = params.prior_D;
 gamma = params.gamma;
 samples = params.samples;
+batch = params.batch;
 
 results = struct(...
     'params', params, ...
     'choices', zeros(trials, 1), ...
-    'x', zeros(trials, frames*samples+1), ...
-    'walk', zeros(trials, frames+1));
+    'x', zeros(trials, frames*samples*batch+1), ...
+    'walk', zeros(trials, frames*samples+1));
 
 % Anonymous function to create (scaled) mixture-of-gaussians p(x|D)
-p_x_D = @(D, pD) [+D sqrt(var_x) p_x*pD; -D sqrt(var_x) (1-p_x)*pD];
+p_x_D = @(D, pD) [+D sig_x p_match*pD; -D sig_x (1-p_match)*pD];
 p_x_Dp = p_x_D(+1, 1); % 'p' for plus
 p_x_Dm = p_x_D(-1, 1); % 'm' for minus
 
 %% Run sampler in parallel
     function x = sample_x(e, pDp)
         mog_prior = [p_x_D(+1, pDp); p_x_D(-1, 1-pDp)];
-        likelihood = [e, sqrt(var_e), 1];
+        likelihood = [e, sig_e, 1];
         x = mogsample(mogprod(mog_prior, likelihood));
     end
 
@@ -65,28 +59,35 @@ for i=1:trials
     D = sign(prior_D - rand); % this gives +1 with probability prior_D
     results.x(i, 1) = mogsample(p_x_D(D, 1));
 
-    % loop over evidence frames
+    % Loop over evidence frames. Each frame, we apply 'samples' updates to
+    % p(D), once for each 'batch' of samples from x.
     s_idx = 2;
+    w_idx = 2;
     for j=1:frames
         e = data(i, j);
-        like_e_D = [0 0]; % sum of [p(e|D=+1) p(e|D=-1)] estimates
-        % post_D contains [p(D=+1|e_1,...,e_j-1), p(D=-1|e_1,...,e_j-1)]
-        post_D = exp(log_post_D); post_D = post_D / sum(post_D);
         for s=1:samples
-            % sample x using best posterior estimate of D
-            results.x(i, s_idx) = sample_x(e, post_D(1));
-            % accumulate estimate of p(e|D) using this sample of x
-            like_e_D_cur = [mogpdf(results.x(i, s_idx), p_x_Dp), ...
-                            mogpdf(results.x(i, s_idx), p_x_Dm)];
-            like_e_D = like_e_D + like_e_D_cur / sum(like_e_D_cur);
-            % increment sample index
-            s_idx = s_idx + 1;
+            like_e_D = [0 0]; % sum of [p(e|D=+1) p(e|D=-1)] estimates
+            % post_D contains [p(D=+1|e_1,...,e_j-1), p(D=-1|e_1,...,e_j-1)]
+            post_D = exp(log_post_D - max(log_post_D)); post_D = post_D / sum(post_D);
+            for b=1:batch
+                % sample x using best posterior estimate of D
+                results.x(i, s_idx) = sample_x(e, post_D(1));
+                % accumulate estimate of p(e|D) using this sample of x
+                like_e_D_cur = [mogpdf(results.x(i, s_idx), p_x_Dp), ...
+                                mogpdf(results.x(i, s_idx), p_x_Dm)];
+                like_e_D = like_e_D + like_e_D_cur / sum(like_e_D_cur);
+                % increment sample index
+                s_idx = s_idx + 1;
+            end
+            % update log_post_D with log of p(e|D), subtracting out the
+            % previous log[p(D|e)]
+            log_post_D = (1 - gamma / samples) * log_post_D + ...
+                log(like_e_D / sum(like_e_D)) / samples;
+            % record the posterior log odds in results.walk
+            results.walk(i, w_idx) = log_post_D(1) - log_post_D(2);
+            % increment walk index
+            w_idx = w_idx + 1;
         end
-        % update log_post_D with log of p(e|D), subtracting out the
-        % previous log[p(D|e)]
-        log_post_D = (1 - gamma) * log_post_D + log(like_e_D / sum(like_e_D));
-        % record the posterior log odds in results.walk
-        results.walk(i, j+1) = log_post_D(1) - log_post_D(2);
     end
     
     results.choices(i) = sign(results.walk(i, end));
@@ -105,7 +106,7 @@ function x = mogsample(mog)
 % first choose a mode
 mode = find(rand <= cumsum(mog(:,3)), 1);
 % sample from chosen mode
-x = normrnd(mog(mode, 1), mog(mode, 2));
+x = mog(mode, 1) + randn * mog(mode, 2);
 end
 
 function prod = mogprod(d1, d2)
@@ -131,6 +132,10 @@ end
 
 function l = mogpdf(x, mog)
 modes = size(mog, 1);
-l_each_mode = normpdf(x * ones(modes, 1), mog(:,1), mog(:,2));
+if all(mog(:,2) == 0)
+    l_each_mode = 1e4 * mog(:,3) .* (x == mog(:, 1));
+else
+    l_each_mode = normpdf(x * ones(modes, 1), mog(:,1), mog(:,2));
+end
 l = dot(l_each_mode, mog(:,3));
 end

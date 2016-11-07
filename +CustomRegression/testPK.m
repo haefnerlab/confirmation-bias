@@ -6,7 +6,7 @@ if ~exist(results_dir, 'dir'), mkdir(results_dir); end
 left = 0.1 * round(rand(trials, 120));
 right = 0.1 * round(rand(trials, 120));
 
-regressors = [left right ones(trials, 1)];
+regressors = [left right];
 
     function compare(true_left, true_right, responses, name)
         [regression_weights, ~, errors, map_ridge, map_ar1, map_curvature] = CustomRegression.PsychophysicalKernel(regressors, responses, ridge, ar1, curvature, true);

@@ -32,6 +32,9 @@ if nargin < 5, hpr_curvature = 0; end
 if nargin < 4, hpr_ar1 = 0; end
 if nargin < 3, hpr_ridge = 0; end
 
+% Add a column of ones to data for a bias term.
+data = [data ones(size(data,1),1)];
+
 % convert boolean to float type
 responses = 1.0 * responses;
 
