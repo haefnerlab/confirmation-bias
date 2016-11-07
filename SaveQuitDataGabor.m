@@ -1,5 +1,5 @@
 %function [] = SaveQuitDataGabor(subjectID, phase, loops_consider, preliminary_trials,extra, directory)
-function [] = SaveQuitDataGabor(subjectID, phase, consider_trials, directory)
+function [] = SaveQuitDataGabor(subjectID, phase, directory)
 %% Very important to remember that you should save till BEFORE current trial and not upto current trial!!That is consider_trials<current_trial
 
 if phase == 0       % load the volume data
@@ -23,7 +23,7 @@ elseif phase == 1       % load the ratio data
 end
 
 %point = loops_consider*preliminary_trials+extra;
-point=consider_trials;
+point=Preliminary_Data.current_trial-5;
 Preliminary_Data.move_on (point+1:end) = [];          % Is the subject ready to move on or not? Always 0 or 1 for how many trials they got right so far
 Preliminary_Data.step_size (point+1:end) = [];        % By how much to adjust the contrast [1.5, 1.2, or 1.1]
 Preliminary_Data.reversal_counter (point+1:end) = [];   % How many trials has the subject got wrong? When to change the step size?
