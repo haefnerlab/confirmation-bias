@@ -402,35 +402,40 @@ if preliminary == 0 || preliminary == 2
     %========================================
     
     % Spatial + Temporal regression
-    
+    %{
+    %% Without bootstrap
     cell_images = mat2cell(test_collection_of_images, ones(trials, 1), number_of_images, h, w);
     cell_images = cellfun(@(im) permute(squeeze(im), [2 3 1]), cell_images, 'UniformOutput', false);
     [weights, ~, errors] = ...
         CustomRegression.PsychophysicalKernelImage(cell_images, test_choice, 0, 0, 10, 0, 0, 0);
-
-
-
-
-    %X = test_image_template_difference;  % trials x frames
-    %Y = test_choice; % 1 x trials
-    %[wAR1,~,SDebars,~] = autoRegress_logisticAR1_2D(X, Y', [2 number_of_images/2], 0.01, 10.^(0:6)', [.1 .5 .75 .9 .95 .99]');
-    % Last term of wAR1 and SDebars are bias terms
-
-    %Get_Figure('Gabor Logistic');
-    %subplot(1,1,1); hold on;
+    
     subplot(2,4,[3,4,7,8]);hold on;
     errorbar(1:number_of_images, weights(h*w+1:end-1), errors(h*w+1:end-1));  % Blue plot
     plot([mean(reshape(1:number_of_images, [sublength groupings]))], [sum(reshape(weights(h*w+1:end-1), [sublength groupings]))],'r*-');    % Red plot
 
-    %x=squeeze(mean(reshape(permute(X, [2 1]), [sublength groupings length(choice)])))';
-    %[wAR1,~,SDebars,~] = autoRegress_logisticAR1_2D(x, Y', [2 groupings/2], 0.01, 10.^(0:6)', [.1 .5 .75 .9 .95 .99]');
-    %errorbar([0.5:(groupings-0.5)]*sublength, wAR1(1:end), SDebars(1:end),'g-');  % Green plot
-    %axis tight;
-    %xlabel('Image Frame'), ylabel('Weight')
+    
     title('Weighting the Image Frames')
-    %legend('Actual Weight in each frame','Actual weights summed in groups','Weights obtained after averaging groups of images','Location','southoutside')
     legend('Actual Weight in each frame','Actual weights summed in groups','Location','southoutside')
 
+
+    %}
+    
+    %% With Bootstrap
+    [M, L, U] = BootstrapWeightsGabor(results.Test_Data, results.image_collection_test,0,5);
+    weights=M;
+    
+    subplot(2,4,[3,4,7,8]);hold on;
+    plot(1:number_of_images, weights(h*w+1:end-1),'k','LineWidth', 2);  % Blue plot
+    plot(1:number_of_images, L(h*w+1:end-1),'k');  % Lower bund of Blue plot
+    plot(1:number_of_images, U(h*w+1:end-1),'k');  % Upper bound of Blue plot
+    fill([L(h*w+1:end-1) fliplr(L(h*w+1:end-1))], [U(h*w+1:end-1) fliplr(U(h*w+1:end-1))], 'b')
+    plot([mean(reshape(1:number_of_images, [sublength groupings]))], [sum(reshape(weights(h*w+1:end-1), [sublength groupings]))],'r*-');    % Red plot
+
+    
+    title('Weighting the Image Frames')
+    legend('Actual Weight in each frame','Actual weights summed in groups','Location','southoutside')
+
+    
 
     
     Get_Figure('Image Kernel');

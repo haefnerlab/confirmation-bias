@@ -1,4 +1,4 @@
-function [] = IdealAnalysis(subjectID,directory)
+function [] = IdealAnalysisAuditory(subjectID,directory)
 
 
 
@@ -18,10 +18,10 @@ X = order_of_clicks(:,:);
 X=X/std(X(:));
 X=[X ones(size(X,1),1)];  % Add a bias term
 Y = Preliminary_Data.choice(:);
-[weights,~ , errors,a,b,c] = CustomRegression.PsychophysicalKernel(X, Y,[1], [0],[100000],true);
-f= errorbar(weights(1:Preliminary_Data.number_of_frames), errors(1:Preliminary_Data.number_of_frames),'.-b');
+[weights,~ , errors,~,~,~] = CustomRegression.PsychophysicalKernel(X, Y,[1], [0],[100000],true);
+errorbar(weights(1:Preliminary_Data.number_of_frames), errors(1:Preliminary_Data.number_of_frames),'.-b');
 hold on;
-e = errorbar(weights(Preliminary_Data.number_of_frames+1:end-1), errors(Preliminary_Data.number_of_frames+1:end-1), '.-r');
+errorbar(weights(Preliminary_Data.number_of_frames+1:end-1), errors(Preliminary_Data.number_of_frames+1:end-1), '.-r');
 axis tight;
 
 end
