@@ -52,6 +52,8 @@ end
 % Plot percent correct
 figure();
 imagesc(correct, [0.5 1.0]); axis image; colorbar;
+% Add contour lines
+hold on; contour(correct, [0.7 0.7], '-w', 'LineWidth', 2);
 prior_tick_indices = round(linspace(1, length(I_prior), min(length(I_prior), 5)));
 like_tick_indices = round(linspace(1, length(I_likelihood), min(length(I_likelihood), 5)));
 set(gca, 'YTick', prior_tick_indices);
