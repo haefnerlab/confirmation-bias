@@ -41,7 +41,7 @@ parfor i=1:numel(I_P)
     end
     % Fit PK if requested
     if pk
-        [weights, ~] = Model.loadOrRunModelPK(Model.getModelStringID(prefix, params_copy), data, results, [0 0 10]);
+        [weights, ~] = Model.loadOrRunModelPK(Model.getModelStringID(prefix, params_copy), data, results, [1 0 10]);
         expfit = CustomRegression.expFit(weights);
         pk_ab(i) = expfit(1) / expfit(2);
         pk_tau(i) = 1 / expfit(3);
