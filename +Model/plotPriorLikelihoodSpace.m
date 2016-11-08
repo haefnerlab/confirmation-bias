@@ -63,7 +63,7 @@ end
 figure();
 imagesc(correct, [0.5 1.0]); axis image; colorbar;
 % Add contour lines
-hold on; contour(correct, [0.7 0.7], '-w', 'LineWidth', 2);
+hold on; contour(filter2(smoothkernel(5), correct), [0.7 0.7], '-w', 'LineWidth', 2);
 prior_tick_indices = round(linspace(1, length(I_prior), min(length(I_prior), 5)));
 like_tick_indices = round(linspace(1, length(I_likelihood), min(length(I_likelihood), 5)));
 set(gca, 'YTick', prior_tick_indices);
@@ -131,4 +131,11 @@ end
 function p_match = solveForPriorParams(info_prior, var_x)
 p_match = real((1 + sqrt(1 + 2*(var_x - 1./info_prior))) / 2);
 p_match = min(max(p_match, 0.5), 1);
+end
+
+function kernel = smoothkernel(n)
+x = linspace(-2,2,n);
+[xx,yy] = meshgrid(x,x);
+kernel = exp(-(xx.^2 + yy.^2));
+kernel = kernel / sum(kernel(:));
 end

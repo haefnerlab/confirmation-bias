@@ -132,6 +132,10 @@ end
 
 function l = mogpdf(x, mog)
 modes = size(mog, 1);
-l_each_mode = normpdf(x * ones(modes, 1), mog(:,1), mog(:,2));
+if all(mog(:,2) == 0)
+    l_each_mode = 1e4 * mog(:,3) .* (x == mog(:, 1));
+else
+    l_each_mode = normpdf(x * ones(modes, 1), mog(:,1), mog(:,2));
+end
 l = dot(l_each_mode, mog(:,3));
 end
