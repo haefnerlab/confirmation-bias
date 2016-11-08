@@ -46,7 +46,7 @@ if phase==0 || phase==2
     Preliminary_Data.ratio = [Data1.Preliminary_Data.ratio, Data2.Preliminary_Data.ratio];
     
     Preliminary_Data.image_template1 = [Data1.Preliminary_Data.image_template1; Data2.Preliminary_Data.image_template1];  % squeeze?
-    Preliminary_Data.image_template2 = [Data1.Preliminary_Data.template2; Data2.Preliminary_Data.template2];  % squeeze?
+    Preliminary_Data.image_template2 = [Data1.Preliminary_Data.image_template2; Data2.Preliminary_Data.image_template2];  % squeeze?
     Preliminary_Data.image_template_difference = [Data1.Preliminary_Data.image_template_difference; Data2.Preliminary_Data.image_template_difference];  % squeeze?
     % Note this is a row-wise concatenation instead of column-wise
     

@@ -8,7 +8,7 @@ cd(fullfile(directory, 'Code')) % Set the current directory
 fileName = fullfile(directory, 'RawData', [subjectID '-AuditoryDataVolume.mat']); % Set the desired filename of the experimental data
 if ~exist(fileName, 'file') % Check to see if the subject has already done the preliminary phase or not
     
-    preliminary_trials = 10000;
+    preliminary_trials = 1600;
     loops = 1;
     
     Preliminary_Data.move_on = zeros(1,preliminary_trials*loops);          % Is the subject ready to move on or not? Always 0 or 1 for how many trials they got right so far

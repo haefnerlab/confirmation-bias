@@ -41,7 +41,7 @@ Preliminary_Data.average_orientations(:,point+1) = [];
 
 Preliminary_Data.current_trial = 0;
 
-
+%Preliminary_Data.eye_tracker_info=
 Preliminary_Data.screen_frame = 12;	% how long each image will show on screen in frame rates
 Preliminary_Data.screen_resolution = 25;          % how many pixels correspond to a single datapoint of a gabor
 Preliminary_Data.image_length_x = 5;  % Size of the image along x-axis

@@ -51,7 +51,7 @@ Test_Data.average_orientations = Data.average_orientations(:, test_trials);
 Test_Data.image_template1 = Data.image_template1(test_trials, :);
 Test_Data.image_template2 = Data.image_template2(test_trials, :);
 Test_Data.image_template_difference = Data.image_template_difference(test_trials, :);
-Test_Data.eye_tracker_points = Data.eye_tracker_points(test_trials);
+%Test_Data.eye_tracker_points = Data.eye_tracker_points(test_trials);
 
 Test_Data.current_trial = elements;
 Test_Data.screen_frame = Data.screen_frame;
