@@ -1,6 +1,7 @@
-function [] = Gabor_Analysis(subjectID, groupings, preliminary, phase, directory)
+function [] = Gabor_Analysis(subjectID, groupings, preliminary, phase, directory, ideal_template)
 
 if ~exist('psignifit', 'file'), addpath('psignifit-master'); end
+if nargin < 6, ideal_template = false; end
 
 %% Analyze All Data
 if preliminary == 1 || preliminary == 2
@@ -421,7 +422,9 @@ if preliminary == 0 || preliminary == 2
     %}
     
     %% With Bootstrap
-    [M, L, U] = BootstrapWeightsGabor(results.Test_Data, results.image_collection_test,0,25);
+
+    [M, L, U] = BootstrapWeightsGabor(results.Test_Data, results.image_collection_test,0,5,ideal_template);
+
     weights=M;
     
     subplot(2,4,[3,4,7,8]);hold on;

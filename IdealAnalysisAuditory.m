@@ -16,7 +16,6 @@ order_of_clicks = [squeeze(Preliminary_Data.order_of_clicks(:,1,:)) squeeze(Prel
 order_of_clicks = reshape(order_of_clicks, Preliminary_Data.current_trial, []);
 X = order_of_clicks(:,:);
 X=X/std(X(:));
-X=[X ones(size(X,1),1)];  % Add a bias term
 Y = Preliminary_Data.choice(:);
 [weights,~ , errors,~,~,~] = CustomRegression.PsychophysicalKernel(X, Y,[1], [0],[100000],true);
 errorbar(weights(1:Preliminary_Data.number_of_frames), errors(1:Preliminary_Data.number_of_frames),'.-b');

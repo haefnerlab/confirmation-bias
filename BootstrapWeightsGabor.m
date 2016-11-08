@@ -1,4 +1,4 @@
-function [M, L, U] = BootstrapWeightsGabor(Test_Data, image_collection,automatic,bootstrapsteps)
+function [M, L, U] = BootstrapWeightsGabor(Test_Data, image_collection, automatic, bootstrapsteps, ideal_template)
 
 
 weight_matrix=zeros(bootstrapsteps,Test_Data.image_length_y*Test_Data.image_length_x+Test_Data.number_of_images+1);
@@ -6,7 +6,6 @@ weight_matrix=zeros(bootstrapsteps,Test_Data.image_length_y*Test_Data.image_leng
 for i=1:bootstrapsteps
     disp(i)
     data={};
-    data_image_collection=[];
     
     index=randi([1 Test_Data.current_trial],1,Test_Data.current_trial);
     data.move_on = Test_Data.move_on(index);
@@ -50,10 +49,16 @@ for i=1:bootstrapsteps
     
     % Spatial + Temporal regression
     
-    cell_images = mat2cell(data_image_collection, ones(trials, 1), number_of_images, h, w);
-    cell_images = cellfun(@(im) permute(squeeze(im), [2 3 1]), cell_images, 'UniformOutput', false);
-    [weights, ~, ~] = CustomRegression.PsychophysicalKernelImage(cell_images, data.choice, 0, 0, 10, 0, 0, 0);
-    
+    if ideal_template
+        template_diff = Test_Data.left_template(:) - Test_Data.right_template(:);
+        img_rows = reshape(data_image_collection, [trials*number_of_images, h*w]);
+        img_data = reshape(img_rows * template_diff, [trials, number_of_images]);
+        weights = vertcat(template_diff, CustomRegression.PsychophysicalKernel(img_data, data.choice == +1, 1, 0, 10));
+    else    
+        cell_images = mat2cell(data_image_collection, ones(trials, 1), number_of_images, h, w);
+        cell_images = cellfun(@(im) permute(squeeze(im), [2 3 1]), cell_images, 'UniformOutput', false);
+        weights = CustomRegression.PsychophysicalKernelImage(cell_images, data.choice == +1, 1, 0, 10, 1, 0, 0);
+    end
     weight_matrix(i,:)=weights;
     
 end

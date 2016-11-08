@@ -448,6 +448,8 @@ elseif phase == 1
                 step_size = 1.0;
                 previous_trial = 1;
                 reversal_counter = 0;
+            else
+                flag=0;
             end
             
             Preliminary_Data.current_trial = i;
