@@ -421,14 +421,14 @@ if preliminary == 0 || preliminary == 2
     %}
     
     %% With Bootstrap
-    [M, L, U] = BootstrapWeightsGabor(results.Test_Data, results.image_collection_test,0,5);
+    [M, L, U] = BootstrapWeightsGabor(results.Test_Data, results.image_collection_test,0,25);
     weights=M;
     
     subplot(2,4,[3,4,7,8]);hold on;
     plot(1:number_of_images, weights(h*w+1:end-1),'k','LineWidth', 2);  % Blue plot
     plot(1:number_of_images, L(h*w+1:end-1),'k');  % Lower bund of Blue plot
     plot(1:number_of_images, U(h*w+1:end-1),'k');  % Upper bound of Blue plot
-    fill([L(h*w+1:end-1) fliplr(L(h*w+1:end-1))], [U(h*w+1:end-1) fliplr(U(h*w+1:end-1))], 'b')
+    %boundedline(1:number_of_images,(weights(h*w+1:end-1))',U(h*w+1:end-1)-weights(h*w+1:end-1),weights(h*w+1:end-1)-L(h*w+1:end-1));
     plot([mean(reshape(1:number_of_images, [sublength groupings]))], [sum(reshape(weights(h*w+1:end-1), [sublength groupings]))],'r*-');    % Red plot
 
     

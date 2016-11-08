@@ -26,7 +26,7 @@ for i=1:bootstrapsteps
     data.image_template2 = Test_Data.image_template2(index, :);
     data.image_template_difference = Test_Data.image_template_difference(index, :);
     if automatic==0
-    data.eye_tracker_points = Test_Data.eye_tracker_points(index);
+%    data.eye_tracker_points = Test_Data.eye_tracker_points(index);
     end
     data.current_trial = Test_Data.current_trial;
     data.screen_frame = Test_Data.screen_frame;

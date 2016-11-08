@@ -26,16 +26,6 @@ cell_images = cellfun(@(im) permute(squeeze(im), [2 3 1]), cell_images, 'Uniform
 
 Get_Figure('Temporal Kernel');hold on;
 errorbar(1:number_of_images, weights(h*w+1:end-1), errors(h*w+1:end-1));  % Blue plot
-plot([mean(reshape(1:number_of_images, [sublength groupings]))], [sum(reshape(weights(h*w+1:end-1), [sublength groupings]))],'r*-');    % Red plot
-
-
-title('Weighting the Image Frames')
-legend('Actual Weight in each frame','Actual weights summed in groups','Location','southoutside')
-
-
-
-
-
 plot([mean(reshape(1:number_of_images, [sublength groupings]))], [sum(reshape(weights(h*w+1:end-1), [sublength groupings]))]/sublength,'r*-');    % Red plot
 
 
