@@ -1,4 +1,4 @@
-function [correct] = plotPriorLikelihoodSpace(trials, frames, I_prior, I_likelihood, params, ideal_observer, pk)
+function [correct, pk_ab, pk_tau] = plotPriorLikelihoodSpace(trials, frames, I_prior, I_likelihood, params, ideal_observer, pk)
 %PLOTPRIORLIKELIHOODSPACE make a info_prior vs info_likelihood plot for the
 %given params.
 %
@@ -18,19 +18,29 @@ alpha = max(min(I_prior), alpha_min);
 beta = min(max(I_prior), beta_max);
 I_prior = logspace(log(alpha)/log(10), log(beta)/log(10), length(I_prior));
 
-% Get meshgrid of alpha:beta for both the prior (y) and likelihood (x)
-% axes.
-[I_L, I_P] = meshgrid(I_likelihood, I_prior);
+% Convert from 'information' to model parameters.
+all_var_e = 1 ./ I_likelihood;
+all_p_match = arrayfun(@(ip) solveForPriorParams(ip, params.var_x), I_prior);
 
-correct = nan(size(I_P));
-pk_ab = zeros(size(I_P));
-pk_tau = zeros(size(I_P));
+disp('Using values for p_match:');
+disp(all_p_match);
+disp('Using values for var_e:');
+disp(all_var_e);
 
-parfor i=1:numel(I_P)
+m = length(I_prior);
+n = length(I_likelihood);
+
+% Preallocate return values.
+correct = nan(m, n);
+pk_ab = nan(m, n);
+pk_tau = nan(m, n);
+
+parfor i=1:m*n
+    [idx_l, idx_p] = ind2sub([m n], i);
     params_copy = params;
     % Set variances for given 'information' contents.
-    params_copy.var_e = 1 / I_L(i);
-    params_copy.p_match = solveForPriorParams(I_P(i), params.var_x);
+    params_copy.var_e = all_var_e(idx_l);
+    params_copy.p_match = all_p_match(idx_p);
     
     % Generate data and run the model.
     [data, prefix] = Model.genDataWithParams(trials, frames, params_copy);
