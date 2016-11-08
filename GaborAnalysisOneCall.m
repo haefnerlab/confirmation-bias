@@ -1,5 +1,5 @@
 
-function []=GaborAnalysisOneCall(subjectIDs, phase, quit, preliminary, groupings, directory, ideal_template)
+function []=GaborAnalysisOneCall(subjectIDs, phase, quit, preliminary, threshold, groupings, directory, ideal_template)
 if ~exist('directory','var')
     phase = 0;           % 0 = contrast experiment, 1 = ratio experiment
     directory = pwd;     % Make it equal to the current directory
