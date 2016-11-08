@@ -424,11 +424,12 @@ if preliminary == 0 || preliminary == 2
     %% With Bootstrap
 
     [M, L, U] = BootstrapWeightsGabor(results.Test_Data, results.image_collection_test,0,5,ideal_template);
-
+    
+    time_idxs = w*h+1:length(M)-1;
     weights=M;
     
     subplot(2,4,[3,4,7,8]);hold on;
-    boundedline(1:number_of_images, M', [U-M; M-L]');
+    boundedline(1:number_of_images, M(time_idxs)', [U(time_idxs)-M(time_idxs); M(time_idxs)-L(time_idxs)]');
     plot([mean(reshape(1:number_of_images, [sublength groupings]))], [sum(reshape(weights(h*w+1:end-1), [sublength groupings]))],'r*-');    % Red plot
 
     
