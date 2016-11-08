@@ -115,9 +115,9 @@ try
         end
         
         
-        show_left_patch = Screen('MakeTexture', wPtr, left_patch);
+        show_left_patch = Screen('MakeTexture', wPtr, imresize(left_patch, Data.screen_resolution, 'nearest'));
         Screen('DrawTexture', wPtr, show_left_patch, [], [xc-res*4-200 yc-res*4 xc+res*4-200 yc+res*4]);   % xc, yc indicates the coordinates of the middle of the screen
-        show_right_patch = Screen('MakeTexture', wPtr, right_patch);
+        show_right_patch = Screen('MakeTexture', wPtr, imresize(right_patch, Data.screen_resolution, 'nearest'));
         Screen('DrawTexture', wPtr, show_right_patch, [], [xc-res*4+200 yc-res*4 xc+res*4+200 yc+res*4]);
         Screen('DrawText', wPtr, sprintf('Current Trial - #%d', Data.current_trial), xc-600, yc+250, 0);   % Unobtrusive output to screen of the current trial number
         onset = Screen('Flip', wPtr);
