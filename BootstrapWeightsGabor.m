@@ -57,7 +57,9 @@ for i=1:bootstrapsteps
     else    
         cell_images = mat2cell(data_image_collection, ones(trials, 1), number_of_images, h, w);
         cell_images = cellfun(@(im) permute(squeeze(im), [2 3 1]), cell_images, 'UniformOutput', false);
-        weights = CustomRegression.PsychophysicalKernelImage(cell_images, data.choice == +1, 1, 0, 10, 1, 0, 0);
+        template_difference = Test_Data.left_template - Test_Data.right_template;
+        weights = CustomRegression.PsychophysicalKernelImage(cell_images, data.choice == +1, ...
+            10, 0, 10, 0, 0, 0, template_difference);
     end
     weight_matrix(i,:)=weights;
     
