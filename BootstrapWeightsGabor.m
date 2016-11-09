@@ -1,68 +1,39 @@
-function [M, L, U] = BootstrapWeightsGabor(Test_Data, image_collection, automatic, bootstrapsteps, ideal_template)
+function [M, L, U] = BootstrapWeightsGabor(Test_Data, image_collection, bootstrapsteps, ideal_template)
 
+[trials, frames, h, w] = size(image_collection);
+assert(Test_Data.current_trial == trials, 'Mismatch between Test_Data.current_trial and size(image_collection, 1)');
+num_weights = h*w + frames + 1;
+weight_matrix = zeros(bootstrapsteps, num_weights);
 
-weight_matrix=zeros(bootstrapsteps,Test_Data.image_length_y*Test_Data.image_length_x+Test_Data.number_of_images+1);
+template_difference = Test_Data.left_template(:) - Test_Data.right_template(:);
 
-for i=1:bootstrapsteps
-    disp(i)
-    data={};
-    
-    index=randi([1 Test_Data.current_trial],1,Test_Data.current_trial);
-    data.move_on = Test_Data.move_on(index);
-    data.step_size = Test_Data.step_size(index);
-    data.reversal_counter = Test_Data.reversal_counter(index);
-    data.contrast = Test_Data.contrast(index);
-    data.ratio = Test_Data.ratio(index);
-    data.correct_answer = Test_Data.correct_answer(index);
-    data.staircase_answer = Test_Data.staircase_answer(index);
-    data.reaction_time = Test_Data.reaction_time(index);
-    data.choice = Test_Data.choice(index);
-    data.accuracy = Test_Data.accuracy(index);
-    data.order_of_orientations = Test_Data.order_of_orientations(index, :);
-    data.log_odds = Test_Data.log_odds(index);
-    data.average_orientations = Test_Data.average_orientations(:, index);
-    data.image_template1 = Test_Data.image_template1(index, :);
-    data.image_template2 = Test_Data.image_template2(index, :);
-    data.image_template_difference = Test_Data.image_template_difference(index, :);
-    if automatic==0
-%    data.eye_tracker_points = Test_Data.eye_tracker_points(index);
-    end
-    data.current_trial = Test_Data.current_trial;
-    data.screen_frame = Test_Data.screen_frame;
-    data.screen_resolution = Test_Data.screen_resolution;
-    data.image_length_x = Test_Data.image_length_x;
-    data.image_length_y = Test_Data.image_length_y;
-    data.left_template = Test_Data.left_template;
-    data.right_template = Test_Data.right_template;
-    data.number_of_images = Test_Data.number_of_images;
-    data_image_collection = image_collection(index, :, :, :);
-    
-    
-    
-    
-    
-    [trials, number_of_images, h, w] = size(data_image_collection);
-    % number of trials, images shown per trial, and the height and width of the image in the experiment
-    
-    
-    %========================================
-    
+% Permute dimensions of images to shape [trials h w frames] once so it
+% doesn't have to be done each loop.
+if ~ideal_template
+    image_collection = permute(image_collection, [1 3 4 2]);
+end
+
+parfor i=1:bootstrapsteps
+    % Randomly resample trials with replacement
+    index=randi([1 trials], 1, trials);
+    boot_choices = Test_Data.choice(index) == +1;
+    boot_images = image_collection(index, :, :, :);
+   
     % Spatial + Temporal regression
-    
     if ideal_template
-        template_diff = Test_Data.left_template(:) - Test_Data.right_template(:);
-        img_rows = reshape(data_image_collection, [trials*number_of_images, h*w]);
-        img_data = reshape(img_rows * template_diff, [trials, number_of_images]);
-        weights = vertcat(template_diff, CustomRegression.PsychophysicalKernel(img_data, data.choice == +1, 1, 0, 10));
-    else    
-        cell_images = mat2cell(data_image_collection, ones(trials, 1), number_of_images, h, w);
-        cell_images = cellfun(@(im) permute(squeeze(im), [2 3 1]), cell_images, 'UniformOutput', false);
-        template_difference = Test_Data.left_template - Test_Data.right_template;
-        weights = CustomRegression.PsychophysicalKernelImage(cell_images, data.choice == +1, ...
+        % Convolve with the ideal template to get 1d signal over time for
+        % each trial.
+        img_rows = reshape(boot_images, [trials*frames, h*w]);
+        img_data = reshape(img_rows * template_difference, [trials, frames]);
+        weights = vertcat(template_difference, ...
+            CustomRegression.PsychophysicalKernel(img_data, boot_choices, 1, 0, 10));
+    else
+        cell_images = mat2cell(boot_images, ones(trials, 1), h, w, frames);
+        cell_images = cellfun(@squeeze, cell_images, 'UniformOutput', false);
+        weights = CustomRegression.PsychophysicalKernelImage(cell_images, boot_choices, ...
             10, 0, 10, 0, 0, 0, template_difference);
     end
-    weight_matrix(i,:)=weights;
-    
+    weight_matrix(i,:) = weights; 
 end
 
 [ M, L, U ] = meanci( weight_matrix );
