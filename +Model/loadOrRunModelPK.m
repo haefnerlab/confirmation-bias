@@ -1,4 +1,4 @@
-function [weights, errors, pk_id] = loadOrRunModelPK(stringID, data, ...
+function [weights, errors, expfit, pk_id] = loadOrRunModelPK(stringID, data, ...
     results, pk_hprs, recompute)
 
 if nargin < 5, recompute = false; end
@@ -19,10 +19,12 @@ if exist(savefile, 'file') && ~recompute
     contents = load(savefile);
     weights = contents.weights;
     errors = contents.errors;
+    expfit = contents.expfit;
 else
     disp(['Computing new results for ' savename]);
     [weights, ~, errors] = CustomRegression.PsychophysicalKernel(data, ...
         results.choices == +1, hpr_ridge, hpr_ar1, hpr_curvature);
-    save(savefile, 'weights', 'errors');
+    expfit = CustomRegression.expFit(weights(1:end-1));
+    save(savefile, 'weights', 'errors', 'expfit');
 end
 end
