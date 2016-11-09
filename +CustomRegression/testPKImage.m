@@ -60,7 +60,7 @@ temporal = linspace(1,0,frames)';
 template_left = sin(oo);
 template_right = template_left';
 
-compare(template_left, template_right, temporal, 0, 'sinusoid & flat');
+compare(template_left, template_right, temporal, 0, 'sinusoid & decreasing');
 
 
 

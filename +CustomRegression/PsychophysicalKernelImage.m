@@ -27,6 +27,10 @@ function [ weights, postVal, errors ] = PsychophysicalKernelImage(data, response
 % these hpr_sp_* hyperparameters control put a small-magnitude prior on the
 % spatial weights, and their first and second spatial derivatives (in both
 % x and y directions) respectively.
+%
+% PSYCHOPHYSICALKERNELIMAGE(..., init_template) initializes the spatial
+% template to the given image (which must have the same size as the images
+% in the data)
 [height, width, frames] = size(data{1});
 
 if nargin < 9, init_template = 0.01 * randn(height, width); end
