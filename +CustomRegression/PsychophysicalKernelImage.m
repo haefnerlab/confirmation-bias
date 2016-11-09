@@ -103,7 +103,7 @@ Dxy = CustomRegression.create_forward_difference_matrix([height width], [1 -1; -
 end
 
 function LP = log_prior(weights, Dt, Dtt, hpr_ridge, hpr_ar1, hpr_curvature)
-ridge = -0.5 * dot(weights, weights);
+ridge = -0.5 * (sqrt(dot(weights, weights)) - 1)^2;
 ar1 = 0;
 if hpr_ar1 > 0
     ar1 = -0.5 * dot(Dt*weights, Dt*weights);
