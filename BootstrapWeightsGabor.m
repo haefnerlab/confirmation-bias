@@ -36,6 +36,6 @@ parfor i=1:bootstrapsteps
     weight_matrix(i,:) = weights; 
 end
 
-[ M, L, U ] = meanci( weight_matrix );
+[ M, L, U ] = meanci(weight_matrix, .68);
 
 end
