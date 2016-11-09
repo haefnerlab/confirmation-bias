@@ -7,7 +7,6 @@ function results = runIdealObserver(data, params)
 % params, but not all are used. The following are used:
 %
 %   params.var_e   - variance of gaussian p(e|D)
-%   params.var_x   - variance of each mode of p(x|D)
 %   params.p_match - weight of modes, i.e. p(e|D) =
 %                    p_match*N(D,var_e)+(1-p_match)*N(-D,var_e)
 %   params.prior_D - prior probability of D=+1
@@ -23,7 +22,7 @@ results = struct();
 results.params = params;
 
 p_match = params.p_match;
-stdev = sqrt(params.var_e + params.var_x);
+stdev = sqrt(params.var_e);
 
 % pDp is a mixture of gaussians, the probability that D is +1, and likewise
 % pDm is for D=-1
@@ -43,6 +42,10 @@ end
 
 function l = mogpdf(x, mog)
 modes = size(mog, 1);
-l_each_mode = normpdf(x * ones(modes, 1), mog(:,1), mog(:,2));
+if all(mog(:,2) == 0)
+    l_each_mode = 1e4 * mog(:,3) .* (x == mog(:, 1));
+else
+    l_each_mode = normpdf(x * ones(modes, 1), mog(:,1), mog(:,2));
+end
 l = dot(l_each_mode, mog(:,3));
 end
