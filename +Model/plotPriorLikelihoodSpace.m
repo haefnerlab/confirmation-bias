@@ -43,8 +43,8 @@ end
 % Plot percent correct
 figure();
 imagesc(correct, [0.5 1.0]); axis image; colorbar;
-% Add contour lines
-hold on; contour(filter2(smoothkernel(5), correct), [0.7 0.7], '-w', 'LineWidth', 2);
+% Add contour line at threshold
+hold on; contour(imfilter(correct, smoothkernel(5), 'replicate'), [0.7 0.7], '-w', 'LineWidth', 2);
 prior_tick_indices = round(linspace(1, length(prior), min(length(prior), 5)));
 like_tick_indices = round(linspace(1, length(likelihood), min(length(likelihood), 5)));
 set(gca, 'YTick', prior_tick_indices);
