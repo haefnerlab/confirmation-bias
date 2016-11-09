@@ -1,6 +1,7 @@
 function [ weights, postVal, errors ] = PsychophysicalKernelImage(data, responses, ...
     hpr_ridge, hpr_ar1, hpr_curvature, ...
-    hpr_sp_ridge, hpr_sp_ar1, hpr_sp_curvature)
+    hpr_sp_ridge, hpr_sp_ar1, hpr_sp_curvature, ...
+    init_template)
 %PSYCHOPHYSICALKERNELIMAGE Joint spatial and temporal PsychophysicalKernel.
 %
 % [weights, postVal, errors] = PSYCHOPHYSICALKERNELIMAGE(data, responses)
@@ -26,7 +27,9 @@ function [ weights, postVal, errors ] = PsychophysicalKernelImage(data, response
 % these hpr_sp_* hyperparameters control put a small-magnitude prior on the
 % spatial weights, and their first and second spatial derivatives (in both
 % x and y directions) respectively.
+[height, width, frames] = size(data{1});
 
+if nargin < 9, init_template = 0.01 * randn(height, width); end
 if nargin < 8, hpr_sp_curvature = 0; end
 if nargin < 7, hpr_sp_ar1 = 0; end
 if nargin < 6, hpr_sp_ridge = 0; end
@@ -37,12 +40,11 @@ if nargin < 3, hpr_ridge = 0; end
 % convert boolean to float type
 responses = 1.0 * responses;
 
-[height, width, frames] = size(data{1});
 pixels = height*width;
 % Reshape each image into a column vector so that each trial is a (pixels x
 % frames) matrix.
 flat_data = cellfun(@(trial) reshape(trial, [pixels, frames]), data, 'UniformOutput', false);
-init_weights = 0.01 * randn(pixels + frames + 1, 1);
+init_weights = [init_template(:); 0.01 * randn(frames + 1, 1)];
 
 % Construct temporal priors.
 break_points = frames-1; % don't smooth onto bias term
