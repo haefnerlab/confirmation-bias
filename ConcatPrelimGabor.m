@@ -59,6 +59,7 @@ if phase==0 || phase==2
     %%Preliminary_Data.eye_tracker_points = {};
     Preliminary_Data.left_template = Data1.Preliminary_Data.left_template;
     Preliminary_Data.right_template = Data1.Preliminary_Data.right_template;
+    Preliminary_Data.pixel_noise = Data1.Preliminary_Data.pixel_noise;
   
     
     [trials1, frames1, length_x1, length_y1] = size(Data1.image_collection);
@@ -117,6 +118,7 @@ if phase==1 || phase==2
     %%Preliminary_Data.eye_tracker_points = {};
     Preliminary_Data.left_template = Data1.Preliminary_Data.left_template;
     Preliminary_Data.right_template = Data1.Preliminary_Data.right_template;
+    Preliminary_Data.pixel_noise = Data1.Preliminary_Data.pixel_noise;
   
     
     

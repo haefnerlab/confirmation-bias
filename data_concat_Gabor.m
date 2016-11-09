@@ -119,6 +119,7 @@ if phase==1 || phase==2
      % Note above is a row-wise concatenation instead of column-wise
     Test_Data.left_template = Data1.Test_Data.left_template;
     Test_Data.right_template = Data1.Test_Data.right_template;
+    Test_Data.pixel_noise = Data1.Test_Data.pixel_noise;
   
     
     

@@ -27,7 +27,7 @@ for i = 1:frames
     end
     
     % Add white pixel noise.
-    image = image + 16 * randn(height, width);
+    image = image + Data.pixel_noise * randn(height, width);
    
     % Clip pixel values to within the proper range.
     image(image > 255) = 255;

@@ -61,6 +61,7 @@ Test_Data.image_length_y = Data.image_length_y;
 Test_Data.left_template = Data.left_template;
 Test_Data.right_template = Data.right_template;
 Test_Data.number_of_images = Data.number_of_images;
+Test_Data.pixel_noise = Data.pixel_noise;
 
 %% Save Test_Data and image_collection_test
 
