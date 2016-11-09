@@ -1,8 +1,9 @@
-function [correct, pk_ab, pk_tau] = plotPriorLikelihoodSpace(trials, frames, I_prior, I_likelihood, params, ideal_observer, pk)
+function [correct, pk_ab, pk_tau] = plotPriorLikelihoodSpace(trials, frames, prior, likelihood, params, ideal_observer, pk)
 %PLOTPRIORLIKELIHOODSPACE make a info_prior vs info_likelihood plot for the
 %given params.
 %
-%params.p_match and params.var_e will be set based on alpha and beta.
+%params.p_match will take on values from 'prior'.
+%params.var_e will take on values such that the AUC of x|e is 'likelihood'
 
 savedir = fullfile('+Model', 'figures');
 if ~exist(savedir, 'dir'), mkdir(savedir); end
@@ -10,37 +11,18 @@ if ~exist(savedir, 'dir'), mkdir(savedir); end
 if nargin < 6, ideal_observer = false; end
 if nargin < 7, pk = false; end
 
-% Check for bounds on alpha and beta imposed by var_x
-[alpha_min, beta_max] = getInformationBounds(params.var_x);
-
-% Adjust I_prior range to fit; assume logspace.
-alpha = max(min(I_prior), alpha_min);
-beta = min(max(I_prior), beta_max);
-I_prior = logspace(log(alpha)/log(10), log(beta)/log(10), length(I_prior));
-
-% Convert from 'information' to model parameters.
-all_var_e = 1 ./ I_likelihood;
-all_p_match = arrayfun(@(ip) solveForPriorParams(ip, params.var_x), I_prior);
-
-disp('Using values for p_match:');
-disp(all_p_match);
-disp('Using values for var_e:');
-disp(all_var_e);
-
-m = length(I_prior);
-n = length(I_likelihood);
+[ll, pp] = meshgrid(likelihood, prior);
 
 % Preallocate return values.
-correct = nan(m, n);
-pk_ab = nan(m, n);
-pk_tau = nan(m, n);
+correct = nan(size(ll));
+pk_ab = nan(size(ll));
+pk_tau = nan(size(ll));
 
-parfor i=1:m*n
-    [idx_l, idx_p] = ind2sub([m n], i);
+for i=1:numel(ll)
     params_copy = params;
-    % Set variances for given 'information' contents.
-    params_copy.var_e = all_var_e(idx_l);
-    params_copy.p_match = all_p_match(idx_p);
+    % Set variances for this pair of prior & likelihood values.
+    params_copy.var_e = Model.getEvidenceVariance(ll(i));
+    params_copy.p_match = pp(i);
     
     % Generate data and run the model.
     [data, prefix] = Model.genDataWithParams(trials, frames, params_copy);
@@ -51,8 +33,7 @@ parfor i=1:m*n
     end
     % Fit PK if requested
     if pk
-        [weights, ~] = Model.loadOrRunModelPK(Model.getModelStringID(prefix, params_copy), data, results, [1 0 10]);
-        expfit = CustomRegression.expFit(weights);
+        [~, ~, expfit] = Model.loadOrRunModelPK(Model.getModelStringID(prefix, params_copy), data, results, [1 0 10]);
         pk_ab(i) = expfit(1) / expfit(2);
         pk_tau(i) = 1 / expfit(3);
     end
@@ -64,15 +45,15 @@ figure();
 imagesc(correct, [0.5 1.0]); axis image; colorbar;
 % Add contour lines
 hold on; contour(filter2(smoothkernel(5), correct), [0.7 0.7], '-w', 'LineWidth', 2);
-prior_tick_indices = round(linspace(1, length(I_prior), min(length(I_prior), 5)));
-like_tick_indices = round(linspace(1, length(I_likelihood), min(length(I_likelihood), 5)));
+prior_tick_indices = round(linspace(1, length(prior), min(length(prior), 5)));
+like_tick_indices = round(linspace(1, length(likelihood), min(length(likelihood), 5)));
 set(gca, 'YTick', prior_tick_indices);
 set(gca, 'XTick', like_tick_indices);
-set(gca, 'YTickLabel', arrayfun(@num2str, I_prior(prior_tick_indices), 'UniformOutput', false));
-set(gca, 'XTickLabel', arrayfun(@num2str, I_likelihood(like_tick_indices), 'UniformOutput', false));
+set(gca, 'YTickLabel', arrayfun(@num2str, prior(prior_tick_indices), 'UniformOutput', false));
+set(gca, 'XTickLabel', arrayfun(@num2str, likelihood(like_tick_indices), 'UniformOutput', false));
 set(gca, 'YDir', 'Normal');
-xlabel('Info_{likelihood}');
-ylabel('Info_{prior}');
+xlabel('P_{likelihood}');
+ylabel('P_{prior}');
 title('PL-Space');
 if ~ideal_observer
     figname = sprintf('PLSpace_%dx%d_vx%.2f_pD%.2f_gam%.2f_ns%d_b%d.fig', ...
@@ -91,24 +72,24 @@ if pk
     imagesc(pk_ab); axis image; colorbar;
     set(gca, 'YTick', prior_tick_indices);
     set(gca, 'XTick', like_tick_indices);
-    set(gca, 'YTickLabel', arrayfun(@num2str, I_prior(prior_tick_indices), 'UniformOutput', false));
-    set(gca, 'XTickLabel', arrayfun(@num2str, I_likelihood(like_tick_indices), 'UniformOutput', false));
+    set(gca, 'YTickLabel', arrayfun(@num2str, prior(prior_tick_indices), 'UniformOutput', false));
+    set(gca, 'XTickLabel', arrayfun(@num2str, likelihood(like_tick_indices), 'UniformOutput', false));
     set(gca, 'YDir', 'Normal');
-    xlabel('Info_{likelihood}');
-    ylabel('Info_{prior}');
+    xlabel('P_{likelihood}');
+    ylabel('P_{prior}');
     title('PL-Space: A/B of PK fit');
-
+    
     subplot(1,2,2);
     imagesc(pk_tau); axis image; colorbar;
     set(gca, 'YTick', prior_tick_indices);
     set(gca, 'XTick', like_tick_indices);
-    set(gca, 'YTickLabel', arrayfun(@num2str, I_prior(prior_tick_indices), 'UniformOutput', false));
-    set(gca, 'XTickLabel', arrayfun(@num2str, I_likelihood(like_tick_indices), 'UniformOutput', false));
+    set(gca, 'YTickLabel', arrayfun(@num2str, prior(prior_tick_indices), 'UniformOutput', false));
+    set(gca, 'XTickLabel', arrayfun(@num2str, likelihood(like_tick_indices), 'UniformOutput', false));
     set(gca, 'YDir', 'Normal');
-    xlabel('Info_{likelihood}');
-    ylabel('Info_{prior}');
+    xlabel('P_{likelihood}');
+    ylabel('P_{prior}');
     title('PL-Space: 1/\tau of PK fit');
-
+    
     if ~ideal_observer
         figname = sprintf('PLSpace_PK_%dx%d_vx%.2f_pD%.2f_gam%.2f_ns%d_b%d.fig', ...
             trials, frames, params.var_x, params.prior_D, ...
@@ -118,19 +99,6 @@ if pk
     end
     saveas(gcf, fullfile(savedir, figname));
 end
-end
-
-function [alpha_min, beta_max] = getInformationBounds(var_x)
-% There is a limit to the variance that can be contributed by p_match at a
-% given value of var_x. This function returns the low and high bounds on
-% information.
-alpha_min = 1 / (var_x + 0.5); % maximal variance of 2*0.25 when p is 0.5.
-beta_max = 1 / var_x; % minimal variance of var_x when p is 1.
-end
-
-function p_match = solveForPriorParams(info_prior, var_x)
-p_match = real((1 + sqrt(1 + 2*(var_x - 1./info_prior))) / 2);
-p_match = min(max(p_match, 0.5), 1);
 end
 
 function kernel = smoothkernel(n)
