@@ -425,7 +425,7 @@ if preliminary == 0 || preliminary == 2
     
     %% With Bootstrap
 
-    [M, L, U] = BootstrapWeightsGabor(results.Test_Data, results.image_collection_test,0,5,ideal_template);
+    [M, L, U] = BootstrapWeightsGabor(results.Test_Data, results.image_collection_test, 500, ideal_template);
     
     time_idxs = w*h+1:length(M)-1;
     weights=M;
