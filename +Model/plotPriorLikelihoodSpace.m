@@ -18,7 +18,7 @@ correct = nan(size(ll));
 pk_ab = nan(size(ll));
 pk_tau = nan(size(ll));
 
-for i=1:numel(ll)
+parfor i=1:numel(ll)
     params_copy = params;
     % Set variances for this pair of prior & likelihood values.
     params_copy.var_e = Model.getEvidenceVariance(ll(i));
