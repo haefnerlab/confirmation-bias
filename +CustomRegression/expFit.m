@@ -3,7 +3,7 @@ if nargin < 2, errors = ones(size(weights)); end
 
 p0 = [mean(weights) 0 10];
 
-expfit = fmincon(@(p) errfn(p, weights, errors), p0, [], [], [], [], [0 -inf 0], [inf inf inf]);
+expfit = fmincon(@(p) errfn(p, weights, errors), p0, [], [], [], [], [0 0 0], [inf inf inf]);
 
 end
 

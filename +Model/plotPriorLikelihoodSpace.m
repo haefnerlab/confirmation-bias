@@ -69,7 +69,7 @@ saveas(gcf, fullfile(savedir, figname));
 if pk
     figure();
     subplot(1,2,1);
-    imagesc(pk_ab); axis image; colorbar;
+    imagesc(pk_ab, [0 10]); axis image; colorbar;
     set(gca, 'YTick', prior_tick_indices);
     set(gca, 'XTick', like_tick_indices);
     set(gca, 'YTickLabel', arrayfun(@num2str, prior(prior_tick_indices), 'UniformOutput', false));
@@ -80,7 +80,7 @@ if pk
     title('PL-Space: A/B of PK fit');
     
     subplot(1,2,2);
-    imagesc(pk_tau); axis image; colorbar;
+    imagesc(pk_tau, [0 5]); axis image; colorbar;
     set(gca, 'YTick', prior_tick_indices);
     set(gca, 'XTick', like_tick_indices);
     set(gca, 'YTickLabel', arrayfun(@num2str, prior(prior_tick_indices), 'UniformOutput', false));
