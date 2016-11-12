@@ -50,4 +50,6 @@ for i=1:length(like_pts)
     plot(pk_ax, xs, expfit(1)+expfit(2)*exp(-xs/expfit(3)), '-', 'Color', colors(i,:));
 end
 
+ylim(pk_ax, [0 inf]);
+
 end
