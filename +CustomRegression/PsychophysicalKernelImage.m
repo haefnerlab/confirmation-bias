@@ -32,6 +32,14 @@ function [ weights, postVal, errors ] = PsychophysicalKernelImage(data, response
 % template to the given image (which must have the same size as the images
 % in the data)
 [height, width, frames] = size(data{1});
+trials = length(data);
+
+% Equalize variance for each regressor.
+data = cellfun(@(trial) reshape(trial, [1 height*width*frames]), data, ...
+    'UniformOutput', false);
+data = zscore(cat(1, data{:}));
+data = reshape(data, [trials height width frames]);
+data = arrayfun(@(i) squeeze(data(i, :, :, :)), 1:trials, 'UniformOutput', false);
 
 if nargin < 9, init_template = 0.01 * randn(height, width); end
 if nargin < 8, hpr_sp_curvature = 0; end
