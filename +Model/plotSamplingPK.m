@@ -1,4 +1,4 @@
-function [weights, errors, expfit] = plotSamplingPK(trials, frames, params, pk_hprs)
+function [weights, errors, expfit, fig] = plotSamplingPK(trials, frames, params, pk_hprs)
 %PLOTSAMPLINGPK(trials, frames, params, [recompute]) run (or load) sampling
 %model and plot PK for the given params.
 
