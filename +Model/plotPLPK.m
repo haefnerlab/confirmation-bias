@@ -1,4 +1,4 @@
-function plotPLPK(trials, frames, prior, likelihood, params, pk_colormap)
+function plotPLPK(trials, frames, prior, likelihood, params, pk_hprs, pk_colormap)
 
 savedir = fullfile('+Model', 'figures');
 if ~exist(savedir, 'dir'), mkdir(savedir); end
@@ -25,9 +25,8 @@ pri_pts = round(100*interp1(1:length(prior), prior, y))/100;
 
 pk_fig = figure;
 pk_ax = axes(pk_fig);
-hold(pk_ax, 'on');
 
-if nargin < 6
+if nargin < 7
     % create pk_colormap that is dark blue -> dark red
     fade = linspace(0, 1, npts)';
     colors = [fade*128/255, zeros(size(fade)), (1-fade)*128/255];
@@ -39,11 +38,16 @@ xs = 1:frames;
 for i=1:length(like_pts)
     l = like_pts(i);
     p = pri_pts(i);
-    scatter(img_ax, find(likelihood==l), find(prior==p), 50, colors(i,:), 'filled');
+    [~, il] = min(abs(likelihood-l));
+    [~, ip] = min(abs(prior - p));
+    scatter(img_ax, il, ip, 50, colors(i,:), 'filled');
     
-    [~, ~, expfit, tmp_fig] = Model.plotSamplingPK(trials, frames, params, [1 0 10]);
+    params.p_match = p;
+    params.var_e = Model.getEvidenceVariance(l);
+    [~, ~, expfit, tmp_fig] = Model.plotSamplingPK(trials, frames, params, pk_hprs);
     close(tmp_fig);
-    plot(pk_ax, xs, expfit(1)+expfig(2)*exp(-xs/expfit(3)), '-', 'Color', colors(i,:));
+    hold(pk_ax, 'on');
+    plot(pk_ax, xs, expfit(1)+expfit(2)*exp(-xs/expfit(3)), '-', 'Color', colors(i,:));
 end
 
 end
