@@ -87,7 +87,6 @@ image_collection = zeros(GaborData.blocks * GaborData.trials_per_block, ...
         save(fileNameQuit, 'GaborData', 'image_collection');
         ShowCursor(whichScreen);
         Screen('CloseAll');
-        return;
     end
 
 % Begin Preliminary Trials
@@ -117,6 +116,7 @@ try
 
                 if ptbWaitKey([goKey exitKey]) == exitKey
                     earlyQuit;
+                    return;
                 end
 
                 Screen('Flip', wPtr);
@@ -154,7 +154,7 @@ try
             end
 
             % Every 10 reversals, halve the step size
-            if GaborData.reversal_counter(trial) > 1 && mod(GaborData.reversal_counter, 10) == 0
+            if GaborData.reversal_counter(trial) > 1 && mod(GaborData.reversal_counter(trial), 10) == 0
                 GaborData.step_size(trial) = GaborData.step_size(trial-1) / 2;
             end
 
@@ -163,19 +163,19 @@ try
                 % Got it wrong - make things easier
                 if strcmpi(GaborData.step_type, 'add')
                     GaborData.(GaborData.staircase)(trial) = ...
-                        GaborData.(GaborData.staircase)(trial-1) + GaborData.step_size;
+                        GaborData.(GaborData.staircase)(trial-1) + GaborData.step_size(trial);
                 elseif strcmpi(GaborData.step_type, 'multiply')
                     GaborData.(GaborData.staircase)(trial) = ...
-                        GaborData.(GaborData.staircase)(trial-1) * GaborData.step_size;
+                        GaborData.(GaborData.staircase)(trial-1) * GaborData.step_size(trial);
                 end
             elseif mod(GaborData.streak(trial), 2) == 0
                 % Got 2 right in a row - make things harder
                 if strcmpi(GaborData.step_type, 'add')
                     GaborData.(GaborData.staircase)(trial) = ...
-                        GaborData.(GaborData.staircase)(trial-1) - GaborData.step_size;
+                        GaborData.(GaborData.staircase)(trial-1) - GaborData.step_size(trial);
                 elseif strcmpi(GaborData.step_type, 'multiply')
                     GaborData.(GaborData.staircase)(trial) = ...
-                        GaborData.(GaborData.staircase)(trial-1) / GaborData.step_size;
+                        GaborData.(GaborData.staircase)(trial-1) / GaborData.step_size(trial);
                 end
             end
 
@@ -231,7 +231,7 @@ try
             % fact it's the person or computer running the experiment
             [I, eye_tracker_points, broke_fixation, quit] = trialStimuliGabor(GaborData, image_array, wPtr, tracker_info, settings);
 
-            if quit, earlyQuit; end
+            if quit, earlyQuit; return; end
 
             if broke_fixation || isnan(I.choice)
                 Screen('FillRect', wPtr, 127);
