@@ -19,7 +19,7 @@ if ~isfield(settings, 'gammaTable'), settings.gammaTable = ''; end
 if ~isfield(settings, 'whichScreen'), settings.whichScreen = 0; end
 if ~isfield(settings, 'useOpenGL'), settings.useOpenGL = true; end
 if ~isfield(settings, 'ptbSkipSyncTests'), settings.ptbSkipSyncTests = 0; end
-if ~isfield(setting, 'monitorFPS'), settings.monitorFPS = Screen('FrameRate', settings.whichScreen); end
+if ~isfield(settings, 'monitorFPS'), settings.monitorFPS = Screen('FrameRate', settings.whichScreen); end
 % Interface settings - which keys do what
 if ~isfield(settings, 'keyGo'), settings.keyGo = 'space'; end
 if ~isfield(settings, 'keyGoName'), settings.keyGoName = 'the space bar'; end
