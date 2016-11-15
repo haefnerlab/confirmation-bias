@@ -22,20 +22,20 @@ total_trials = GaborData.trials_per_block * GaborData.blocks;
 GaborData.contrast = zeros(1, total_trials);
 GaborData.contrast(1) = get_arg('contrast', 64);
 GaborData.ratio = zeros(1, total_trials);
-GaborData.ratio(1) = get_arg('ratio', 0.85);
+GaborData.ratio(1) = get_arg('ratio', 0.9);
 GaborData.pixel_noise = zeros(1, total_trials);
 GaborData.pixel_noise(1) = get_arg('pixel_noise', 4); % standard deviation of pixel noise
 GaborData.step_size = zeros(1, total_trials);
 
 GaborData.model_observer = get_arg('model_observer', '');
 if strcmpi(GaborData.staircase, 'contrast')
-    GaborData.stair_bounds = get_arg('stair_bounds', [0 128]);
-    GaborData.step_type = get_arg('step_type', 'add'); % add or multiply
-    GaborData.step_size(1) = get_arg('step_size', -2); % sign should be in the "easier" direction
+    GaborData.stair_bounds = get_arg('stair_bounds', [0 64]);
+    GaborData.step_type = get_arg('step_type', 'multiply');
+    GaborData.step_size(1) = get_arg('step_size', 2);
 elseif strcmpi(GaborData.staircase, 'ratio')
-    GaborData.stair_bounds = get_arg('stair_bounds', [0.5 1]);
-    GaborData.step_type = get_arg('step_type', 'multiply'); % add or multiply
-    GaborData.step_size(1) = get_arg('step_size', 1.1); % sign should be in the "easier" direction
+    GaborData.stair_bounds = get_arg('stair_bounds', [0.5 0.9]);
+    GaborData.step_type = get_arg('step_type', 'add');
+    GaborData.step_size(1) = get_arg('step_size', 1);
 end
 GaborData.number_of_images = get_arg('number_of_images', 10);
 GaborData.stimulus_fps = get_arg('stimulus_fps', 12);	% frame rate of stimuli
