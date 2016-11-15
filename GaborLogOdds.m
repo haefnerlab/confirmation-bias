@@ -2,8 +2,6 @@ function [frame_odds, decision_odds] = GaborLogOdds(frames, left_template, right
 %GABORLOGODDS comutes log odds that each frame is from the left or the
 %right template, and the log odds that each frame is drawn from the left or
 %right full-trial choice.
-t = GaborData.current_trial;
-
 [n_imgs, h, w] = size(frames);
 flat_frames = reshape(frames, [n_imgs, h*w]);
 
