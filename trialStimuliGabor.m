@@ -3,6 +3,7 @@ function [image_properties, eye_tracker_points, broke_fixation, quit] = trialSti
 % succession to the subject, or runs through a single trial of the
 % experiment.
 
+image_properties = [];
 frame_duration = 1 / Data.stimulus_fps;
 quit = false;
 eye_tracker_points = [];
@@ -36,7 +37,7 @@ rightKey = KbName(settings.keyRight);
 
 image_texture = zeros(1, Data.number_of_images);
 for i = 1:Data.number_of_images
-    large_image = imresize(image, Data.screen_resolution, 'nearest');
+    large_image = imresize(squeeze(image_array(i, :, :)), Data.screen_resolution, 'nearest');
     image_texture(i) = Screen('MakeTexture', wPtr, large_image);
 end
 
@@ -68,7 +69,7 @@ for i = 1:Data.number_of_images
     [~, stimOnsetTime] = Screen('Flip', wPtr, stimOnsetTime + frame_duration);
     %update the display in stimulus_fps after the last Flip?
     
-    Screen('Close', image_texture(i));% To save on memory and processing time, close the screen afterwards
+    Screen('Close', image_texture(i));% To save on memory and processing time, close textures
 end
 
 
@@ -77,6 +78,7 @@ Screen('DrawTexture', wPtr, show_left_patch, [], [xc-res*4-200 yc-res*4 xc+res*4
 show_right_patch = Screen('MakeTexture', wPtr, imresize(right_patch, Data.screen_resolution, 'nearest'));
 Screen('DrawTexture', wPtr, show_right_patch, [], [xc-res*4+200 yc-res*4 xc+res*4+200 yc+res*4]);
 Screen('DrawText', wPtr, sprintf('Current Trial - #%d', Data.current_trial), xc-600, yc+250, 0);   % Unobtrusive output to screen of the current trial number
+Screen('Flip', wPtr);
 
 [key, rt, timeout] = ptbWaitKey([leftKey, rightKey, exitKey], 1);
 
