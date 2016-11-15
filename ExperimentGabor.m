@@ -96,169 +96,176 @@ trial = 1;
 block_trial = 1;
 % Using 'while' rather than 'for' since invalid trials (broke fixation or
 % didn't respond in time) don't increment 'trial'.
-while trial <= GaborData.trials_per_block * GaborData.blocks
-    
-    %% Bookkeeping to set up trial
-    
-    GaborData.current_trial = trial;
-    % Reset params at the start of each block
-    if mod(trial, GaborData.trials_per_block) == 1
-        % Display a message if this is the beginning of the second or
-        % higher block.
-        if trial ~= 1 && isempty(GaborData.model_observer) && ~seen_block_notification
-            seen_block_notification = true;
-            sounds(-1, 1.5);
-            Screen('TextSize', wPtr, 20); % Set text size to 20
-            Screen('DrawText', wPtr, 'You have completed a block.', xc-500, yc-150, white);
-            Screen('DrawText', wPtr, 'You may take a break if you want!', xc-500, yc-100, white);
-            Screen('DrawText', wPtr, sprintf('Press %s whenever you are ready again.', settings.keyGoName), xc-500, yc-50, white);
-            Screen('Flip', wPtr);
-            
-            if ptbWaitKey([goKey exitKey]) == exitKey
-                earlyQuit;
+try
+    while trial <= GaborData.trials_per_block * GaborData.blocks
+
+        %% Bookkeeping to set up trial
+
+        GaborData.current_trial = trial;
+        % Reset params at the start of each block
+        if mod(trial, GaborData.trials_per_block) == 1
+            % Display a message if this is the beginning of the second or
+            % higher block.
+            if trial ~= 1 && isempty(GaborData.model_observer) && ~seen_block_notification
+                seen_block_notification = true;
+                sounds(-1, 1.5);
+                Screen('TextSize', wPtr, 20); % Set text size to 20
+                Screen('DrawText', wPtr, 'You have completed a block.', xc-500, yc-150, white);
+                Screen('DrawText', wPtr, 'You may take a break if you want!', xc-500, yc-100, white);
+                Screen('DrawText', wPtr, sprintf('Press %s whenever you are ready again.', settings.keyGoName), xc-500, yc-50, white);
+                Screen('Flip', wPtr);
+
+                if ptbWaitKey([goKey exitKey]) == exitKey
+                    earlyQuit;
+                end
+
+                Screen('Flip', wPtr);
             end
-            
-            Screen('Flip', wPtr);
-        end
-        
-        % Start of a block - set params to initial values.
-        GaborData.streak(trial) = 0;
-        GaborData.reversal_counter(trial) = 0;
-        GaborData.contrast(trial) = GaborData.contrast(1);
-        GaborData.ratio(trial) = GaborData.ratio(1);
-        GaborData.pixel_noise(trial) = GaborData.pixel_noise(1);
-        GaborData.step_size(trial) = GaborData.step_size(1);
-        block_trial = 1;
-    else
-        seen_block_notification = false;
-        
-        GaborData.contrast(trial) = GaborData.contrast(trial-1);
-        GaborData.ratio(trial) = GaborData.ratio(trial-1);
-        GaborData.pixel_noise(trial) = GaborData.pixel_noise(trial-1);
-        GaborData.step_size(trial) = GaborData.step_size(trial-1);
-        
-        % Count correct streak (with respect to the ideal observer's
-        % answer, not the underlying distribution)
-        if GaborData.ideal_answer(trial-1) == GaborData.choice(trial-1)
-            GaborData.streak(trial) = GaborData.streak(trial-1) + 1;
-        else
+
+            % Start of a block - set params to initial values.
             GaborData.streak(trial) = 0;
-        end
-        
-        % Count reversals
-        if block_trial > 2 && sign(GaborData.streak(trial-1)) ~= sign(GaborData.streak(trial))
-            GaborData.reversal_counter(trial) = GaborData.reversal_counter(trial-1) + 1;
+            GaborData.reversal_counter(trial) = 0;
+            GaborData.contrast(trial) = GaborData.contrast(1);
+            GaborData.ratio(trial) = GaborData.ratio(1);
+            GaborData.pixel_noise(trial) = GaborData.pixel_noise(1);
+            GaborData.step_size(trial) = GaborData.step_size(1);
+            block_trial = 1;
         else
-            GaborData.reversal_counter(trial) = GaborData.reversal_counter(trial-1);
-        end
-        
-        % Every 10 reversals, halve the step size
-        if GaborData.reversal_counter(trial) > 1 && mod(GaborData.reversal_counter, 10) == 0
-            GaborData.step_size(trial) = GaborData.step_size(trial-1) / 2;
-        end
-        
-        % Apply the staircase
-        if GaborData.streak(trial) == 0
-            % Got it wrong - make things easier
-            if strcmpi(GaborData.step_type, 'add')
-                GaborData.(GaborData.staircase)(trial) = ...
-                    GaborData.(GaborData.staircase)(trial-1) + GaborData.step_size;
-            elseif strcmpi(GaborData.step_type, 'multiply')
-                GaborData.(GaborData.staircase)(trial) = ...
-                    GaborData.(GaborData.staircase)(trial-1) * GaborData.step_size;
-            end
-        elseif mod(GaborData.streak(trial), 2) == 0
-            % Got 2 right in a row - make things harder
-            if strcmpi(GaborData.step_type, 'add')
-                GaborData.(GaborData.staircase)(trial) = ...
-                    GaborData.(GaborData.staircase)(trial-1) - GaborData.step_size;
-            elseif strcmpi(GaborData.step_type, 'multiply')
-                GaborData.(GaborData.staircase)(trial) = ...
-                    GaborData.(GaborData.staircase)(trial-1) / GaborData.step_size;
-            end
-        end
-        
-        % Make sure staircase variable is within bounds
-        if GaborData.(GaborData.staircase)(trial) < GaborData.stair_bounds(1)
-            GaborData.(GaborData.staircase)(trial) = GaborData.stair_bounds(1);
-        elseif GaborData.(GaborData.staircase)(trial) > GaborData.stair_bounds(2)
-            GaborData.(GaborData.staircase)(trial) = GaborData.stair_bounds(2);
-        end
-    end
-    
-    %% Run this trial
-    
-    % Randomly set each frame match (or mismatch) the correct choice for
-    % this trail, using the current 'ratio' to decide.
-    match_frames = 1 * (rand(1, GaborData.number_of_images) <= GaborData.ratio(trial));
-    
-    % Choose whether correct answer this trial will be Left or Right
-    if rand < 0.5
-        GaborData.correct_answer(trial) = 1; % this trial is Left
-        GaborData.average_orientations(1, trial) = GaborData.number_of_images * GaborData.ratio(trial);
-        GaborData.average_orientations(2, trial) = GaborData.number_of_images * (1 - GaborData.ratio(trial));
-        GaborData.order_of_orientations(trial, :) = match_frames;
-    else
-        GaborData.correct_answer(trial) = 0; % this trial is Right
-        GaborData.average_orientations(1, trial) = GaborData.number_of_images * (1 - GaborData.ratio(trial));
-        GaborData.average_orientations(2, trial) = GaborData.number_of_images * GaborData.ratio(trial);
-        GaborData.order_of_orientations(trial, :) = 1 - match_frames;
-    end
-    
-    % A function to generate a struct containing properties of the images used in this trial, I,
-    % and an collection of the gabors which will be displayed to the screen, image_array
-    image_array = makeImages(GaborData);
-    
-    % Store all images shown
-    image_collection(trial,:,:,:) = image_array;
-    
-    % Calculate log odds at each frame, both for the category of that frame
-    % independent of the prior, and for the decision (including the prior)
-    [log_frame_odds, log_decision_odds] = GaborLogOdds(image_array, ...
-        GaborData.left_template, GaborData.right_template, ...
-        GaborData.contrast(trial), GaborData.pixel_noise(trial), ...
-        GaborData.ratio(trial));
-    GaborData.log_frame_odds(trial, :) = log_frame_odds;
-    GaborData.log_decision_odds(trial, :) = log_decision_odds;
-    
-    % Record answer of the ideal observer
-    GaborData.ideal_answer(trial) = 1 * (sum(GaborData.log_decision_odds(trial, :)) > 0);
-    
-    if isempty(GaborData.model_observer)
-        % Pass in the contrast level, all of the images, screen being
-        % used, subject ID, the struct with all of the data, and the
-        % fact it's the person or computer running the experiment
-        [I, eye_tracker_points, broke_fixation, quit] = trialStimuliGabor(GaborData, image_array, wPtr, tracker_info, settings);
+            seen_block_notification = false;
 
-        if quit, earlyQuit; end
-    
-        if broke_fixation || isnan(I.choice)
-            Screen('FillRect', wPtr, 127);
-            Screen('Flip', wPtr);
-            sounds(2, 0.2);
-            pause(1);
-            continue;
+            GaborData.contrast(trial) = GaborData.contrast(trial-1);
+            GaborData.ratio(trial) = GaborData.ratio(trial-1);
+            GaborData.pixel_noise(trial) = GaborData.pixel_noise(trial-1);
+            GaborData.step_size(trial) = GaborData.step_size(trial-1);
+
+            % Count correct streak (with respect to the ideal observer's
+            % answer, not the underlying distribution)
+            if GaborData.ideal_answer(trial-1) == GaborData.choice(trial-1)
+                GaborData.streak(trial) = GaborData.streak(trial-1) + 1;
+            else
+                GaborData.streak(trial) = 0;
+            end
+
+            % Count reversals
+            if block_trial > 2 && sign(GaborData.streak(trial-1)) ~= sign(GaborData.streak(trial))
+                GaborData.reversal_counter(trial) = GaborData.reversal_counter(trial-1) + 1;
+            else
+                GaborData.reversal_counter(trial) = GaborData.reversal_counter(trial-1);
+            end
+
+            % Every 10 reversals, halve the step size
+            if GaborData.reversal_counter(trial) > 1 && mod(GaborData.reversal_counter, 10) == 0
+                GaborData.step_size(trial) = GaborData.step_size(trial-1) / 2;
+            end
+
+            % Apply the staircase
+            if GaborData.streak(trial) == 0
+                % Got it wrong - make things easier
+                if strcmpi(GaborData.step_type, 'add')
+                    GaborData.(GaborData.staircase)(trial) = ...
+                        GaborData.(GaborData.staircase)(trial-1) + GaborData.step_size;
+                elseif strcmpi(GaborData.step_type, 'multiply')
+                    GaborData.(GaborData.staircase)(trial) = ...
+                        GaborData.(GaborData.staircase)(trial-1) * GaborData.step_size;
+                end
+            elseif mod(GaborData.streak(trial), 2) == 0
+                % Got 2 right in a row - make things harder
+                if strcmpi(GaborData.step_type, 'add')
+                    GaborData.(GaborData.staircase)(trial) = ...
+                        GaborData.(GaborData.staircase)(trial-1) - GaborData.step_size;
+                elseif strcmpi(GaborData.step_type, 'multiply')
+                    GaborData.(GaborData.staircase)(trial) = ...
+                        GaborData.(GaborData.staircase)(trial-1) / GaborData.step_size;
+                end
+            end
+
+            % Make sure staircase variable is within bounds
+            if GaborData.(GaborData.staircase)(trial) < GaborData.stair_bounds(1)
+                GaborData.(GaborData.staircase)(trial) = GaborData.stair_bounds(1);
+            elseif GaborData.(GaborData.staircase)(trial) > GaborData.stair_bounds(2)
+                GaborData.(GaborData.staircase)(trial) = GaborData.stair_bounds(2);
+            end
         end
-    
-        GaborData.choice(trial) = I.choice;
-        GaborData.eye_tracker_points{trial} = eye_tracker_points;
-    elseif strcmpi(GaborData.model_observer, 'ideal')
-        GaborData.choice(trial) = GaborData.ideal_answer(trial);
-    end
-    
-    %% Accuracy & Feedback
-    GaborData.accuracy(trial) = GaborData.choice(trial) == GaborData.correct_answer(trial);
-    if isempty(GaborData.model_observer)
-        if GaborData.accuracy(trial)
-            sounds(1, 0.2);
+
+        %% Run this trial
+
+        % Randomly set each frame match (or mismatch) the correct choice for
+        % this trail, using the current 'ratio' to decide.
+        match_frames = 1 * (rand(1, GaborData.number_of_images) <= GaborData.ratio(trial));
+
+        % Choose whether correct answer this trial will be Left or Right
+        if rand < 0.5
+            GaborData.correct_answer(trial) = 1; % this trial is Left
+            GaborData.average_orientations(1, trial) = GaborData.number_of_images * GaborData.ratio(trial);
+            GaborData.average_orientations(2, trial) = GaborData.number_of_images * (1 - GaborData.ratio(trial));
+            GaborData.order_of_orientations(trial, :) = match_frames;
         else
-            sounds(0, 0.2);
+            GaborData.correct_answer(trial) = 0; % this trial is Right
+            GaborData.average_orientations(1, trial) = GaborData.number_of_images * (1 - GaborData.ratio(trial));
+            GaborData.average_orientations(2, trial) = GaborData.number_of_images * GaborData.ratio(trial);
+            GaborData.order_of_orientations(trial, :) = 1 - match_frames;
         end
-        pause(0.5); % Pause for 500 ms after feedback before next trial
-    end
 
-    trial = trial + 1;
-    block_trial = block_trial + 1;
+        % A function to generate a struct containing properties of the images used in this trial, I,
+        % and an collection of the gabors which will be displayed to the screen, image_array
+        image_array = makeImages(GaborData);
+
+        % Store all images shown
+        image_collection(trial,:,:,:) = image_array;
+
+        % Calculate log odds at each frame, both for the category of that frame
+        % independent of the prior, and for the decision (including the prior)
+        [log_frame_odds, log_decision_odds] = GaborLogOdds(image_array, ...
+            GaborData.left_template, GaborData.right_template, ...
+            GaborData.contrast(trial), GaborData.pixel_noise(trial), ...
+            GaborData.ratio(trial));
+        GaborData.log_frame_odds(trial, :) = log_frame_odds;
+        GaborData.log_decision_odds(trial, :) = log_decision_odds;
+
+        % Record answer of the ideal observer
+        GaborData.ideal_answer(trial) = 1 * (sum(GaborData.log_decision_odds(trial, :)) > 0);
+
+        if isempty(GaborData.model_observer)
+            % Pass in the contrast level, all of the images, screen being
+            % used, subject ID, the struct with all of the data, and the
+            % fact it's the person or computer running the experiment
+            [I, eye_tracker_points, broke_fixation, quit] = trialStimuliGabor(GaborData, image_array, wPtr, tracker_info, settings);
+
+            if quit, earlyQuit; end
+
+            if broke_fixation || isnan(I.choice)
+                Screen('FillRect', wPtr, 127);
+                Screen('Flip', wPtr);
+                sounds(2, 0.2);
+                pause(1);
+                continue;
+            end
+
+            GaborData.choice(trial) = I.choice;
+            GaborData.reaction_time(trial) = I.reaction;
+            GaborData.eye_tracker_points{trial} = eye_tracker_points;
+        elseif strcmpi(GaborData.model_observer, 'ideal')
+            GaborData.choice(trial) = GaborData.ideal_answer(trial);
+        end
+
+        %% Accuracy & Feedback
+        GaborData.accuracy(trial) = GaborData.choice(trial) == GaborData.correct_answer(trial);
+        if isempty(GaborData.model_observer)
+            if GaborData.accuracy(trial)
+                sounds(1, 0.2);
+            else
+                sounds(0, 0.2);
+            end
+            pause(0.5); % Pause for 500 ms after feedback before next trial
+        end
+
+        trial = trial + 1;
+        block_trial = block_trial + 1;
+    end
+catch ERR
+    earlyQuit;
+    Screen('CloseAll');
+    rethrow(ERR);
 end
 
 %% Save final data to folder
