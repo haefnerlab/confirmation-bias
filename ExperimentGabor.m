@@ -159,32 +159,7 @@ try
             end
 
             % Apply the staircase
-            if GaborData.streak(trial) == 0
-                % Got it wrong - make things easier
-                if strcmpi(GaborData.step_type, 'add')
-                    GaborData.(GaborData.staircase)(trial) = ...
-                        GaborData.(GaborData.staircase)(trial-1) + GaborData.step_size(trial);
-                elseif strcmpi(GaborData.step_type, 'multiply')
-                    GaborData.(GaborData.staircase)(trial) = ...
-                        GaborData.(GaborData.staircase)(trial-1) * GaborData.step_size(trial);
-                end
-            elseif mod(GaborData.streak(trial), 2) == 0
-                % Got 2 right in a row - make things harder
-                if strcmpi(GaborData.step_type, 'add')
-                    GaborData.(GaborData.staircase)(trial) = ...
-                        GaborData.(GaborData.staircase)(trial-1) - GaborData.step_size(trial);
-                elseif strcmpi(GaborData.step_type, 'multiply')
-                    GaborData.(GaborData.staircase)(trial) = ...
-                        GaborData.(GaborData.staircase)(trial-1) / GaborData.step_size(trial);
-                end
-            end
-
-            % Make sure staircase variable is within bounds
-            if GaborData.(GaborData.staircase)(trial) < GaborData.stair_bounds(1)
-                GaborData.(GaborData.staircase)(trial) = GaborData.stair_bounds(1);
-            elseif GaborData.(GaborData.staircase)(trial) > GaborData.stair_bounds(2)
-                GaborData.(GaborData.staircase)(trial) = GaborData.stair_bounds(2);
-            end
+            GaborData = GaborData.stair_fn(GaborData);
         end
 
         %% Run this trial
