@@ -29,22 +29,14 @@ end
 
 function c = log_add(a, b)
 % Computes c such that exp(c) = exp(a) + exp(b)
-if a == -inf
-    c = b;
-elseif b == -inf
-    c = a;
-else
-    c = a + log(1 + exp(b - a));
-end
+c = a + log(1 + exp(b - a));
+c(a == -inf | exp(b - a) == inf) = b(a == -inf | exp(b - a) == inf);
+c(b == -inf) = a(b == -inf);
 end
 
 function c = log_sub(a, b)
 % Computes c such that exp(c) = exp(a) - exp(b)
-if a == -inf
-    c = b;
-elseif b == -inf
-    c = a;
-else
-    c = a + log(1 - exp(b - a));
-end
+c = a + log(1 - exp(b - a));
+c(a == -inf | exp(b - a) == inf) = b(a == -inf | exp(b - a) == inf) + 1i*pi;
+c(b == -inf) = a(b == -inf);
 end

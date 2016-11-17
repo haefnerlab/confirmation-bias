@@ -26,7 +26,7 @@ GaborData.ratio(trial) = GaborData.ratio(trial-1);
 GaborData.pixel_noise(trial) = GaborData.pixel_noise(trial-1);
 
 %% Reduce step size after 10 reversals
-if mod(GaborData.reversal_counter(trial), 10) == 0
+if GaborData.reversal_counter(trial) > 0 && mod(GaborData.reversal_counter(trial), 10) == 0
     % Decay the step size half way towards 0
     GaborData.step_size(trial) = GaborData.step_size(trial-1) / 2;
 else

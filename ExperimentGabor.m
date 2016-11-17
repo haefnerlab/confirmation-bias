@@ -10,7 +10,7 @@ if ~exist(datadir, 'dir'), mkdir(datadir); end
 cd(fullfile(directory, 'Code')) % Set the current directory
 commandwindow; % Moves the cursor to the commandwindow
 
-if settings.useOpenGL, InitializeMatlabOpenGL; end
+% if settings.useOpenGL, InitializeMatlabOpenGL; end
 
 % Screen set up
 whichScreen = settings.whichScreen; %allow to choose the display if there's more than one
@@ -44,16 +44,22 @@ KbName('UnifyKeyNames');
 goKey = KbName(settings.keyGo);
 exitKey = KbName(settings.keyExit);
 
-if strcmpi(GaborData.staircase, 'contrast')
+if isequal(GaborData.stair_fn, @GaborStaircase.contrast)
     fileName = fullfile(datadir, [subjectID '-GaborDataContrast.mat']);
     fileNameQuit = fullfile(datadir, [subjectID '-GaborDataContrastQuit.mat']);
-elseif strcmpi(GaborData.staircase, 'ratio')
+elseif isequal(GaborData.stair_fn, @GaborStaircase.ratio)
     fileName = fullfile(datadir, [subjectID '-GaborDataRatio.mat']);
     fileNameQuit = fullfile(datadir, [subjectID '-GaborDataRatioQuit.mat']);
+elseif isequal(GaborData.stair_fn, @GaborStaircase.pixel_noise)
+    fileName = fullfile(datadir, [subjectID '-GaborDataNoise.mat']);
+    fileNameQuit = fullfile(datadir, [subjectID '-GaborDataNoiseQuit.mat']);
 else
-    error('Not sure how to save staircase type %s', GaborData.staircase);
+    warning('No staircase-specific suffix on save name!');
+    fileName = fullfile(datadir, [subjectID '.mat']);
+    fileNameQuit = fullfile(datadir, [subjectID 'Quit.mat']);
 end
 if exist(fileName, 'file')
+    Screen('CloseAll');
     error('Data for %s already exists', fileName);
 end
 
@@ -244,5 +250,6 @@ catch ERR
 end
 
 %% Save final data to folder
+Screen('CloseAll');
 save(fileName, 'GaborData', 'image_collection');
 end
