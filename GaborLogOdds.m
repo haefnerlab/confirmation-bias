@@ -8,8 +8,11 @@ flat_frames = reshape(frames, [n_imgs, h*w]);
 left_template = 127 + contrast * left_template;
 right_template = 127 + contrast * right_template;
 
-log_left = -0.5 * (flat_frames * left_template(:)) / noise;
-log_right = -0.5 * (flat_frames * right_template(:)) / noise;
+diff_left = flat_frames - repmat(left_template(:)', n_imgs, 1);
+diff_right = flat_frames - repmat(right_template(:)', n_imgs, 1);
+
+log_left = -0.5 * sum(diff_left .* diff_left, 2) / noise;
+log_right = -0.5 * sum(diff_right .* diff_right, 2)  / noise;
 
 frame_odds = (log_left - log_right)';
 
