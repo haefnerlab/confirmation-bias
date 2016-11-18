@@ -46,15 +46,21 @@ stimulus_bbox = ptbCenteredRect([xc, ScreenSize(4)-size(large_image,1)], size(la
 Screen('FillRect', wPtr, 127.0);        % Make the background gray
 [~, stimOnsetTime] = Screen('Flip', wPtr);
 
-% Get fixation while displaying a frame around where the stimulus will
-% be.
+% Get fixation while displaying a frame around where the stimulus will be.
 [is_fixating, tracker_info, eye_tracker_points] = EyeTracker.getFixation(tracker_info, wPtr, @() drawStimulusFrame(wPtr, gray, black, stimulus_bbox, 15));
+
 % If the subject never fixated, end the trial.
 if ~is_fixating
     broke_fixation = true;
     return;
 end
 
+% Clear the lines from drawStimulusFrame
+Screen('FillRect', wPtr, gray);
+EyeTracker.drawFixationSymbol(tracker_info, wPtr);
+
+% Present each image for 'frame_duration' seconds.
+% TODO - track eyes at full temporal resolution rather than once per frame.
 for i = 1:Data.number_of_images
     EyeTracker.drawFixationSymbol(tracker_info, wPtr);
     gaze_point = EyeTracker.getGazePoint(tracker_info, 'pixels');
@@ -67,11 +73,12 @@ for i = 1:Data.number_of_images
     Screen('DrawText', wPtr, sprintf('Current Trial - #%d', Data.current_trial), xc-900, yc+550, 0);   % Unobtrusive output to screen of the current trial number
     Screen('DrawTexture', wPtr, image_texture(i), [], stimulus_bbox); %Fill the buffer with the first texture
     [~, stimOnsetTime] = Screen('Flip', wPtr, stimOnsetTime + frame_duration);
-    %update the display in stimulus_fps after the last Flip?
-    
-    Screen('Close', image_texture(i));% To save on memory and processing time, close textures
 end
 
+% Close textures to avoid memory problems.
+for i = 1:Data.number_of_images
+    Screen('Close', image_texture(i));
+end
 
 show_left_patch = Screen('MakeTexture', wPtr, imresize(left_patch, Data.screen_resolution, 'nearest'));
 Screen('DrawTexture', wPtr, show_left_patch, [], [xc-res*4-200 yc-res*4 xc+res*4-200 yc+res*4]);   % xc, yc indicates the coordinates of the middle of the screen
