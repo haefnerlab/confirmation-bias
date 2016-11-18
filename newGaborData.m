@@ -21,11 +21,11 @@ total_trials = GaborData.trials_per_block * GaborData.blocks;
 
 % Initial values of staircase-able parameters
 GaborData.contrast = zeros(1, total_trials);
-GaborData.contrast(1) = get_arg('contrast', 64);
+GaborData.contrast(1) = get_arg('contrast', 32);
 GaborData.ratio = zeros(1, total_trials);
-GaborData.ratio(1) = get_arg('ratio', 0.9);
+GaborData.ratio(1) = get_arg('ratio', 0.8);
 GaborData.pixel_noise = zeros(1, total_trials);
-GaborData.pixel_noise(1) = get_arg('pixel_noise', 4); % standard deviation of pixel noise
+GaborData.pixel_noise(1) = get_arg('pixel_noise', 1); % standard deviation of pixel noise
 GaborData.step_size = zeros(1, total_trials);
 
 % Staircase bounds and step size, with defaults set depending on stair_fn
