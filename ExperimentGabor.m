@@ -1,32 +1,16 @@
-function [] = ExperimentGabor(subjectID, automatic, phase, directory, varargin)
+function [GaborData, image_collection] = ExperimentGabor(subjectID, GaborData, varargin)
 
-% Example Input - ExperimentGabor('Matthew', 0, '/Users/bcs206/Documents/Summer/')
-
-% This functions initializes and runs an experiment using PsychToolBox
-
-% subjectID is a string to dictate which subject is currently running the
-% experiment. Ex. Experiment('01')
-
-% automatic determines if it's to be a person or the computer running the experiment
-% Ex. Experiment('01', 0) = person, Experiment('01', 1) = computer auto-runs the ideal observer
-
-% directory allows this code to be able to create and save files of the subject data on any computer
-
-
-
-if ~exist('automatic','var') || ~exist('directory','var')
-    automatic = 0;       % 0 = normal subject, 1 = ideal observer auto running the experiment
-    phase = 0;           % 0 = contrast experiment, 1 = ratio experiment
-    directory = pwd;     % Make it equal to the current directory
-end
-
+directory = fullfile(pwd, '..');
 settings = LoadSettings(directory);
 
-%% Set Up the Initialization of the expeirment
+datadir = fullfile(directory, 'RawData');
+if ~exist(datadir, 'dir'), mkdir(datadir); end
+
+%% Environment and PsychToolBox Initialization
 cd(fullfile(directory, 'Code')) % Set the current directory
 commandwindow; % Moves the cursor to the commandwindow
 
-if settings.useOpenGL, InitializeMatlabOpenGL; end
+% if settings.useOpenGL, InitializeMatlabOpenGL; end
 
 % Screen set up
 whichScreen = settings.whichScreen; %allow to choose the display if there's more than one
@@ -39,18 +23,15 @@ Screen('Preference', 'SkipSyncTests', settings.ptbSkipSyncTests); % Opens Screen
 white = [255 255 255];          % Sets the color to be white
 black = [0 0 0];                % Sets the color to be black
 
-%% Creates a small window instead of using the full screen
-% Mainly to allow screenshots
-
 [wPtr, ~] = Screen('OpenWindow', whichScreen, black, [], 32); % Opens window, sets background as black, sets screensize
-
-
+HideCursor(whichScreen);
 
 if ~isempty(settings.gammaTableFile)
     gtdata = load(settings.gammaTableFile);
     Screen('LoadNormalizedGammaTable', wPtr, gtdata.(settings.gammaTable)*[1 1 1]);
 end
 
+% Set up eye tracker, passing through any remaining varargin
 tracker_info = EyeTracker.initEyeTracker(whichScreen, ...
     'fixationSymbol', 'b', ...
     'fixationCenter', [xc, 50], ...
@@ -58,587 +39,217 @@ tracker_info = EyeTracker.initEyeTracker(whichScreen, ...
     'fixationRadius', 18, ...
     varargin{:});
 
-%% Set up keyboard functions
+% Set up keyboard functions
 KbName('UnifyKeyNames');
 goKey = KbName(settings.keyGo);
 exitKey = KbName(settings.keyExit);
 
-%% This is the first preliminary phase with a constant ratio (10, 0) and finding the threshold contrast
-HideCursor(whichScreen)
-if phase == 0
-    
-    EyeTracker.AutoCalibrate(tracker_info);
-    
-    fileName = fullfile(directory, 'RawData', [subjectID '-GaborDataContrast.mat']); % Set the desired filename of the experimental data
-    if ~exist(fileName, 'file') % Check to see if the subject has already done the preliminary phase or not
-        
-        %% Instruction Screen
-        Screen('TextSize', wPtr, 20); % Set text size to 20
-        Screen('FillRect', wPtr, 127);
-        Screen('DrawText', wPtr, 'You will see a series of images flashing very quickly in the middle of the screen.', xc-500, yc-150, white);
-        Screen('DrawText', wPtr, 'You are required to keep your eyes on the bull''s eye target below the images.', xc-500, yc-100, white);
-        Screen('DrawText', wPtr, 'Then you will be shown two images.', xc-500, yc-50, white);
-        Screen('DrawText', wPtr, 'You will have to decide which image appeared more frequently.', xc-500, yc, white);
-        Screen('DrawText', wPtr, sprintf('Select the image positioned to the left or right by pressing %s or %s respectively', settings.keyLeftName, settings.keyRightName), xc-500, yc+50, white);
-        Screen('DrawText', wPtr, 'Ask the researcher if you need further clarification.', xc-500, yc+100, white);
-        Screen('DrawText', wPtr, sprintf('Press %s to begin.', settings.keyGoName), xc-500, yc+150, white);    % Display text colored white
-        Screen('Flip', wPtr); % Function to flip to the next screen image
-        [~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
-        while ~keyCode(goKey)        % While loop to wait for the spacebar to be pressed
-            [~, ~, keyCode] = KbCheck;
-        end
-        Screen('Flip', wPtr); % Function to flip to the next screen image
-        
-        %% Preliminary Calibration Phase
-        
-        % Set up struct to store data/answers
-        preliminary_trials = 100;
-        loops = 4;
-        
-        Preliminary_Data.move_on = zeros(1,preliminary_trials*loops);          % Is the subject ready to move on or not? Always 0 or 1 for how many trials they got right so far
-        Preliminary_Data.step_size = zeros(1,preliminary_trials*loops);        % By how much to adjust the contrast [1.5, 1.2, or 1.1]
-        Preliminary_Data.reversal_counter = zeros(1,preliminary_trials*loops);   % How many trials has the subject got wrong? When to change the step size?
-        Preliminary_Data.contrast = zeros(1,preliminary_trials*loops);         % How loud the sound is, or the signal level
-        Preliminary_Data.pixel_noise = 4;
-        Preliminary_Data.number_of_images = 10;
-        Preliminary_Data.correct_answer = zeros(1,preliminary_trials*loops);         % What was the right ear/answer?
-        Preliminary_Data.staircase_answer = zeros(1,preliminary_trials*loops);         % What was the right ear/answer?
-        Preliminary_Data.reaction_time = zeros(1,preliminary_trials*loops);          % How quick is the subject to input their answer for the orientation choice? Recorded in ms
-        Preliminary_Data.choice = zeros(1,preliminary_trials*loops);                 % Which ear did the subject choose? 1 = left, 0 = right
-        Preliminary_Data.accuracy = zeros(1,preliminary_trials*loops);               % Did the subject make the right selection? 1 = yes, 0 = no
-        Preliminary_Data.order_of_orientations = zeros(preliminary_trials*loops,Preliminary_Data.number_of_images);        % Record the randomized order of image orientations throughout the trial
-        Preliminary_Data.log_odds = zeros(1,preliminary_trials*loops);
-        Preliminary_Data.ratio = zeros(1,preliminary_trials*loops);
-        Preliminary_Data.average_orientations = zeros(2,preliminary_trials*loops);
-        
-        Preliminary_Data.current_trial = 0;
-        
-        
-        Preliminary_Data.screen_frame = 12;	% how long each image will show on screen in frame rates
-        Preliminary_Data.screen_resolution = 25;          % how many pixels correspond to a single datapoint of a gabor
-        Preliminary_Data.image_length_x = 5;  % Size of the image along x-axis
-        Preliminary_Data.image_length_y = 5;
-        
-        Preliminary_Data.image_template1 = zeros(preliminary_trials*loops,Preliminary_Data.number_of_images);
-        Preliminary_Data.image_template2 = zeros(preliminary_trials*loops,Preliminary_Data.number_of_images);
-        Preliminary_Data.image_template_difference = zeros(preliminary_trials*loops,Preliminary_Data.number_of_images);
-        
-        Preliminary_Data.eye_tracker_points = {};
-        
-        Preliminary_Data.left_template = eye(Preliminary_Data.image_length_y, Preliminary_Data.image_length_x);
-        Preliminary_Data.right_template = rot90(Preliminary_Data.left_template);
-        
-        
-        image_collection = zeros(preliminary_trials*loops, Preliminary_Data.number_of_images, ...
-            Preliminary_Data.image_length_x, Preliminary_Data.image_length_y);
-        
-        max_contrast = 128.0;      % Starting background contrast level
-        contrast = max_contrast;
-        move_on = 0;        % Did the subject get two correct trials yet?
-        step_size = 2.0;    % How strongly should the contrast level be adjusted?
-        previous_trial = 1;     % Tracks if the subject was right or wrong last trial (1 is right and 0 is wrong on previous_trial trial)
-        reversal_counter = 0;	% Tracks how many reversals the subject has gotten so far
-        
-        % Begin Preliminary Trials
-        flag=0;
-        i=1;
-        while i <= preliminary_trials * loops
-            
-            if mod(i,preliminary_trials) == 1
-                if i~=1
-                    flag=flag+1;
-                    if automatic == 0 && flag==1
-                        sounds(-1, 1.5);
-                        Screen('TextSize', wPtr, 20); % Set text size to 20
-                        Screen('DrawText', wPtr, 'You have completed a block.', xc-500, yc-150, white);
-                        Screen('DrawText', wPtr, 'You may take a break if you want!', xc-500, yc-100, white);
-                        Screen('DrawText', wPtr, sprintf('Press %s whenever you are ready again.', settings.keyGoName), xc-500, yc-50, white);
-                        
-                        Screen('Flip', wPtr); % Function to flip to the next screen image
-                        [~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
-                        while ~keyCode(goKey)        % While loop to wait for the spacebar to be pressed
-                            [~, ~, keyCode] = KbCheck;
-                        end
-                        Screen('Flip', wPtr);
-                    end
-                end
-                contrast = max_contrast;
-                move_on = 0;
-                step_size = 2.0;
-                previous_trial = 1;
-                reversal_counter = 0;
-            else
-                flag=0;
-            end
-            
-            Preliminary_Data.current_trial = i;
-            
-            Preliminary_Data.move_on(i) = move_on;
-            Preliminary_Data.step_size(i) = step_size;
-            Preliminary_Data.reversal_counter(i) = reversal_counter;
-            Preliminary_Data.contrast(i) = contrast;
-            
-            % This sets the orientations, the probabilities for each
-            % orientation, and their ratios to each orientation
-            
-            if rand < 0.5   % The left ear will hear more clicks
-                Preliminary_Data.average_orientations(1,i) = Preliminary_Data.number_of_images;
-                Preliminary_Data.average_orientations(2,i) = 0;
-                desired_orientations = 1;        % Left Orientation
-                probabilities = [1];             % 100% chance of only one orientation
-                Preliminary_Data.correct_answer(i) = 1;	% Since left appears >= than the right orientation, it's the correct answer
-                %Preliminary_Data.staircase_answer(i) = 1;
-                Preliminary_Data.ratio(i) = Preliminary_Data.number_of_images;  % Use only the one orientation
-            else            % The right ear will hear more clicks
-                Preliminary_Data.average_orientations(1,i) = 0;
-                Preliminary_Data.average_orientations(2,i) = Preliminary_Data.number_of_images;
-                desired_orientations = 0;        % Right Orientation
-                probabilities = [1];             % 100% chance of only one orientation
-                Preliminary_Data.correct_answer(i) = 0;	% Since right appears >= than the left orientation, it's the correct answer
-                % Preliminary_Data.staircase_answer(i) = 0;
-                Preliminary_Data.ratio(i) = Preliminary_Data.number_of_images;  % Use only the one orientation
-            end
-            
-            % Function to generate the orientations of all images in the
-            % trial and determine correct orientation to select
-            [order_of_orientations, correct_orientation_answer] = makeOrientations(desired_orientations, probabilities, Preliminary_Data.number_of_images);
-            
-            % A function to generate a struct containing properties of the images used in this trial, I,
-            % and an collection of the gabors which will be displayed to the screen, image_array
-            image_array = makeImages(Preliminary_Data, order_of_orientations, contrast);
-            
-            % Store all images shown
-            image_collection(i,:,:,:) = image_array;
-            
-            Preliminary_Data.order_of_orientations(i,:) = order_of_orientations;  % Record random ordering of all orientations
-            
-            % Pass in the contrast level, all of the images, screen being
-            % used, subject ID, the struct with all of the data, and the
-            % fact it's the person or computer running the experiment
-            [I, eye_tracker_points, broke_fixation,quit] = trialStimuliGabor(i, image_array, wPtr, subjectID, Preliminary_Data, automatic, phase, directory, tracker_info, settings);
-            
-            
-            if quit==1
-                
-                if ~exist(directory, 'dir')
-                    mkdir(directory);
-                    
-                    fileName = fullfile(directory, 'RawData', [subjectID '-GaborDataContrastQuit.mat']); % create a name for the data you want to save as a csv
-                    save(fileName, 'Preliminary_Data','image_collection'); % save the data
-                else
-                    fileName = fullfile(directory, 'RawData', [subjectID '-GaborDataContrastQuit.mat']); % create a name for the data you want to save as a csv
-                    save(fileName, 'Preliminary_Data','image_collection'); % save the data
-                end
-                
-                ShowCursor([],whichScreen)
-                sca; % closes screen
-                return
-            end
-            
-            
-            
-            
-            
-            if broke_fixation
-                Screen('FillRect', wPtr, 127);
-                Screen('Flip', wPtr);
-                sounds(2, 0.2);
-                pause(1);
-                continue;
-            end
-            
-            Preliminary_Data.eye_tracker_points{i} = eye_tracker_points;
-            
-            Preliminary_Data.reaction_time(i) = I.reaction;
-            Preliminary_Data.choice(i) = I.choice; % If 1, subject chose left, and if 0, the subject chose right
-            Preliminary_Data.log_odds(i) = I.log_odds;
-            
-            for k = 1:Preliminary_Data.number_of_images
-                Preliminary_Data.image_template1(i,k) = I.log_regress(1,k);   % Log odds for left orientation image
-                Preliminary_Data.image_template2(i,k) = I.log_regress(2,k);   % Log odds for right orientation image
-                Preliminary_Data.image_template_difference(i,k) = I.log_regress(3,k);   % Log odds for difference in above two images image
-            end
-            
-            % The staircase is based on the actual click rate, not on the underlying number of clicks each ear hears
-            Preliminary_Data.staircase_answer(i) = correct_orientation_answer;     % If 1, the answer was left, and if 0, the answer was right
-            
-            %% Feedback & Accuracy
-            if (Preliminary_Data.choice(i) == 1 && Preliminary_Data.correct_answer(i) == 1) || (Preliminary_Data.choice(i) == 0 && Preliminary_Data.correct_answer(i) == 0)
-                Preliminary_Data.accuracy(i) = 1;	% 1 is true for accuracy
-                if automatic == 0
-                    sounds(1, 0.2);              % Beep for correct when it's the person running the experiment
-                end
-                
-            elseif (Preliminary_Data.choice(i) == 1 && Preliminary_Data.correct_answer(i) == 0) || (Preliminary_Data.choice(i) == 0 && Preliminary_Data.correct_answer(i) == 1)
-                Preliminary_Data.accuracy(i) = 0;	% 0 is false for inaccuracy
-                if automatic == 0
-                    sounds(0, 0.2);              % Buzz for wrong when it's the person running the experiment
-                end
-                
-            elseif (isnan(Preliminary_Data.choice(i)) )
-                %Preliminary_Data.accuracy(i) = 0;	% 0 is false for inaccuracy
-                if automatic == 0
-                    sounds(2, 0.2);              % Buzz for wrong when it's the person running the experiment
-                end
-            end
-            
-            %% Staircase method to move on
-            if (Preliminary_Data.choice(i) == 1 && Preliminary_Data.staircase_answer(i) == 1) || (Preliminary_Data.choice(i) == 0 && Preliminary_Data.staircase_answer(i) == 0)
-                
-                move_on = move_on + 1;	% if right, we increment move_on and later check it to decrease contrast level
-                if previous_trial == 0    % if the subject got the last trial wrong
-                    previous_trial = 1;       % staircase is reversing
-                    reversal_counter = reversal_counter+1;
-                end
-            elseif (Preliminary_Data.choice(i) == 1 && Preliminary_Data.staircase_answer(i) == 0) || (Preliminary_Data.choice(i) == 0 && Preliminary_Data.staircase_answer(i) == 1)
-                
-                move_on = 0;            % if wrong, we reset move_on to 0 and later increase the contrast level
-                if previous_trial == 1    % if the subject got the last trial right
-                    previous_trial = 0;       % staircase is reversing
-                    reversal_counter = reversal_counter+1;
-                end
-            end
-            if automatic == 0
-                pause(.5); % Pause for 500 ms after feedback before next trial
-            end
-            
-            if reversal_counter == 10       % It's a rule of thumb for when it's time to change the step size, since the subject has reversed 15 times
-                reversal_counter = 0; % Reset counter
-                if step_size == 2.0
-                    step_size = 1.5;
-                elseif step_size == 1.5
-                    step_size = 1.2;
-                elseif step_size == 1.2      % Note that we never go back up a step size
-                    step_size = 1.1;
-                else
-                    reversal_counter = 11;
-                end
-            end
-            
-            if move_on == 0 && ~isnan(Preliminary_Data.choice(i))
-                if contrast < max_contrast
-                    contrast = contrast*step_size;		% Subject got the trial wrong and the contrast needs to be increased
-                else
-                    contrast = max_contrast;
-                end
-            elseif move_on == 2 && ~isnan(Preliminary_Data.choice(i))
-                move_on = 0;                    	% Subject got two trials right and it's time to lower the contrast level
-                contrast = contrast/step_size;
-            end
-            % if move_on is equal to 1, then nothing needs to be changed
-            
-            if contrast > max_contrast
-                contrast = max_contrast;  % Just an insurance measure to keep the contrast from going over the maximum value allowed
-            end
-            
-            % Maybe save the data after every nth trial? Remember, you're saving images too, so there's a noticiable delay between trials for the subjects
-            if ~isnan(Preliminary_Data.choice(i)) || Preliminary_Data.choice(i)==-1
-                i=i+1;
-            end
-        end
-        
-        %% Save final data to folder
-        if ~exist(directory, 'dir') % Check the directory actually exists
-            mkdir(directory);
-            fileName = fullfile(directory, 'RawData', [subjectID '-GaborDataContrast.mat']); % create a name for the data you want to save
-            save(fileName, 'Preliminary_Data', 'image_collection'); % save the data
-        else
-            fileName = fullfile(directory, 'RawData', [subjectID '-GaborDataContrast.mat']); % create a name for the data you want to save
-            save(fileName, 'Preliminary_Data', 'image_collection'); % save the data
-        end
-    end
-    
-elseif phase == 1
-    
-    %% This is the second preliminary phase with a constant contrast (max contrast of 223) and finding the threshold ratio
-    
-    EyeTracker.AutoCalibrate(tracker_info);
-    
-    fileName = fullfile(directory, 'RawData', [subjectID '-GaborDataRatio.mat']); % Set the desired filename of the experimental data
-    if ~exist(fileName, 'file') % Check to see if the subject has already done the preliminary phase or not
-        
-        %% Instruction Screen
-        Screen('TextSize', wPtr, 20); % Set text size to 20
-        Screen('FillRect', wPtr, 127);
-        Screen('DrawText', wPtr, 'You will see a series of images flashing very quickly in the middle of the screen.', xc-500, yc-150, white);
-        Screen('DrawText', wPtr, 'You are required to keep your eyes on the bull''s eye target below the images.', xc-500, yc-100, white);
-        Screen('DrawText', wPtr, 'Then you will be shown two images.', xc-500, yc-50, white);
-        Screen('DrawText', wPtr, 'You will have to decide which image appeared more frequently.', xc-500, yc, white);
-        Screen('DrawText', wPtr, sprintf('Select the image positioned to the left or right by pressing %s or %s respectively', settings.keyLeftName, settings.keyRightName), xc-500, yc+50, white);
-        Screen('DrawText', wPtr, 'Ask the researcher if you need further clarification.', xc-500, yc+100, white);
-        Screen('DrawText', wPtr, sprintf('Press %s to begin.', settings.keyGoName), xc-500, yc+150, white);    % Display text colored white
-        Screen('Flip', wPtr); % Function to flip to the next screen image
-        [~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
-        while ~keyCode(goKey)        % While loop to wait for the spacebar to be pressed
-            [~, ~, keyCode] = KbCheck;
-        end
-        Screen('Flip', wPtr); % Function to flip to the next screen image
-        
-        %% Preliminary Calibration Phase
-        
-        % Set up struct to store data/answers
-        preliminary_trials = 100;
-        loops = 4;
-        
-        Preliminary_Data.move_on = zeros(1,preliminary_trials*loops);          % Is the subject ready to move on or not? Always 0 or 1 for how many trials they got right so far
-        Preliminary_Data.step_size = zeros(1,preliminary_trials*loops);        % By how much to adjust the contrast [1.5, 1.2, or 1.1]
-        Preliminary_Data.reversal_counter = zeros(1,preliminary_trials*loops);   % How many trials has the subject got wrong? When to change the step size?
-        Preliminary_Data.contrast = zeros(1,preliminary_trials*loops);         % How loud the sound is, or the signal level
-        Preliminary_Data.pixel_noise = 4;
-        Preliminary_Data.number_of_images = 10;
-        Preliminary_Data.correct_answer = zeros(1,preliminary_trials*loops);         % What was the right ear/answer?
-        Preliminary_Data.staircase_answer = zeros(1,preliminary_trials*loops);         % What was the right ear/answer?
-        Preliminary_Data.reaction_time = zeros(1,preliminary_trials*loops);          % How quick is the subject to input their answer for the orientation choice? Recorded in ms
-        Preliminary_Data.choice = zeros(1,preliminary_trials*loops);                 % Which ear did the subject choose? 1 = left, 0 = right
-        Preliminary_Data.accuracy = zeros(1,preliminary_trials*loops);               % Did the subject make the right selection? 1 = yes, 0 = no
-        Preliminary_Data.order_of_orientations = zeros(preliminary_trials*loops,Preliminary_Data.number_of_images);        % Record the randomized order of image orientations throughout the trial
-        Preliminary_Data.log_odds = zeros(1,preliminary_trials*loops);
-        Preliminary_Data.ratio = zeros(1,preliminary_trials*loops);
-        Preliminary_Data.average_orientations = zeros(2,preliminary_trials*loops);
-        
-        Preliminary_Data.current_trial = 0;
-        
-        
-        Preliminary_Data.screen_frame = 12;	% how long each image will show on screen in frame rates
-        Preliminary_Data.screen_resolution = 25;          % how many pixels correspond to a single datapoint of a gabor
-        Preliminary_Data.image_length_x = 5;  % Size of the image along x-axis
-        Preliminary_Data.image_length_y = 5;
-        
-        Preliminary_Data.image_template1 = zeros(preliminary_trials*loops,Preliminary_Data.number_of_images);
-        Preliminary_Data.image_template2 = zeros(preliminary_trials*loops,Preliminary_Data.number_of_images);
-        Preliminary_Data.image_template_difference = zeros(preliminary_trials*loops,Preliminary_Data.number_of_images);
-        
-        image_collection = zeros(preliminary_trials*loops, Preliminary_Data.number_of_images, ...
-            Preliminary_Data.image_length_x, Preliminary_Data.image_length_y);
-        
-        ratio_sum = Preliminary_Data.number_of_images;
-        max_ratio = Preliminary_Data.number_of_images;      % Starting ratio of clicks, 20 for one ear and 4 for the other ear
-        ratio = max_ratio;
-        step_size = 1;    % How strongly should the contrast level be adjusted?
-        move_on = 0;        % Did the subject get two correct trials yet?
-        previous_trial = 1;     % Tracks if the subject was right or wrong last trial (1 is right and 0 is wrong on previous_trial trial)
-        reversal_counter = 0;	% Tracks how many reversals the subject has gotten so far
-        
-        contrast = 64;      % High Contrast
-        
-        % Begin Preliminary Trials
-        i=1;
-        flag=0;
-        while i <= preliminary_trials * loops
-            
-            if mod(i,preliminary_trials) == 1
-                if i~=1
-                    flag=flag+1;
-                    if automatic == 0 && flag==1
-                        sounds(-1, 1.5);
-                        Screen('TextSize', wPtr, 20); % Set text size to 20
-                        Screen('DrawText', wPtr, 'You finished a block.', xc-500, yc-150, white);
-                        Screen('DrawText', wPtr, 'You may take a break!', xc-500, yc-100, white);
-                        Screen('DrawText', wPtr, sprintf('Press %s whenever you are ready again.', settings.keyGoName), xc-500, yc-50, white);
-                        
-                        Screen('Flip', wPtr); % Function to flip to the next screen image
-                        [~, ~, keyCode] = KbCheck;      % Variable to track the next keyboard press
-                        while ~keyCode(goKey)        % While loop to wait for the spacebar to be pressed
-                            [~, ~, keyCode] = KbCheck;
-                        end
-                        Screen('Flip', wPtr);
-                    end
-                end
-                
-                ratio = max_ratio;
-                move_on = 0;
-                step_size = 1.0;
-                previous_trial = 1;
-                reversal_counter = 0;
-            else
-                flag=0;
-            end
-            
-            Preliminary_Data.current_trial = i;
-            
-            Preliminary_Data.move_on(i) = move_on;
-            Preliminary_Data.step_size(i) = step_size;
-            Preliminary_Data.reversal_counter(i) = reversal_counter;
-            Preliminary_Data.contrast(i) = contrast;
-            
-            Preliminary_Data.left_template = eye(Preliminary_Data.image_length_y, Preliminary_Data.image_length_x);
-            Preliminary_Data.right_template = rot90(Preliminary_Data.left_template);
-            
-            
-            % This sets the orientations, the probabilities for each
-            % orientation, and their ratios to each orientation
-            
-            if rand < 0.5   % The left ear will hear more clicks
-                Preliminary_Data.average_orientations(1,i) = ratio;
-                Preliminary_Data.average_orientations(2,i) = ratio_sum - ratio;
-                desired_orientations = [1, 0];        % Left Orientation
-                probabilities = [ratio/ratio_sum, (ratio_sum - ratio)/ratio_sum];		% Calculates % of images for one orientation vs another orientation
-                Preliminary_Data.correct_answer(i) = 1;	% Since left appears >= than the right orientation, it's the correct answer
-                Preliminary_Data.ratio(i) = ratio;  % Use only the one orientation
-            else            % The right ear will hear more clicks
-                Preliminary_Data.average_orientations(1,i) = ratio_sum - ratio;
-                Preliminary_Data.average_orientations(2,i) = ratio;
-                desired_orientations = [0, 1];        % Right Orientation
-                probabilities = [ratio/ratio_sum, (ratio_sum - ratio)/ratio_sum];		% Calculates % of images for one orientation vs another orientation
-                Preliminary_Data.correct_answer(i) = 0;	% Since right appears >= than the left orientation, it's the correct answer
-                Preliminary_Data.ratio(i) = ratio;  % Use only the one orientation
-            end
-            
-            % Function to generate the orientations of all images in the
-            % trial and determine correct orientation to select
-            [order_of_orientations, correct_orientation_answer] = makeOrientations(desired_orientations, probabilities, Preliminary_Data.number_of_images);
-            Preliminary_Data.correct_answer(i) = correct_orientation_answer;
-            % A function to generate a struct containing properties of the images used in this trial, I,
-            % and an collection of the gabors which will be displayed to the screen, image_array
-            image_array = makeImages(Preliminary_Data, order_of_orientations, contrast);
-            
-            % Store all images shown
-            image_collection(i,:,:,:) = image_array;
-            
-            Preliminary_Data.order_of_orientations(i,:) = order_of_orientations;  % Record random ordering of all orientations
-            
-            % Pass in the contrast level, all of the images, screen being
-            % used, subject ID, the struct with all of the data, and the
-            % fact it's the person or computer running the experiment
-            [I, eye_tracker_points, broke_fixation,quit] = trialStimuliGabor(i, image_array, wPtr, subjectID, Preliminary_Data, automatic, phase, directory, tracker_info, settings);
-            
-            if quit==1
-                
-                if ~exist(directory, 'dir')
-                    mkdir(directory);
-                    
-                    fileName = fullfile(directory, 'RawData', [subjectID '-GaborDataRatioQuit.mat']); % create a name for the data you want to save as a csv
-                    save(fileName, 'Preliminary_Data','image_collection'); % save the data
-                else
-                    fileName = fullfile(directory, 'RawData', [subjectID '-GaborDataRatioQuit.mat']); % create a name for the data you want to save as a csv
-                    save(fileName, 'Preliminary_Data','image_collection'); % save the data
-                end
-                
-                ShowCursor([],whichScreen)
-                sca; % closes screen
-                return
-            end
-            
-            
-            if broke_fixation
-                Screen('FillRect', wPtr, 127);
-                Screen('Flip', wPtr);
-                sounds(2, 0.2);
-                pause(1);
-                continue;
-            end
-            Preliminary_Data.eye_tracker_points{i} = eye_tracker_points;
-            
-            %% The staircase is based on the actual click rate, not on the underlying number of clicks each ear hears
-            if sum(Preliminary_Data.order_of_orientations(i,:)) > Preliminary_Data.number_of_images/2
-                Preliminary_Data.staircase_answer(i) = 1;     % If 1, the answer was left, and if 0, the answer was right
-            elseif sum(Preliminary_Data.order_of_orientations(i,:)) < Preliminary_Data.number_of_images/2
-                Preliminary_Data.staircase_answer(i) = 0;
-            else % the ears have an equal underlying click rate
-                if rand < 0.5
-                    Preliminary_Data.staircase_answer(i) = 1;
-                else
-                    Preliminary_Data.staircase_answer(i) = 0;
-                end
-            end
-            
-            Preliminary_Data.reaction_time(i) = I.reaction;
-            Preliminary_Data.choice(i) = I.choice; % If 1, subject chose left, and if 0, the subject chose right
-            Preliminary_Data.log_odds(i) = I.log_odds;
-            
-            for k = 1:Preliminary_Data.number_of_images
-                Preliminary_Data.image_template1(i,k) = I.log_regress(1,k);   % Log odds for left orientation image
-                Preliminary_Data.image_template2(i,k) = I.log_regress(2,k);   % Log odds for right orientation image
-                Preliminary_Data.image_template_difference(i,k) = I.log_regress(3,k);   % Log odds for difference in above two images image
-            end
-            
-            %% Feedback & Accuracy
-            if (Preliminary_Data.choice(i) == 1 && Preliminary_Data.correct_answer(i) == 1) || (Preliminary_Data.choice(i) == 0 && Preliminary_Data.correct_answer(i) == 0)
-                Preliminary_Data.accuracy(i) = 1;	% 1 is true for accuracy
-                if automatic == 0
-                    sounds(1, 0.2);              % Beep for correct when it's the person running the experiment
-                end
-                
-            elseif (Preliminary_Data.choice(i) == 1 && Preliminary_Data.correct_answer(i) == 0) || (Preliminary_Data.choice(i) == 0 && Preliminary_Data.correct_answer(i) == 1)
-                Preliminary_Data.accuracy(i) = 0;	% 0 is false for inaccuracy
-                if automatic == 0
-                    sounds(0, 0.2);              % Buzz for wrong when it's the person running the experiment
-                end
-                
-            elseif (isnan(Preliminary_Data.choice(i)) )
-                
-                if automatic == 0
-                    sounds(2, 0.2);              % Buzz for wrong when it's the person running the experiment
-                end
-            end
-            
-            %% Staircase and Accuracy
-            
-            if (Preliminary_Data.choice(i) == 1 && Preliminary_Data.staircase_answer(i) == 1) || (Preliminary_Data.choice(i) == 0 && Preliminary_Data.staircase_answer(i) == 0)
-                
-                move_on = move_on + 1;	% if right, we increment move_on and later check it to decrease contrast level
-                if previous_trial == 0    % if the subject got the last trial wrong
-                    previous_trial = 1;       % staircase is reversing
-                    reversal_counter = reversal_counter+1;
-                end
-            elseif (Preliminary_Data.choice(i) == 1 && Preliminary_Data.staircase_answer(i) == 0) || (Preliminary_Data.choice(i) == 0 && Preliminary_Data.staircase_answer(i) == 1)
-                
-                move_on = 0;            % if wrong, we reset move_on to 0 and later increase the contrast level
-                if previous_trial == 1    % if the subject got the last trial right
-                    previous_trial = 0;       % staircase is reversing
-                    reversal_counter = reversal_counter+1;
-                end
-            end
-            if automatic == 0
-                pause(.6); % Pause for 600 ms after feedback before next trial
-            end
-            if reversal_counter == 5       % It's a rule of thumb for when it's time to change the step size, since the subject has reversed 5 times
-                reversal_counter = 0;  % Reset counter
-                if step_size == 1
-                    step_size = 0.5;
-                elseif step_size == 0.5
-                    step_size = 0.25;
-                else
-                    reversal_counter = 6;
-                end
-            end
-            
-            if move_on == 0 && ~isnan(Preliminary_Data.choice(i))
-                if ratio < max_ratio
-                    ratio = ratio + step_size;
-                end
-                if ratio > max_ratio
-                    ratio = max_ratio;  % Just an insurance measure to keep the ratio from going too high
-                end
-            elseif move_on == 2 && ~isnan(Preliminary_Data.choice(i))
-                move_on = 0;                    	% Subject got two trials right and it's time to decrease the contrast level
-                ratio = ratio - step_size;
-                if ratio < ratio_sum/2
-                    ratio = ratio_sum/2;  % To set a minimum level for the staircase
-                end
-            end
-            % if move_on is equal to 1, then nothing needs to be changed
-            if ratio > max_ratio
-                ratio = max_ratio;  % Just an insurance measure to keep the contrast from going over the maximum value allowed
-            end
-            
-            % Maybe save the data after every nth trial? Remember, you're saving images too, so there's a noticiable delay between trials for the subjects
-            if ~isnan(Preliminary_Data.choice(i))
-                i=i+1;
-            end
-        end
-        
-        %% Save final data to folder
-        if ~exist(directory, 'dir') % Check the directory actually exists
-            mkdir(directory);
-            fileName = fullfile(directory, 'RawData', [subjectID '-GaborDataRatio.mat']); % create a name for the data you want to save
-            save(fileName, 'Preliminary_Data', 'image_collection'); % save the data
-        else
-            fileName = fullfile(directory, 'RawData', [subjectID '-GaborDataRatio.mat']); % create a name for the data you want to save
-            save(fileName, 'Preliminary_Data', 'image_collection'); % save the data
-        end
-    end
+if isequal(GaborData.stair_fn, @GaborStaircase.contrast)
+    fileName = fullfile(datadir, [subjectID '-GaborDataContrast.mat']);
+    fileNameQuit = fullfile(datadir, [subjectID '-GaborDataContrastQuit.mat']);
+elseif isequal(GaborData.stair_fn, @GaborStaircase.ratio)
+    fileName = fullfile(datadir, [subjectID '-GaborDataRatio.mat']);
+    fileNameQuit = fullfile(datadir, [subjectID '-GaborDataRatioQuit.mat']);
+elseif isequal(GaborData.stair_fn, @GaborStaircase.pixel_noise)
+    fileName = fullfile(datadir, [subjectID '-GaborDataNoise.mat']);
+    fileNameQuit = fullfile(datadir, [subjectID '-GaborDataNoiseQuit.mat']);
+else
+    warning('No staircase-specific suffix on save name!');
+    fileName = fullfile(datadir, [subjectID '.mat']);
+    fileNameQuit = fullfile(datadir, [subjectID 'Quit.mat']);
 end
-ShowCursor([],whichScreen)
-Screen('CloseAll'); % close screen
+if exist(fileName, 'file')
+    Screen('CloseAll');
+    error('Data for %s already exists', fileName);
+end
+
+%% Begin experiment
+EyeTracker.AutoCalibrate(tracker_info);
+
+% Instruction Screen
+Screen('TextSize', wPtr, 20); % Set text size to 20
+Screen('FillRect', wPtr, 127);
+Screen('DrawText', wPtr, 'You will see a series of images flashing very quickly at the bottom of the screen.', xc-500, yc-150, white);
+Screen('DrawText', wPtr, 'You are required to keep your eyes on the bull''s eye target at the top of the screen.', xc-500, yc-100, white);
+Screen('DrawText', wPtr, 'Then you will be shown two images.', xc-500, yc-50, white);
+Screen('DrawText', wPtr, 'You will have to decide which image appeared more frequently.', xc-500, yc, white);
+Screen('DrawText', wPtr, sprintf('Select the image positioned to the left or right by pressing %s or %s respectively', settings.keyLeftName, settings.keyRightName), xc-500, yc+50, white);
+Screen('DrawText', wPtr, 'Ask the researcher if you need further clarification.', xc-500, yc+100, white);
+Screen('DrawText', wPtr, sprintf('Press %s to begin.', settings.keyGoName), xc-500, yc+150, white);    % Display text colored white
+Screen('Flip', wPtr); % Function to flip to the next screen image
+if ptbWaitKey([goKey exitKey]) == exitKey
+    Screen('CloseAll');
+    return;
+end
+Screen('Flip', wPtr); % Function to flip to the next screen image
+
+% Preallocate images
+image_collection = zeros(GaborData.blocks * GaborData.trials_per_block, ...
+    GaborData.number_of_images, ...
+    GaborData.image_length_x, ...
+    GaborData.image_length_y);
+
+    function earlyQuit
+        save(fileNameQuit, 'GaborData', 'image_collection');
+        ShowCursor(whichScreen);
+        Screen('CloseAll');
+    end
+
+% Begin Preliminary Trials
+seen_block_notification = false;
+trial = 1;
+block_trial = 1;
+% Using 'while' rather than 'for' since invalid trials (broke fixation or
+% didn't respond in time) don't increment 'trial'.
+try
+    while trial <= GaborData.trials_per_block * GaborData.blocks
+
+        %% Bookkeeping to set up trial
+
+        GaborData.current_trial = trial;
+        % Reset params at the start of each block
+        if mod(trial, GaborData.trials_per_block) == 1
+            % Display a message if this is the beginning of the second or
+            % higher block.
+            if trial ~= 1 && isempty(GaborData.model_observer) && ~seen_block_notification
+                seen_block_notification = true;
+                sounds(-1, 1.5);
+                Screen('TextSize', wPtr, 20); % Set text size to 20
+                Screen('DrawText', wPtr, 'You have completed a block.', xc-500, yc-150, white);
+                Screen('DrawText', wPtr, 'You may take a break if you want!', xc-500, yc-100, white);
+                Screen('DrawText', wPtr, sprintf('Press %s whenever you are ready again.', settings.keyGoName), xc-500, yc-50, white);
+                Screen('Flip', wPtr);
+
+                if ptbWaitKey([goKey exitKey]) == exitKey
+                    earlyQuit;
+                    return;
+                end
+
+                Screen('Flip', wPtr);
+            end
+
+            % Start of a block - set params to initial values.
+            GaborData.streak(trial) = 0;
+            GaborData.reversal_counter(trial) = 0;
+            GaborData.contrast(trial) = GaborData.contrast(1);
+            GaborData.ratio(trial) = GaborData.ratio(1);
+            GaborData.pixel_noise(trial) = GaborData.pixel_noise(1);
+            GaborData.step_size(trial) = GaborData.step_size(1);
+            block_trial = 1;
+        else
+            seen_block_notification = false;
+
+            GaborData.contrast(trial) = GaborData.contrast(trial-1);
+            GaborData.ratio(trial) = GaborData.ratio(trial-1);
+            GaborData.pixel_noise(trial) = GaborData.pixel_noise(trial-1);
+            GaborData.step_size(trial) = GaborData.step_size(trial-1);
+
+            % Count correct streak (with respect to the ideal observer's
+            % answer, not the underlying distribution)
+            if GaborData.ideal_answer(trial-1) == GaborData.choice(trial-1)
+                GaborData.streak(trial) = GaborData.streak(trial-1) + 1;
+            else
+                GaborData.streak(trial) = 0;
+            end
+
+            % Count reversals
+            if block_trial > 2 && sign(GaborData.streak(trial-1)) ~= sign(GaborData.streak(trial))
+                GaborData.reversal_counter(trial) = GaborData.reversal_counter(trial-1) + 1;
+            else
+                GaborData.reversal_counter(trial) = GaborData.reversal_counter(trial-1);
+            end
+
+            % Every 10 reversals, halve the step size
+            if GaborData.reversal_counter(trial) > 1 && mod(GaborData.reversal_counter(trial), 10) == 0
+                GaborData.step_size(trial) = GaborData.step_size(trial-1) / 2;
+            end
+
+            % Apply the staircase
+            GaborData = GaborData.stair_fn(GaborData);
+        end
+
+        %% Run this trial
+
+        % Randomly set each frame match (or mismatch) the correct choice for
+        % this trail, using the current 'ratio' to decide.
+        match_frames = 1 * (rand(1, GaborData.number_of_images) <= GaborData.ratio(trial));
+
+        % Choose whether correct answer this trial will be Left or Right
+        if rand < 0.5
+            GaborData.correct_answer(trial) = 1; % this trial is Left
+            GaborData.average_orientations(1, trial) = GaborData.number_of_images * GaborData.ratio(trial);
+            GaborData.average_orientations(2, trial) = GaborData.number_of_images * (1 - GaborData.ratio(trial));
+            GaborData.order_of_orientations(trial, :) = match_frames;
+        else
+            GaborData.correct_answer(trial) = 0; % this trial is Right
+            GaborData.average_orientations(1, trial) = GaborData.number_of_images * (1 - GaborData.ratio(trial));
+            GaborData.average_orientations(2, trial) = GaborData.number_of_images * GaborData.ratio(trial);
+            GaborData.order_of_orientations(trial, :) = 1 - match_frames;
+        end
+
+        % A function to generate a struct containing properties of the images used in this trial, I,
+        % and an collection of the gabors which will be displayed to the screen, image_array
+        image_array = makeImages(GaborData);
+
+        % Store all images shown
+        image_collection(trial,:,:,:) = image_array;
+
+        % Calculate log odds at each frame, both for the category of that frame
+        % independent of the prior, and for the decision (including the prior)
+        [log_frame_odds, log_decision_odds] = GaborLogOdds(image_array, ...
+            GaborData.left_template, GaborData.right_template, ...
+            GaborData.contrast(trial), GaborData.pixel_noise(trial)^2, ...
+            GaborData.ratio(trial));
+        GaborData.log_frame_odds(trial, :) = log_frame_odds;
+        GaborData.log_decision_odds(trial, :) = log_decision_odds;
+
+        % Record answer of the ideal observer
+        GaborData.ideal_answer(trial) = 1 * (sum(GaborData.log_decision_odds(trial, :)) > 0);
+
+        if isempty(GaborData.model_observer)
+            % Pass in the contrast level, all of the images, screen being
+            % used, subject ID, the struct with all of the data, and the
+            % fact it's the person or computer running the experiment
+            [I, eye_tracker_points, broke_fixation, quit] = trialStimuliGabor(GaborData, image_array, wPtr, tracker_info, settings);
+
+            if quit, earlyQuit; return; end
+
+            if broke_fixation || isnan(I.choice)
+                Screen('FillRect', wPtr, 127);
+                Screen('Flip', wPtr);
+                sounds(2, 0.2);
+                pause(1);
+                continue;
+            end
+
+            GaborData.choice(trial) = I.choice;
+            GaborData.reaction_time(trial) = I.reaction;
+            GaborData.eye_tracker_points{trial} = eye_tracker_points;
+        elseif strcmpi(GaborData.model_observer, 'ideal')
+            GaborData.choice(trial) = GaborData.ideal_answer(trial);
+        end
+
+        %% Accuracy & Feedback
+        GaborData.accuracy(trial) = GaborData.choice(trial) == GaborData.correct_answer(trial);
+        if isempty(GaborData.model_observer)
+            if GaborData.accuracy(trial)
+                sounds(1, 0.2);
+            else
+                sounds(0, 0.2);
+            end
+            pause(0.5); % Pause for 500 ms after feedback before next trial
+        end
+
+        trial = trial + 1;
+        block_trial = block_trial + 1;
+    end
+catch ERR
+    earlyQuit;
+    Screen('CloseAll');
+    rethrow(ERR);
+end
+
+%% Save final data to folder
+Screen('CloseAll');
+save(fileName, 'GaborData', 'image_collection');
 end

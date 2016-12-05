@@ -1,12 +1,12 @@
-function image_array = makeImages(Data, order_of_orientations, contrast)
+function image_array = makeImages(Data)
 %MAKEIMAGES creates noisy image frames for a single trial of the 'Gabor'
 %experiment.
 %
-% images = MAKEIMAGES(Data, order_of_orientations, contrast) uses templates
-% defined in the struct 'Data', using the left_tempate for each frame where
-% order_of_orientations is 1 and the right_template otherwise. Returns
-% 'images', a [frames x height x width] array of "low resolution" pixel
-% values.
+% images = MAKEIMAGES(Data) uses templates defined in the struct 'Data',
+% using the left_tempate for each frame where
+% order_of_orientations(current_trial,:) is 1 and the right_template
+% otherwise. Returns 'images', a [frames x height x width] array of "low
+% resolution" pixel values.
 %
 %  Data.image_length_{x,y}    - the width,height of the (low-res) images.
 %  Data.{left,right}_template - the (size [y x]) tempates for the
@@ -16,18 +16,21 @@ function image_array = makeImages(Data, order_of_orientations, contrast)
 height = Data.image_length_y;
 width = Data.image_length_x;
 frames = Data.number_of_images;
+t = Data.current_trial;
+c = Data.contrast(t);
+noise = Data.pixel_noise(t);
 
 background = 127.0;
 image_array = zeros(frames, height, width);
 for i = 1:frames
-    if order_of_orientations(i) == 1
-        image = Data.left_template * contrast + background;
+    if Data.order_of_orientations(t, i) == 1
+        image = Data.left_template * c + background;
     else
-        image = Data.right_template * contrast + background;
+        image = Data.right_template * c + background;
     end
     
     % Add white pixel noise.
-    image = image + Data.pixel_noise * randn(height, width);
+    image = image + noise * randn(height, width);
    
     % Clip pixel values to within the proper range.
     image(image > 255) = 255;
