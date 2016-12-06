@@ -91,7 +91,7 @@ image_collection = zeros(GaborData.blocks * GaborData.trials_per_block, ...
 
     function earlyQuit
         save(fileNameQuit, 'GaborData', 'image_collection');
-        ShowCursor(whichScreen);
+        ShowCursor();
         Screen('CloseAll');
     end
 
