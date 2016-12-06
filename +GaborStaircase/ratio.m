@@ -44,11 +44,11 @@ end
 if GaborData.streak(trial) == 0
     % Got it wrong - make things easier
     GaborData.ratio(trial) = ...
-        GaborData.step_size(trial) + GaborData.ratio(trial-1);
+        GaborData.ratio(trial-1) + GaborData.step_size(trial);
 elseif mod(GaborData.streak(trial), 2) == 0
     % Got 2 right in a row - make things harder
     GaborData.ratio(trial) = ...
-        GaborData.step_size(trial) - GaborData.ratio(trial-1);
+        GaborData.ratio(trial-1) - GaborData.step_size(trial);
 end
 
 % Apply bounds
