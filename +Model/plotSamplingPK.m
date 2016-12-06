@@ -1,15 +1,22 @@
-function [weights, errors, expfit, fig] = plotSamplingPK(trials, frames, params, pk_hprs)
+function [weights, errors, expfit, fig] = plotSamplingPK(trials, frames, params, pk_hprs, ideal_observer)
 %PLOTSAMPLINGPK(trials, frames, params, [recompute]) run (or load) sampling
 %model and plot PK for the given params.
 
 savedir = fullfile('+Model', 'figures');
 if ~exist(savedir, 'dir'), mkdir(savedir); end
 
+if nargin < 5, ideal_observer = false; end
+
 [data, prefix] = Model.genDataWithParams(trials, frames, params);
 
 string_id = Model.getModelStringID(prefix, params);
 
-[results, data] = Model.loadOrRunSamplingModel(data, prefix, params);
+if ~ideal_observer
+    [results, data] = Model.loadOrRunSamplingModel(data, prefix, params);
+else
+    results = Model.runIdealObserver(data, params);
+    string_id = ['ideal_' string_id];
+end
 [weights, errors, expfit, pk_id] = Model.loadOrRunModelPK(string_id, data, results, pk_hprs);
 weights = weights(1:end-1);
 errors = errors(1:end-1);
