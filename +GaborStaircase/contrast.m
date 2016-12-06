@@ -26,12 +26,18 @@ GaborData.ratio(trial) = GaborData.ratio(trial-1);
 GaborData.pixel_noise(trial) = GaborData.pixel_noise(trial-1);
 
 %% Reduce step size after 10 reversals
-if GaborData.reversal_counter(trial) > 0 && mod(GaborData.reversal_counter(trial), 10) == 0
+prev_reversals = GaborData.reversal_counter(trial-1);
+reversals = GaborData.reversal_counter(trial);
+if reversals > 0 && mod(reversals, 10) == 0 && mod(prev_reversals, 10) ~= 0
     % Decay the step size half way towards 1
     GaborData.step_size(trial) = 1 + 0.5 * (GaborData.step_size(trial-1) - 1);
 else
     % Same step size as last trial
     GaborData.step_size(trial) = GaborData.step_size(trial-1);
+end
+
+if GaborData.step_size(trial) < GaborData.min_step_size
+    GaborData.step_size(trial) = GaborData.min_step_size;
 end
 
 %% Apply staircase logic

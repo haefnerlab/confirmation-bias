@@ -33,12 +33,15 @@ GaborData.model_observer = get_arg('model_observer', '');
 if isequal(GaborData.stair_fn, @GaborStaircase.contrast)
     GaborData.stair_bounds = get_arg('stair_bounds', [0 64]);
     GaborData.step_size(1) = get_arg('step_size', 2); % multiplicative (in the "easier" direction)
+    GaborData.min_step_size = get_arg('min_step_size', 1+(GaborData.step_size(1) - 1)/4); % Default to two 'halvings' of the step size
 elseif isequal(GaborData.stair_fn, @GaborStaircase.ratio)
     GaborData.stair_bounds = get_arg('stair_bounds', [0.5 1.0]);
-    GaborData.step_size(1) = get_arg('step_size', 1); % additive (in the "easier" direction)
+    GaborData.step_size(1) = get_arg('step_size', .1); % additive (in the "easier" direction)
+    GaborData.min_step_size = get_arg('min_step_size', GaborData.step_size(1)/4); % Default to two 'halvings' of the step size
 elseif isequal(GaborData.stair_fn, @GaborStaircase.pixel_noise)
     GaborData.stair_bounds = get_arg('stair_bounds', [0 32]);
     GaborData.step_size(1) = get_arg('step_size', -4); % additive (in the "easier" direction)
+    GaborData.min_step_size = get_arg('min_step_size', GaborData.step_size(1)/4); % Default to two 'halvings' of the step size
 end
 
 % Other misc. user-definable parameters
