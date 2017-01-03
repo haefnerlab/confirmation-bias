@@ -50,7 +50,8 @@ for i=1:length(like_pts)
     [~, ~, expfit, tmp_fig] = Model.plotSamplingPK(trials, frames, params, pk_hprs);
     close(tmp_fig);
     hold(pk_ax, 'on');
-    plot(pk_ax, xs, expfit(1)+expfit(2)*exp(-xs/expfit(3)), '-', 'Color', colors(i,:));
+    weights = expfit(1)+expfit(2)*exp(-xs/expfit(3));
+    plot(pk_ax, xs, weights / max(weights), '-', 'Color', colors(i,:));
 end
 
 ylim(pk_ax, [0 inf]);
