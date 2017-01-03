@@ -28,7 +28,8 @@ GaborData.pixel_noise(trial) = GaborData.pixel_noise(trial-1);
 %% Reduce step size after 10 reversals
 prev_reversals = GaborData.reversal_counter(trial-1);
 reversals = GaborData.reversal_counter(trial);
-if reversals > 0 && mod(reversals, 10) == 0 && mod(prev_reversals, 10) ~= 0
+m = GaborData.reversals_per_epoch;
+if reversals > 0 && mod(reversals, m) == 0 && mod(prev_reversals, m) ~= 0
     % Decay the step size half way towards 0
     GaborData.step_size(trial) = GaborData.step_size(trial-1) / 2;
 else

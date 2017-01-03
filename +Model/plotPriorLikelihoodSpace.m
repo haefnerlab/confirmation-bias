@@ -1,4 +1,4 @@
-function [correct, pk_ab, pk_tau] = plotPriorLikelihoodSpace(trials, frames, prior, likelihood, params, ideal_observer, pk)
+function [correct, pk_ab, pk_tau] = plotPriorLikelihoodSpace(trials, frames, prior, likelihood, params, ideal_observer, pk, optimize)
 %PLOTPRIORLIKELIHOODSPACE make a info_prior vs info_likelihood plot for the
 %given params.
 %
@@ -10,6 +10,11 @@ if ~exist(savedir, 'dir'), mkdir(savedir); end
 
 if nargin < 6, ideal_observer = false; end
 if nargin < 7, pk = false; end
+if nargin < 8, optimize = {}; end
+
+if ideal_observer && ~isempty(optimize)
+    error('nothing to optimize for the ideal observer');
+end
 
 [ll, pp] = meshgrid(likelihood, prior);
 
@@ -25,15 +30,23 @@ parfor i=1:numel(ll)
     params_copy.p_match = pp(i);
     
     % Generate data and run the model.
-    [data, prefix] = Model.genDataWithParams(trials, frames, params_copy);
-    if ~ideal_observer
-        results = Model.loadOrRunSamplingModel(data, prefix, params_copy);
+    [data, data_prefix] = Model.genDataWithParams(trials, frames, params_copy);
+    if isempty(optimize)
+        if ~ideal_observer
+            results = Model.loadOrRunSamplingModel(data, data_prefix, params_copy);
+        else
+            results = Model.runIdealObserver(data, params_copy);
+        end
+        optim_prefix = '';
     else
-        results = Model.runIdealObserver(data, params_copy);
+        [optim_params, ~, ~, optim_prefix] = Model.loadOrRunOptimizeParams(trials, frames, params_copy, optimize);
+        results = Model.loadOrRunSamplingModel(data, [optim_prefix, data_prefix], optim_params);
     end
     % Fit PK if requested
     if pk
-        [~, ~, expfit] = Model.loadOrRunModelPK(Model.getModelStringID(prefix, params_copy), data, results, [1 0 10]);
+        [~, ~, expfit] = Model.loadOrRunModelPK(...
+            Model.getModelStringID([optim_prefix, data_prefix], params_copy), ...
+            data, results, [1 0 10]);
         pk_ab(i) = expfit(1) / expfit(2);
         pk_tau(i) = 1 / expfit(3);
     end

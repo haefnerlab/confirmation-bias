@@ -13,22 +13,24 @@ if preliminary == 1 || preliminary == 2
             disp(strcat('Maybe the Preliminary phase is saved under a different name?'));
             return;
         else
-            load(filename); % Load Preliminary_Data
+            contents = load(filename); % Load GaborData
+            GaborData = contents.GaborData;
+            image_collection = contents.image_collection;
         end
         
         Get_Figure('Preliminary Analysis');
         
         %plot contrast level by trial number
-        x = 1:Preliminary_Data.current_trial;
-        y = Preliminary_Data.contrast(1:Preliminary_Data.current_trial);
+        x = 1:GaborData.current_trial;
+        y = GaborData.contrast(1:GaborData.current_trial);
         plot(x,y)
         xlabel('Trial'), ylabel('Contrast Level')
         title('Contrast Level by Trial Number')
         
         Get_Figure('Visual Preliminary Reaction Time Analysis');
         %plot reaction time by trial number
-        x = 1:Preliminary_Data.current_trial;
-        y = Preliminary_Data.reaction_time(1:Preliminary_Data.current_trial);
+        x = 1:GaborData.current_trial;
+        y = GaborData.reaction_time(1:GaborData.current_trial);
         e = plot(x,y);
         %set(e,'Linewidth',2);
         xlabel('Trial'), ylabel('Reaction Time in msecs')
@@ -41,38 +43,38 @@ if preliminary == 1 || preliminary == 2
             disp(strcat('Maybe the Preliminary phase is saved under a different name?'));
             return;
         else
-            load(filename); % Load Preliminary_Data
+            load(filename); % Load GaborData
         end
         
         Get_Figure('Preliminary Analysis');
         
         %plot ratio level by trial number
-        x = 1:Preliminary_Data.current_trial;
-        y = Preliminary_Data.ratio(1:Preliminary_Data.current_trial);
+        x = 1:GaborData.current_trial;
+        y = GaborData.ratio(1:GaborData.current_trial);
         plot(x,y);
         xlabel('Trial'), ylabel('Ratio Level')
         title('Ratio Level by Trial Number')
         
         Get_Figure('Visual Preliminary Reaction Time Analysis');
         %plot reaction time by trial number
-        x = 1:Preliminary_Data.current_trial;
-        y = Preliminary_Data.reaction_time(1:Preliminary_Data.current_trial);
+        x = 1:GaborData.current_trial;
+        y = GaborData.reaction_time(1:GaborData.current_trial);
         e = plot(x,y);
         %set(e,'Linewidth',2);
         xlabel('Trial'), ylabel('Reaction Time in msecs')
         title('Reaction Time by Trial Number')
     end
     
-    [unique_contrast_conditions, ~, IC] = unique(Preliminary_Data.contrast);
+    [unique_contrast_conditions, ~, IC] = unique(GaborData.contrast);
     num_trials_at_x = zeros(length(unique_contrast_conditions),1);
     for i=1:length(unique_contrast_conditions)
         num_trials_at_x(i) = sum(IC == i);
     end
     
     % How many different types trials did the subject see?
-    temp_orientation=Preliminary_Data.order_of_orientations';
+    temp_orientation=GaborData.order_of_orientations';
     temp1=sum(temp_orientation(:,:));
-    temp2=Preliminary_Data.number_of_images - temp1;
+    temp2=GaborData.number_of_images - temp1;
     temp= temp1-temp2;
     [unique_ratio_conditions,~,IC] = unique(temp);
     
@@ -84,10 +86,10 @@ if preliminary == 1 || preliminary == 2
     average_over_contrast_trials = zeros(1,length(unique_contrast_conditions)); % This will be figuring out how often the subject chose left for each type of trial
     average_over_ratio_trials = zeros(1,length(unique_ratio_conditions)); % This will be figuring out how often the subject chose left for each type of trial
     
-    choice = Preliminary_Data.choice;
-    accuracy = Preliminary_Data.accuracy;
+    choice = GaborData.choice;
+    accuracy = GaborData.accuracy;
     
-    contrast = Preliminary_Data.contrast;
+    contrast = GaborData.contrast;
     % We need to know the contrast values and how many different kind of trials did the subject encounter?
     
     
@@ -392,10 +394,8 @@ if preliminary == 0 || preliminary == 2
     end
     
     test_collection_of_images = results.image_collection_test;
-    test_image_template_difference = results.Test_Data.image_template_difference;
-    test_choice = results.Test_Data.choice;
     
-    [trials, number_of_images, h, w] = size(test_collection_of_images);
+    [~, number_of_images, h, w] = size(test_collection_of_images);
     % number of trials, images shown per trial, and the height and width of the image in the experiment
     
     sublength = number_of_images / groupings;
@@ -407,7 +407,7 @@ if preliminary == 0 || preliminary == 2
     %% Without bootstrap
     cell_images = mat2cell(test_collection_of_images, ones(trials, 1), number_of_images, h, w);
     cell_images = cellfun(@(im) permute(squeeze(im), [2 3 1]), cell_images, 'UniformOutput', false);
-    template_difference = Preliminary_Data.left_template - Preliminary_Data.right_template;
+    template_difference = GaborData.left_template - GaborData.right_template;
     [weights, ~, errors] = ...
         CustomRegression.PsychophysicalKernelImage(cell_images, test_choice, ...
         10, 0, 10, 0, 0, 0, template_difference);

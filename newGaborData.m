@@ -16,6 +16,7 @@ function GaborData = newGaborData(varargin)
 GaborData.trials_per_block = get_arg('trials_per_block', 100);
 GaborData.blocks = get_arg('blocks', 4);
 GaborData.stair_fn = get_arg('stair_fn', @GaborStaircase.contrast);
+GaborData.reversals_per_epoch = get_arg('reversals_per_epoch', 6);
 
 total_trials = GaborData.trials_per_block * GaborData.blocks;
 
