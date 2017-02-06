@@ -40,7 +40,7 @@ for i=1:nS
     trials = SubjectData.(stair_var) <= thresh;
     
     for j=1:length(plot_types)
-        ax = subplot(nS, nP, sub2ind([nS nP], i, j));
+        ax = subplot(nS, nP, (i-1)*nP + j);
         hold on;
         switch lower(plot_types{j})
             case 'staircase'
