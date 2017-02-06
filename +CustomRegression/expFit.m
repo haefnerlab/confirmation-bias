@@ -3,6 +3,8 @@ if nargin < 2, errors = ones(size(weights)); end
 
 p0 = [mean(weights) 0 10];
 
+% TODO - fix gradient
+% options = optimoptions(@fmincon, 'SpecifyObjectiveGradient', true);
 expfit = fmincon(@(p) errfn(p, weights, errors), p0, [], [], [], [], [0 0 0], [inf inf inf]);
 
 end
