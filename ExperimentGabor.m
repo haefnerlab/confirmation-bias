@@ -1,10 +1,12 @@
-function [GaborData, image_collection] = ExperimentGabor(subjectID, GaborData, varargin)
+function [GaborData, image_collection] = ExperimentGabor(GaborData, varargin)
 
 directory = fullfile(pwd, '..');
 settings = LoadSettings(directory);
 
 datadir = fullfile(directory, 'RawData');
 if ~exist(datadir, 'dir'), mkdir(datadir); end
+
+subjectID = getSubjectId(datadir, 'gabor-');
 
 %% Environment and PsychToolBox Initialization
 cd(fullfile(directory, 'Code')) % Set the current directory
