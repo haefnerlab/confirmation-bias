@@ -63,6 +63,18 @@ if exist(fileName, 'file')
     error('Data for %s already exists', fileName);
 end
 
+%% Timing calculations and checks
+
+monitor_fps = Screen('NominalFrameRate', whichScreen, 1);
+monitor_frames_per_stimulus = monitor_fps / GaborData.stimulus_fps;
+number_blank = monitor_frames_per_stimulus * GaborData.fraction_blank;
+rounded_number_blank = ceil(number_blank);
+if number_blank ~= rounded_number_blank
+    warning('At %d stimulus fps on a %.2fHz monitor, %.2f fraction_blank requires rounding to %d blank frames per stimulus.', ...
+        GaborData.stimulus_fps, monitor_fps, GaborData.fraction_blank, rounded_number_blank);
+end
+GaborData.blank_duration = rounded_number_blank / monitor_fps;
+
 %% Begin experiment
 EyeTracker.AutoCalibrate(tracker_info);
 

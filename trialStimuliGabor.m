@@ -9,6 +9,7 @@ quit = false;
 eye_tracker_points = [];
 broke_fixation = false;
 
+
 %% Make sure to have left/right patch to match the orientations used
 res = Data.screen_resolution;
 
@@ -43,11 +44,11 @@ end
 
 stimulus_bbox = ptbCenteredRect([xc, ScreenSize(4)-size(large_image,1)], size(large_image));
 
-Screen('FillRect', wPtr, 127.0);        % Make the background gray
+Screen('FillRect', wPtr, gray);        % Make the background gray
 [~, stimOnsetTime] = Screen('Flip', wPtr);
 
-% Get fixation while displaying a frame around where the stimulus will be.
-[is_fixating, tracker_info, eye_tracker_points] = EyeTracker.getFixation(tracker_info, wPtr, @() drawStimulusFrame(wPtr, gray, black, stimulus_bbox, 15));
+% Get fixation (takes a variable amount of time).
+[is_fixating, tracker_info, eye_tracker_points] = EyeTracker.getFixation(tracker_info, wPtr, gray);
 
 % If the subject never fixated, end the trial.
 if ~is_fixating
@@ -55,9 +56,16 @@ if ~is_fixating
     return;
 end
 
-% Clear the lines from drawStimulusFrame
-Screen('FillRect', wPtr, gray);
+% Draw frame around where stimulus will appear as a timing cue (note:
+% leaving fixation cue on the screen).
 EyeTracker.drawFixationSymbol(tracker_info, wPtr);
+drawStimulusFrame(wPtr, gray, black, stimulus_bbox, 20, 2);
+drawTrialNo();
+[~, cueOnsetTime] = Screen('Flip', wPtr);
+
+% Prep for first stimulus frame by clearing the drawStimulusFrame.
+Screen('FillRect', wPtr, gray);
+nextStimTime = cueOnsetTime + Data.cue_duration;
 
 % Present each image for 'frame_duration' seconds.
 % TODO - track eyes at full temporal resolution rather than once per frame.
@@ -69,10 +77,22 @@ for i = 1:Data.number_of_images
         broke_fixation = true;
         return;
     end
+    % Get next eye tracker point.
     eye_tracker_points = vertcat(eye_tracker_points, [GetSecs()-stimOnsetTime gaze_point]);
-    Screen('DrawText', wPtr, sprintf('Current Trial - #%d', Data.current_trial), xc-900, yc+550, 0);   % Unobtrusive output to screen of the current trial number
+    
+    % Show stimulus.
+    drawTrialNo();
     Screen('DrawTexture', wPtr, image_texture(i), [], stimulus_bbox); %Fill the buffer with the first texture
-    [~, stimOnsetTime] = Screen('Flip', wPtr, stimOnsetTime + frame_duration);
+    [~, stimOnsetTime] = Screen('Flip', wPtr, nextStimTime);
+    nextStimTime = stimOnsetTime + frame_duration;
+
+    % (Maybe) end stimulus frame with some blank frames.
+    if Data.blank_duration > 0
+        EyeTracker.drawFixationSymbol(tracker_info, wPtr);
+        drawTrialNo();
+        Screen('FillRect', wPtr, gray, stimulus_bbox);
+        Screen('Flip', wPtr, stimOnsetTime + frame_duration - Data.blank_duration);
+    end
 end
 
 % Close textures to avoid memory problems.
@@ -104,16 +124,20 @@ else
         image_properties.choice = 0;
     end
 end
+
+function drawTrialNo()
+    Screen('DrawText', wPtr, sprintf('Current Trial - #%d', Data.current_trial), xc-900, yc+550, 0);
+end
 end
 
-function drawStimulusFrame(wPtr, bg, color, bbox, length)
+function drawStimulusFrame(wPtr, bg, color, bbox, length, lineWidth)
 Screen('FillRect', wPtr, bg);
-Screen('DrawLine', wPtr, color, bbox(1), bbox(2), bbox(1)+length, bbox(2), 1);
-Screen('DrawLine', wPtr, color, bbox(1), bbox(2), bbox(1), bbox(2)+length, 1);
-Screen('DrawLine', wPtr, color, bbox(1), bbox(4), bbox(1)+length, bbox(4), 1);
-Screen('DrawLine', wPtr, color, bbox(1), bbox(4), bbox(1), bbox(4)-length, 1);
-Screen('DrawLine', wPtr, color, bbox(3), bbox(2), bbox(3)-length, bbox(2), 1);
-Screen('DrawLine', wPtr, color, bbox(3), bbox(2), bbox(3), bbox(2)+length, 1);
-Screen('DrawLine', wPtr, color, bbox(3), bbox(4), bbox(3)-length, bbox(4), 1);
-Screen('DrawLine', wPtr, color, bbox(3), bbox(4), bbox(3), bbox(4)-length, 1);
+Screen('DrawLine', wPtr, color, bbox(1), bbox(2), bbox(1)+length, bbox(2), lineWidth);
+Screen('DrawLine', wPtr, color, bbox(1), bbox(2), bbox(1), bbox(2)+length, lineWidth);
+Screen('DrawLine', wPtr, color, bbox(1), bbox(4), bbox(1)+length, bbox(4), lineWidth);
+Screen('DrawLine', wPtr, color, bbox(1), bbox(4), bbox(1), bbox(4)-length, lineWidth);
+Screen('DrawLine', wPtr, color, bbox(3), bbox(2), bbox(3)-length, bbox(2), lineWidth);
+Screen('DrawLine', wPtr, color, bbox(3), bbox(2), bbox(3), bbox(2)+length, lineWidth);
+Screen('DrawLine', wPtr, color, bbox(3), bbox(4), bbox(3)-length, bbox(4), lineWidth);
+Screen('DrawLine', wPtr, color, bbox(3), bbox(4), bbox(3), bbox(4)-length, lineWidth);
 end
