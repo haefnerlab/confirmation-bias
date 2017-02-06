@@ -6,7 +6,7 @@ settings = LoadSettings(directory);
 datadir = fullfile(directory, 'RawData');
 if ~exist(datadir, 'dir'), mkdir(datadir); end
 
-subjectID = getSubjectId(datadir, 'gabor-');
+subjectID = getSubjectId(datadir, 'gaborV2-');
 
 %% Environment and PsychToolBox Initialization
 cd(fullfile(directory, 'Code')) % Set the current directory

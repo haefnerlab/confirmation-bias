@@ -10,7 +10,7 @@ if ~any(strcmpi(new_or_return, {'n', 'r'}))
     error('Enter ''n'' or ''r'' for %s', prompts{2});
 end
 
-data_file = fullfile(data_directory, 'subjectIDs.mat');
+data_file = fullfile(data_directory, [prefix 'subjectIDs.mat']);
 
 if ~exist(data_file, 'file')
     id_map = {};
