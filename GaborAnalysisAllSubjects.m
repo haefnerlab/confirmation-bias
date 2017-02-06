@@ -145,7 +145,33 @@ for i=1:nS
                 end
                 title('Psychometric curve');
             case 'template'
+                if ideal_template
+                    memo_name = ['Boot-PK-' stair_var '-' s '.mat'];
+                else
+                    memo_name = ['Boot-SpPK-' stair_var '-' s '.mat'];
+                end
+                [M, ~, ~] = LoadOrRun(@BootstrapWeightsGabor, ...
+                    {SubjectData, stim_images, 500, ideal_template}, ...
+                    fullfile(memodir, memo_name));
+                [~, ~, h, w] = size(stim_images);
+                template = reshape(M(1:h*w), [h w]);
+                imagesc(template);
+                axis image;
+                colorbar;
+                title('spatial kernel');
             case 'pk'
+                if ideal_template
+                    memo_name = ['Boot-PK-' stair_var '-' s '.mat'];
+                else
+                    memo_name = ['Boot-SpPK-' stair_var '-' s '.mat'];
+                end
+                [M, L, U] = LoadOrRun(@BootstrapWeightsGabor, ...
+                    {SubjectData, stim_images, 500, ideal_template}, ...
+                    fullfile(memodir, memo_name));
+                [~, frames, h, w] = size(stim_images);
+                time_idxs = w*h+1:length(M)-1;
+                boundedline(1:frames, M(time_idxs)', [U(time_idxs)-M(time_idxs); M(time_idxs)-L(time_idxs)]');
+                title('temporal kernel');
         end
     end
 end
