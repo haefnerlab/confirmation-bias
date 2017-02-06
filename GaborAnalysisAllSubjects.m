@@ -16,9 +16,12 @@ function [grid, combined] = GaborAnalysisAllSubjects(subjectIDs, thresholds, pha
 if nargin < 4, plot_types = {'staircase', 'pm', 'template', 'pk'}; end
 if nargin < 5, ideal_template = true; end
 if nargin < 6, datadir = fullfile(pwd, '..', 'RawData'); end
-catdir = fullfile(datadir, '..', 'ConcatData');
 
+catdir = fullfile(datadir, '..', 'ConcatData');
 if ~exist(catdir, 'dir'), mkdir(catdir); end
+
+memodir = fullfile(datadir, '..', 'Precomputed');
+if ~exist(memodir, 'dir'), mkdir(memodir); end
 
 if phase == 0
     stair_var = 'contrast';
@@ -88,7 +91,9 @@ for i=1:nS
                     options.betaPrior    = 10;
                     
                     % Run PM fitting.
-                    result = psignifit([uniq_vals(:) yvals(:) num_trials_at_vals(:)], options);
+                    result = LoadOrRun(@psignifit, ...
+                        {[uniq_vals(:) yvals(:) num_trials_at_vals(:)], options}, ...
+                        fullfile(memodir, ['PM-' stair_var '-' s '.mat']));
                     
                     % Plot PM curve and data.
                     plotPsych(result, plotOptions);
@@ -130,7 +135,9 @@ for i=1:nS
                     options.betaPrior    = 10;
                     
                     % Run PM fitting.
-                    result = psignifit([uniq_vals(:) yvals(:) num_trials_at_vals(:)], options);
+                    result = LoadOrRun(@psignifit, ...
+                        {[uniq_vals(:) yvals(:) num_trials_at_vals(:)], options}, ...
+                        fullfile(memodir, ['PM-' stair_var '-' s '.mat']));
                     
                     % Plot PM curve and data.
                     plotPsych(result, plotOptions);
