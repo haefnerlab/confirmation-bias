@@ -58,8 +58,8 @@ end
 
 % Draw frame around where stimulus will appear as a timing cue (note:
 % leaving fixation cue on the screen).
-EyeTracker.drawFixationSymbol(tracker_info, wPtr);
 drawStimulusFrame(wPtr, gray, black, stimulus_bbox, 20, 2);
+EyeTracker.drawFixationSymbol(tracker_info, wPtr);
 drawTrialNo();
 [~, cueOnsetTime] = Screen('Flip', wPtr);
 
