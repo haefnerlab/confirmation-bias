@@ -41,7 +41,7 @@ for i = 1:Data.number_of_images
     image_texture(i) = Screen('MakeTexture', wPtr, large_image);
 end
 
-stimulus_bbox = ptbCenteredRect([xc, ScreenSize(4)-size(large_image,1)], size(large_image));
+stimulus_bbox = ptbCenteredRect([xc, ScreenSize(4)-3*size(large_image,1)], size(large_image));
 
 Screen('FillRect', wPtr, 127.0);        % Make the background gray
 [~, stimOnsetTime] = Screen('Flip', wPtr);
