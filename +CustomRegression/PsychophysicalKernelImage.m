@@ -34,7 +34,7 @@ function [ weights, postVal, errors ] = PsychophysicalKernelImage(data, response
 [height, width, frames] = size(data{1});
 trials = length(data);
 
-% Equalize variance for each regressor.
+% Standardize each regressor.
 data = cellfun(@(trial) reshape(trial, [1 height*width*frames]), data, ...
     'UniformOutput', false);
 data = zscore(cat(1, data{:}));

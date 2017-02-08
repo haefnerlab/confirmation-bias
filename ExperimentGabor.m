@@ -1,10 +1,14 @@
-function [GaborData, image_collection] = ExperimentGabor(subjectID, GaborData, varargin)
+function [GaborData, image_collection] = ExperimentGabor(GaborData, varargin)
 
 directory = fullfile(pwd, '..');
 settings = LoadSettings(directory);
 
 datadir = fullfile(directory, 'RawData');
 if ~exist(datadir, 'dir'), mkdir(datadir); end
+
+subjectID = getSubjectId(datadir, 'gaborV2');
+sessionNo = length(dir(fullfile(datadir, [subjectID '*']))) + 1;
+subjectID = [subjectID '-Session' num2str(sessionNo)];
 
 %% Environment and PsychToolBox Initialization
 cd(fullfile(directory, 'Code')) % Set the current directory
@@ -62,6 +66,17 @@ if exist(fileName, 'file')
     Screen('CloseAll');
     error('Data for %s already exists', fileName);
 end
+
+%% Timing calculations and checks
+
+monitor_frames_per_stimulus = settings.monitorFPS / GaborData.stimulus_fps;
+number_blank = monitor_frames_per_stimulus * GaborData.fraction_blank;
+rounded_number_blank = ceil(number_blank);
+if number_blank ~= rounded_number_blank
+    warning('At %d stimulus fps on a %.2fHz monitor, %.2f fraction_blank requires rounding to %d blank frames per stimulus.', ...
+        GaborData.stimulus_fps, settings.monitorFPS, GaborData.fraction_blank, rounded_number_blank);
+end
+GaborData.blank_duration = rounded_number_blank / settings.monitorFPS;
 
 %% Begin experiment
 EyeTracker.AutoCalibrate(tracker_info);
