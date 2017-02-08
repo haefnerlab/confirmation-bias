@@ -48,7 +48,7 @@ end
 % Other misc. user-definable parameters relating to stimulus/rig.
 GaborData.number_of_images = get_arg('number_of_images', 10);
 GaborData.stimulus_fps = get_arg('stimulus_fps', 12);	% frame rate of stimuli
-GaborData.fraction_blank = get_arg('fraction_blank', 1/12); % fraction of time spent on blank frames.
+GaborData.fraction_blank = get_arg('fraction_blank', 0.2); % fraction of time spent on blank frames.
 GaborData.screen_resolution = get_arg('screen_resolution', 25);          % how many pixels correspond to a single datapoint of a gabor
 GaborData.image_length_x = get_arg('image_length_x', 5);  % Size of the image along x-axis
 GaborData.image_length_y = get_arg('image_length_y', 5);
