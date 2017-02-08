@@ -35,12 +35,16 @@ exitKey = KbName(settings.keyExit);
 leftKey = KbName(settings.keyLeft);
 rightKey = KbName(settings.keyRight);
 
+total_frames = Data.number_of_images + 1;
 
-image_texture = zeros(1, Data.number_of_images);
+image_texture = zeros(1, total_frames);
 for i = 1:Data.number_of_images
     large_image = imresize(squeeze(image_array(i, :, :)), Data.screen_resolution, 'nearest');
     image_texture(i) = Screen('MakeTexture', wPtr, large_image);
 end
+[~, h, w] = size(image_array);
+noise_mask = 127 + randn(h * Data.screen_resolution, w * Data.screen_resolution) * Data.contrast(Data.current_trial);
+image_texture(end) = Screen('MakeTexture', wPtr, noise_mask);
 
 stimulus_bbox = ptbCenteredRect([xc, ScreenSize(4)-3*size(large_image,1)], size(large_image));
 
@@ -69,7 +73,7 @@ nextStimTime = cueOnsetTime + Data.cue_duration;
 
 % Present each image for 'frame_duration' seconds.
 % TODO - track eyes at full temporal resolution rather than once per frame.
-for i = 1:Data.number_of_images
+for i = 1:total_frames
     EyeTracker.drawFixationSymbol(tracker_info, wPtr);
     gaze_point = EyeTracker.getGazePoint(tracker_info, 'pixels');
     % If fixation is broken at any time, end the trial.
@@ -96,7 +100,7 @@ for i = 1:Data.number_of_images
 end
 
 % Close textures to avoid memory problems.
-for i = 1:Data.number_of_images
+for i = 1:total_frames
     Screen('Close', image_texture(i));
 end
 
