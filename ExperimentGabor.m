@@ -245,7 +245,7 @@ try
         end
 
         %% Accuracy & Feedback
-        GaborData.accuracy(trial) = GaborData.choice(trial) == GaborData.correct_answer(trial);
+        GaborData.accuracy(trial) = GaborData.choice(trial) == GaborData.ideal_answer(trial);
         if isempty(GaborData.model_observer)
             if GaborData.accuracy(trial)
                 sounds(1, 0.2);
