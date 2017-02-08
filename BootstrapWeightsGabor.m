@@ -31,7 +31,7 @@ parfor i=1:bootstrapsteps
         cell_images = mat2cell(boot_images, ones(trials, 1), h, w, frames);
         cell_images = cellfun(@squeeze, cell_images, 'UniformOutput', false);
         weights = CustomRegression.PsychophysicalKernelImage(cell_images, boot_choices, ...
-            10, 0, 10, 0, 0, 0, template_difference);
+            1, 0, 0, 0, 0, 0, template_difference);
     end
     weight_matrix(i,:) = weights; 
 end
