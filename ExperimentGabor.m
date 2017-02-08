@@ -6,7 +6,9 @@ settings = LoadSettings(directory);
 datadir = fullfile(directory, 'RawData');
 if ~exist(datadir, 'dir'), mkdir(datadir); end
 
-subjectID = getSubjectId(datadir, 'gaborV2-');
+subjectID = getSubjectId(datadir, 'gaborV2');
+sessionNo = length(dir(fullfile(datadir, [subjectID '*']))) + 1;
+subjectID = [subjectID '-Session' num2str(sessionNo)];
 
 %% Environment and PsychToolBox Initialization
 cd(fullfile(directory, 'Code')) % Set the current directory
