@@ -121,13 +121,15 @@ for i=1:nS
                 end
                 title('Psychometric curve');
             case 'template'
+                [SubjectDataThresh, images_thresh] = GaborThresholdTrials(...
+                    SubjectData, stim_images, thresh);
                 if ideal_template
-                    memo_name = ['Boot-PK-' stair_var '-' s '.mat'];
+                    memo_name = ['Boot-PK-' stair_var '-' s '-<' thresh '.mat'];
                 else
-                    memo_name = ['Boot-SpPK-' stair_var '-' s '.mat'];
+                    memo_name = ['Boot-SpPK-' stair_var '-' s '-<' thresh  '.mat'];
                 end
                 [M, ~, ~] = LoadOrRun(@BootstrapWeightsGabor, ...
-                    {SubjectData, stim_images, 500, ideal_template}, ...
+                    {SubjectDataThresh, images_thresh, 500, ideal_template}, ...
                     fullfile(memodir, memo_name));
                 [~, ~, h, w] = size(stim_images);
                 template = reshape(M(1:h*w), [h w]);
@@ -136,13 +138,15 @@ for i=1:nS
                 colorbar;
                 title('spatial kernel');
             case 'pk'
+                [SubjectDataThresh, images_thresh] = GaborThresholdTrials(...
+                    SubjectData, stim_images, thresh);
                 if ideal_template
-                    memo_name = ['Boot-PK-' stair_var '-' s '.mat'];
+                    memo_name = ['Boot-PK-' stair_var '-' s '-<' thresh  '.mat'];
                 else
-                    memo_name = ['Boot-SpPK-' stair_var '-' s '.mat'];
+                    memo_name = ['Boot-SpPK-' stair_var '-' s '-<' thresh  '.mat'];
                 end
                 [M, L, U] = LoadOrRun(@BootstrapWeightsGabor, ...
-                    {SubjectData, stim_images, 500, ideal_template}, ...
+                    {SubjectDataThresh, images_thresh, 500, ideal_template}, ...
                     fullfile(memodir, memo_name));
                 [~, frames, h, w] = size(stim_images);
                 time_idxs = w*h+1:length(M)-1;
