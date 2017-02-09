@@ -15,6 +15,7 @@ trajectories = cell(n_repeats, 1);
 try
     for n=1:n_repeats
         Screen('FillRect', wPtr, 127.0);
+        EyeTracker.drawFixationSymbol(tracker_info, wPtr);
         Screen('Flip', wPtr);
         pause(2);
         [fixating, tracker_info, trajectory] = EyeTracker.getFixation(tracker_info, wPtr, 127);
