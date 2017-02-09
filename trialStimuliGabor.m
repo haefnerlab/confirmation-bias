@@ -62,9 +62,10 @@ end
 
 % Draw frame around where stimulus will appear as a timing cue (note:
 % leaving fixation cue on the screen).
-drawStimulusFrame(wPtr, gray, black, stimulus_bbox, 20, 2);
-EyeTracker.drawFixationSymbol(tracker_info, wPtr);
+Screen('FillRect', wPtr, bg);
 drawTrialNo();
+EyeTracker.drawFixationSymbol(tracker_info, wPtr);
+drawStimulusFrame(wPtr, black, stimulus_bbox, 20, 2);
 [~, cueOnsetTime] = Screen('Flip', wPtr);
 
 % Prep for first stimulus frame by clearing the drawStimulusFrame.
@@ -85,7 +86,6 @@ for i = 1:total_frames
     eye_tracker_points = vertcat(eye_tracker_points, [GetSecs()-stimOnsetTime gaze_point]);
     
     % Show stimulus.
-    drawTrialNo();
     Screen('DrawTexture', wPtr, image_texture(i), [], stimulus_bbox); %Fill the buffer with the first texture
     [~, stimOnsetTime] = Screen('Flip', wPtr, nextStimTime);
     nextStimTime = stimOnsetTime + frame_duration;
@@ -93,7 +93,6 @@ for i = 1:total_frames
     % (Maybe) end stimulus frame with some blank frames.
     if Data.blank_duration > 0
         EyeTracker.drawFixationSymbol(tracker_info, wPtr);
-        drawTrialNo();
         Screen('FillRect', wPtr, gray, stimulus_bbox);
         Screen('Flip', wPtr, stimOnsetTime + frame_duration - Data.blank_duration);
     end
@@ -134,8 +133,7 @@ function drawTrialNo()
 end
 end
 
-function drawStimulusFrame(wPtr, bg, color, bbox, length, lineWidth)
-Screen('FillRect', wPtr, bg);
+function drawStimulusFrame(wPtr, color, bbox, length, lineWidth)
 Screen('DrawLine', wPtr, color, bbox(1), bbox(2), bbox(1)+length, bbox(2), lineWidth);
 Screen('DrawLine', wPtr, color, bbox(1), bbox(2), bbox(1), bbox(2)+length, lineWidth);
 Screen('DrawLine', wPtr, color, bbox(1), bbox(4), bbox(1)+length, bbox(4), lineWidth);
