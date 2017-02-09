@@ -65,8 +65,12 @@ for i=1:nS
                 xtickangle(ax, 25);
                 title('serial dependencies');
             case 'pm'
-                % Construct options for psignifit function and subsequent plotting.
-                options = struct;
+                % Get PM fit.
+                fit_result = LoadOrRun(@GaborPsychometric, ...
+                    {SubjectData, phase}, ...
+                    fullfile(memodir, ['PM-' stair_var '-' s '.mat']));
+                
+                % Construct options for psignifit plotting.
                 plotOptions = struct;
                 plotOptions.plotData       = false;
                 plotOptions.plotAsymptote  = false;
@@ -74,29 +78,13 @@ for i=1:nS
                 plotOptions.CIthresh       = false;
                 
                 if phase == 0
-                    options.sigmoidName  = 'weibull';
-                    options.expType      = '2AFC';
-                    % Count how often subject was correct at each contrast
-                    % value.
-                    uniq_vals = unique(SubjectData.contrast);
-                    yvals = arrayfun(@(u) mean(SubjectData.accuracy(SubjectData.contrast == u)), uniq_vals);
-                    num_trials_at_vals = arrayfun(@(u) sum(SubjectData.contrast == u), uniq_vals);
-                    
                     % Add remaining plot options.
                     plotOptions.xLabel = 'Contrast Level';
                     plotOptions.yLabel = 'Percent Correct';
-                    options.estimateType = 'MLE';
-                    options.nblocks      = length(uniq_vals);
-                    options.threshPC     = .7;
-                    options.betaPrior    = 10;
-                    
-                    % Run PM fitting.
-                    result = LoadOrRun(@psignifit, ...
-                        {[uniq_vals(:) yvals(:) num_trials_at_vals(:)], options}, ...
-                        fullfile(memodir, ['PM-' stair_var '-' s '.mat']));
                     
                     % Plot PM curve and data.
-                    plotPsych(result, plotOptions);
+                    plotPsych(fit_result, plotOptions);
+                    
                     % Bin the data further for visualization
                     log_contrast = log(SubjectData.contrast);
                     bin_edges = linspace(min(log_contrast), max(log_contrast), 11);
@@ -111,37 +99,25 @@ for i=1:nS
                         means(b) = mean(SubjectData.accuracy(indices));
                         stderrs(b) = std(SubjectData.accuracy(indices)) / sqrt(sum(indices));
                     end
-                    errorbar(exp(bin_centers), means, stderrs, 'bs');  % Black line
+                    errorbar(exp(bin_centers), means, stderrs, 'bs');
                 elseif phase == 1
-                    options.sigmoidName  = 'norm';
-                    options.expType      = 'YesNo';
-                    % Count how often subject chose left at each ratio
-                    % value.
-                    true_ratio = sum(SubjectData.order_of_orientations, 2);
-                    uniq_vals = unique(true_ratio);
-                    % The next line exploits the fact that 'Left' is coded
-                    % as 1 and 'right' as 0, so mean() returns the fraction
-                    % of left choices.
-                    yvals = arrayfun(@(u) mean(SubjectData.choice(true_ratio == u)), uniq_vals);
-                    num_trials_at_vals = arrayfun(@(u) sum(true_ratio == u), uniq_vals);
-                    stderr = arrayfun(@(u) std(SubjectData.choice(true_ratio == u)), uniq_vals) ./ sqrt(num_trials_at_vals);
-                    
                     % Add remaining plot options.
                     plotOptions.xLabel = 'True # Left Frames';
                     plotOptions.yLabel = 'Percent Chose Left';
-                    options.estimateType = 'MLE';
-                    options.nblocks      = length(uniq_vals);
-                    options.threshPC     = .7;
-                    options.betaPrior    = 10;
-                    
-                    % Run PM fitting.
-                    result = LoadOrRun(@psignifit, ...
-                        {[uniq_vals(:) yvals(:) num_trials_at_vals(:)], options}, ...
-                        fullfile(memodir, ['PM-' stair_var '-' s '.mat']));
                     
                     % Plot PM curve and data.
-                    plotPsych(result, plotOptions);
-                    errorbar(uniq_vals, yvals, stderr, 'bs');  % Black line
+                    plotPsych(fit_result, plotOptions);
+                    
+                    % Plot data.
+                    true_ratio = sum(SubjectData.order_of_orientations, 2);
+                    uniq_vals = unique(true_ratio);
+
+                    % The next line exploits the fact that 'Left' is coded as 1 and 'right'
+                    % as 0, so mean() returns the fraction of left choices.
+                    yvals = arrayfun(@(u) mean(SubjectData.choice(true_ratio == u)), uniq_vals);
+                    num_trials_at_vals = arrayfun(@(u) sum(true_ratio == u), uniq_vals);
+                    stderrs = arrayfun(@(u) std(SubjectData.choice(true_ratio == u)), uniq_vals) ./ sqrt(num_trials_at_vals);
+                    errorbar(uniq_vals, yvals, stderrs, 'bs');
                 end
                 title('Psychometric curve');
             case 'template'
