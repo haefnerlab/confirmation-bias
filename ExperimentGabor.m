@@ -18,7 +18,7 @@ global AGL GL GLU ptb_RootPath ptb_ConfigPath;
 cd(fullfile(directory, 'Code')) % Set the current directory
 commandwindow; % Moves the cursor to the commandwindow
 
-% if settings.useOpenGL, InitializeMatlabOpenGL; end
+if settings.useOpenGL, InitializeMatlabOpenGL; end
 
 % Screen set up
 whichScreen = settings.whichScreen; %allow to choose the display if there's more than one
