@@ -10,6 +10,10 @@ subjectID = getSubjectId(datadir, 'gaborV2');
 sessionNo = length(dir(fullfile(datadir, [subjectID '*']))) + 1;
 subjectID = [subjectID '-Session' num2str(sessionNo)];
 
+% Define variables that PTB adds to the 'static workspace' here (avoids an
+% error message...)
+global AGL GL GLU ptb_RootPath ptb_ConfigPath;
+
 %% Environment and PsychToolBox Initialization
 cd(fullfile(directory, 'Code')) % Set the current directory
 commandwindow; % Moves the cursor to the commandwindow
