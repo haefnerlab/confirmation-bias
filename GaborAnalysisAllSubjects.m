@@ -122,11 +122,11 @@ for i=1:nS
                 title('Psychometric curve');
             case 'template'
                 [SubjectDataThresh, images_thresh] = GaborThresholdTrials(...
-                    SubjectData, stim_images, thresh);
+                    SubjectData, stim_images, phase, thresh);
                 if ideal_template
-                    memo_name = ['Boot-PK-' stair_var '-' s '-<' thresh '.mat'];
+                    memo_name = ['Boot-PK-' stair_var '-' s '-' num2str(thresh) '.mat'];
                 else
-                    memo_name = ['Boot-SpPK-' stair_var '-' s '-<' thresh  '.mat'];
+                    memo_name = ['Boot-SpPK-' stair_var '-' s '-' num2str(thresh) '.mat'];
                 end
                 [M, ~, ~] = LoadOrRun(@BootstrapWeightsGabor, ...
                     {SubjectDataThresh, images_thresh, 500, ideal_template}, ...
@@ -139,11 +139,11 @@ for i=1:nS
                 title('spatial kernel');
             case 'pk'
                 [SubjectDataThresh, images_thresh] = GaborThresholdTrials(...
-                    SubjectData, stim_images, thresh);
+                    SubjectData, stim_images, phase, thresh);
                 if ideal_template
-                    memo_name = ['Boot-PK-' stair_var '-' s '-<' thresh  '.mat'];
+                    memo_name = ['Boot-PK-' stair_var '-' s '-' num2str(thresh)  '.mat'];
                 else
-                    memo_name = ['Boot-SpPK-' stair_var '-' s '-<' thresh  '.mat'];
+                    memo_name = ['Boot-SpPK-' stair_var '-' s '-' num2str(thresh)  '.mat'];
                 end
                 [M, L, U] = LoadOrRun(@BootstrapWeightsGabor, ...
                     {SubjectDataThresh, images_thresh, 500, ideal_template}, ...
