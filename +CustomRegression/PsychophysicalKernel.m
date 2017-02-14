@@ -72,9 +72,9 @@ parfor i=1:n_gridpts
     % slow) if errors are requested.
     if compute_error
         [weights, negPostVal, ~, ~, ~, hessian] = fminunc(negLogPost, zeros(p, 1));
-        % attempt to invert the hessian for error bars - this sometimes
-        % fails silently, returning NaN.
-        errors = abs(diag(inv(hessian)));
+        % attempt to invert the hessian for standard error estimate - this
+        % sometimes fails silently, returning NaN.
+        errors = sqrt(diag(inv(-hessian)));
     else
         [weights, negPostVal] = fminunc(negLogPost, zeros(p, 1));
         errors = zeros(size(weights));
