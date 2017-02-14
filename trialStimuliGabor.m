@@ -20,11 +20,8 @@ right_template = Data.right_template;
 left_patch = left_template * 100.0 + 127.0;
 right_patch = right_template * 100.0 + 127.0;
 
-whichScreen = settings.whichScreen; %allow to choose the display if there's more than one
-ResolutionScreen = Screen('Resolution', whichScreen); % Gets screen res
-ScreenSize = [0 0 ResolutionScreen.width ResolutionScreen.height]; % Sets full screen
-xc = ScreenSize(3)/2; %	Gets the middle of the horizontal axis
-yc = ScreenSize(4)/2; % Gets the middle of the vertical axis
+xc = settings.screenSize(3)/2; % Get the middle of the horizontal axis
+yc = settings.screenSize(4)/2; % Get the middle of the vertical axis
 
 black = [0 0 0];
 gray = [127 127 127];
@@ -46,7 +43,7 @@ end
 noise_mask = 127 + randn(h * Data.screen_resolution, w * Data.screen_resolution) * Data.contrast(Data.current_trial);
 image_texture(end) = Screen('MakeTexture', wPtr, noise_mask);
 
-stimulus_bbox = ptbCenteredRect([xc, ScreenSize(4)-3*size(large_image,1)], size(large_image));
+stimulus_bbox = ptbCenteredRect([xc, settings.screenSize(4)-3*size(large_image,1)], size(large_image));
 
 Screen('FillRect', wPtr, gray);        % Make the background gray
 [~, stimOnsetTime] = Screen('Flip', wPtr);

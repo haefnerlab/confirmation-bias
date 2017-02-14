@@ -22,10 +22,8 @@ if settings.useOpenGL, InitializeMatlabOpenGL; end
 
 % Screen set up
 whichScreen = settings.whichScreen; %allow to choose the display if there's more than one
-ResolutionScreen = Screen('Resolution', whichScreen); % Gets screen resolution
-ScreenSize = [0 0 ResolutionScreen.width ResolutionScreen.height]; % Sets full screen
-xc = ScreenSize(3)/2; %	Gets the middle of the horizontal axis
-yc = ScreenSize(4)/2; % Gets the middle of the vertical axis
+xc = settings.screenSize(3)/2; %	Gets the middle of the horizontal axis
+yc = settings.screenSize(4)/2; % Gets the middle of the vertical axis
 Screen('Preference', 'SkipSyncTests', settings.ptbSkipSyncTests); % Opens Screen
 
 white = [255 255 255];          % Sets the color to be white
