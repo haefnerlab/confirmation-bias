@@ -103,12 +103,18 @@ if pk
     ylabel('P_{prior}');
     title('PL-Space: 1/\tau of PK fit');
     
-    if ~ideal_observer
-        figname = sprintf('PLSpace_PK_%dx%d_vx%.2f_pD%.2f_gam%.2f_ns%d_b%d.fig', ...
+    if isempty(optimize)
+        if ~ideal_observer
+            figname = sprintf('PLSpace_PK_%dx%d_vx%.2f_pD%.2f_gam%.2f_ns%d_b%d.fig', ...
+                trials, frames, params.var_x, params.prior_D, ...
+                params.gamma, params.samples, params.batch);
+        else
+            figname = sprintf('PLSpace_PK_%dx%d_vx%.2f_ideal.fig', trials, frames, params.var_x);
+        end
+    else
+        figname = sprintf('PLSpace_%dx%d_optimized_vx%.2f_pD%.2f_gam%.2f_ns%d_b%d.fig', ...
             trials, frames, params.var_x, params.prior_D, ...
             params.gamma, params.samples, params.batch);
-    else
-        figname = sprintf('PLSpace_PK_%dx%d_vx%.2f_ideal.fig', trials, frames, params.var_x);
     end
     saveas(gcf, fullfile(savedir, figname));
 end

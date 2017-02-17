@@ -2,7 +2,7 @@ function plotPLPK(trials, frames, prior, likelihood, params, ideal_observer, pk_
 
 savedir = fullfile('+Model', 'figures');
 if ~exist(savedir, 'dir'), mkdir(savedir); end
-if nargin < 7, optimize = {}; end
+if nargin < 8, optimize = {}; end
 
 % Keep in sync with plotPLSpace
 if isempty(optimize)
@@ -59,7 +59,7 @@ for i=1:length(like_pts)
     
     params.p_match = p;
     params.var_e = Model.getEvidenceVariance(l);
-    [~, ~, expfit, tmp_fig] = Model.plotSamplingPK(trials, frames, params, pk_hprs);
+    [weights, errors, expfit, tmp_fig] = Model.plotSamplingPK(trials, frames, params, pk_hprs);
     close(tmp_fig);
     hold(pk_ax, 'on');
     weights = expfit(1)+expfit(2)*exp(-xs/expfit(3));
