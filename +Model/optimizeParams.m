@@ -18,9 +18,10 @@ if nargin < 4, variables = {'p_match'}; end
         end
         % Run sampling model using 'params' to generate data but
         % sample_params for the model itself.
-        results = Model.runSamplingModel(...
-            Model.genDataWithParams(trials, frames, params), sample_params);
-        correct = sum(results.choices == +1) / trials;
+        data = Model.genDataWithParams(trials, frames, params);
+        results = Model.runSamplingModel(data, sample_params);
+        ideal_results = Model.runIdealObserver(data, params);
+        correct = sum(results.choices == ideal_results.choices) / trials;
     end
 
 % Initialize vars to the generative values.
