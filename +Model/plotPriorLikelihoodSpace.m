@@ -56,15 +56,17 @@ parfor i=1:numel(ll)
 end
 
 % Load and record *values* of optimized params (can't happen inside parfor)
-for i=1:numel(ll)
-    params_copy = params;
-    % Set variances for this pair of prior & likelihood values.
-    params_copy.var_e = Model.getEvidenceVariance(ll(i));
-    params_copy.p_match = pp(i);
-    
-    [optim_params, ~, ~, ~] = Model.loadOrRunOptimizeParams(trials, frames, params_copy, optimize);
-    for j=1:length(optimize)
-        optim_results{j}(i) = optim_params.(optimize{j});
+if ~isempty(optimize)
+    for i=1:numel(ll)
+        params_copy = params;
+        % Set variances for this pair of prior & likelihood values.
+        params_copy.var_e = Model.getEvidenceVariance(ll(i));
+        params_copy.p_match = pp(i);
+        
+        [optim_params, ~, ~, ~] = Model.loadOrRunOptimizeParams(trials, frames, params_copy, optimize);
+        for j=1:length(optimize)
+            optim_results{j}(i) = optim_params.(optimize{j});
+        end
     end
 end
 
