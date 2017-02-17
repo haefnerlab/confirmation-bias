@@ -22,6 +22,12 @@ if exist(savefile, 'file') && ~recompute
     expfit = contents.expfit;
 else
     disp(['Computing new results for ' savename]);
+    % PK code standardizes (z-scores) the data. So, we need to randomly
+    % flip half the trials so that the mean is zero.
+    flip = rand(size(data, 1), 1) < 0.5;
+    data(flip) = -data(flip);
+    results.choices(flip) = -results.choices(flip);
+    % Run logistic regression.
     [weights, ~, errors] = CustomRegression.PsychophysicalKernel(data, ...
         results.choices == +1, hpr_ridge, hpr_ar1, hpr_curvature);
     expfit = CustomRegression.expFit(weights(1:end-1));
