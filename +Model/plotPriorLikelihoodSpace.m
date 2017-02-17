@@ -22,6 +22,8 @@ end
 correct = nan(size(ll));
 pk_ab = nan(size(ll));
 pk_tau = nan(size(ll));
+optim_results = cell(size(optimize));
+for i=1:length(optimize), optim_results{i} = nan(size(ll)); end
 
 parfor i=1:numel(ll)
     params_copy = params;
@@ -53,6 +55,19 @@ parfor i=1:numel(ll)
     correct(i) = sum(results.choices == +1) / trials;
 end
 
+% Load and record *values* of optimized params (can't happen inside parfor)
+for i=1:numel(ll)
+    params_copy = params;
+    % Set variances for this pair of prior & likelihood values.
+    params_copy.var_e = Model.getEvidenceVariance(ll(i));
+    params_copy.p_match = pp(i);
+    
+    [optim_params, ~, ~, ~] = Model.loadOrRunOptimizeParams(trials, frames, params_copy, optimize);
+    for j=1:length(optimize)
+        optim_results{j}(i) = optim_params.(optimize{j});
+    end
+end
+
 % Plot percent correct
 figure();
 imagesc(correct, [0.5 1.0]); axis image; colorbar;
@@ -77,6 +92,22 @@ else
 end
 
 saveas(gcf, fullfile(savedir, figname));
+
+% Plot value of optimized parameters.
+for i=1:length(optimize)
+    figure();
+    imagesc(optim_results{i}); axis image; colorbar;
+    prior_tick_indices = round(linspace(1, length(prior), min(length(prior), 5)));
+    like_tick_indices = round(linspace(1, length(likelihood), min(length(likelihood), 5)));
+    set(gca, 'YTick', prior_tick_indices);
+    set(gca, 'XTick', like_tick_indices);
+    set(gca, 'YTickLabel', arrayfun(@num2str, prior(prior_tick_indices), 'UniformOutput', false));
+    set(gca, 'XTickLabel', arrayfun(@num2str, likelihood(like_tick_indices), 'UniformOutput', false));
+    set(gca, 'YDir', 'Normal');
+    xlabel('P_{likelihood}');
+    ylabel('P_{prior}');
+    title(['Optimized value of ' optimize{i}]);
+end
 
 % Plot PK fit terms.
 if pk
