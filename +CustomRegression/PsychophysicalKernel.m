@@ -74,7 +74,7 @@ parfor i=1:n_gridpts
         [weights, negPostVal, ~, ~, ~, hessian] = fminunc(negLogPost, zeros(p, 1));
         % attempt to invert the hessian for standard error estimate - this
         % sometimes fails silently, returning NaN.
-        errors = sqrt(diag(inv(-hessian)));
+        errors = sqrt(diag(abs(inv(-hessian))));
     else
         [weights, negPostVal] = fminunc(negLogPost, zeros(p, 1));
         errors = zeros(size(weights));
