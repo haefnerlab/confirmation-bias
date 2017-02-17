@@ -1,8 +1,9 @@
-function plotPLPK(trials, frames, prior, likelihood, params, ideal_observer, pk_hprs, optimize, pk_colormap)
+function plotPLPK(trials, frames, prior, likelihood, params, ideal_observer, pk_hprs, fit_pk, optimize, pk_colormap)
 
 savedir = fullfile('+Model', 'figures');
 if ~exist(savedir, 'dir'), mkdir(savedir); end
-if nargin < 8, optimize = {}; end
+if nargin < 8, fit_pk = false; end
+if nargin < 9, optimize = {}; end
 
 % Keep in sync with plotPLSpace
 if isempty(optimize)
@@ -41,7 +42,7 @@ pri_pts = round(100*interp1(1:length(prior), prior, y))/100;
 pk_fig = figure;
 pk_ax = axes(pk_fig);
 
-if nargin < 9
+if nargin < 10
     % create pk_colormap that is dark blue -> dark red
     fade = linspace(0, 1, npts)';
     colors = [fade*170/255, zeros(size(fade)), (1-fade)*170/255];
@@ -62,8 +63,12 @@ for i=1:length(like_pts)
     [weights, errors, expfit, tmp_fig] = Model.plotSamplingPK(trials, frames, params, pk_hprs);
     close(tmp_fig);
     hold(pk_ax, 'on');
-    weights = expfit(1)+expfit(2)*exp(-xs/expfit(3));
-    plot(pk_ax, xs, weights / max(weights), '-', 'Color', colors(i,:));
+    if fit_pk
+        weights = expfit(1)+expfit(2)*exp(-xs/expfit(3));
+        plot(pk_ax, xs, weights / max(weights), '-', 'Color', colors(i,:));
+    else
+        errorbar(weights, errors, 'Color', colors(i,:));
+    end
 end
 
 ylim(pk_ax, [0 inf]);
