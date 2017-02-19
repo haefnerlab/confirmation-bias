@@ -109,6 +109,10 @@ for i=1:length(optimize)
     xlabel('P_{likelihood}');
     ylabel('P_{prior}');
     title(['Optimized value of ' optimize{i}]);
+    figname = sprintf('PLSpace_optim_%s_%dx%d_vx%.2f_pD%.2f_gam%.2f_ns%d_b%d.fig', ...
+        optimize{i}, trials, frames, params.var_x, params.prior_D, ...
+        params.gamma, params.samples, params.batch);
+    saveas(gcf, fullfile(savedir, figname));
 end
 
 % Plot PK fit terms.
