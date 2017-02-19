@@ -12,13 +12,10 @@ parfor i=1:length(gammas)
     params_copy.gamma = gammas(i);
     
     results = Model.loadOrRunSamplingModel(data, data_prefix, params_copy);
-    
-    [w, e] = Model.loadOrRunModelPK(...
+
+    [weights{i}, errors{i}] = Model.loadOrRunModelPK(...
         Model.getModelStringID(data_prefix, params_copy), ...
         data, results, [1 0 10]);
-    
-    weights{i} = w;
-    errors{i} = e;
 end
 
 %% Plot
@@ -26,13 +23,12 @@ end
 fig = figure;
 hold on;
 
-colors = winter(length(gammas));
+colors = fadecolors([1 0 0], [0 0 1], length(gammas));
 
 for i=1:length(gammas)
-    errorbar(weights{i}, errors{i}, 'Color', colors(i,:), 'LineWidth', 2);
+    errorbar(weights{i}(1:end-1), errors{i}(1:end-1), 'Color', colors(i,:), 'LineWidth', 2);
 end
-legend(arrayfun(@(g) ['\gamma = ' num2str(g)], gammas, 'UniformOutput', false));
+legend(arrayfun(@(g) ['\gamma = ' num2str(g)], gammas, 'UniformOutput', false), 'Location', 'best');
 title('PK for different values of \gamma');
 
 end
-
