@@ -33,7 +33,7 @@ if nargin < 4, hpr_ar1 = 0; end
 if nargin < 3, hpr_ridge = 0; end
 
 % Equalize variance for each regressor.
-% data = zscore(data);
+data = zscore(data);
 
 % Add a column of ones to data for a bias term.
 data = [data ones(size(data,1),1)];
