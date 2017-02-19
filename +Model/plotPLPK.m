@@ -36,8 +36,8 @@ hold(img_ax, 'on');
 [x, y] = getpts(img_ax);
 npts = length(x);
 
-like_pts = round(100*interp1(1:length(likelihood), likelihood, x))/100;
-pri_pts = round(100*interp1(1:length(prior), prior, y))/100;
+like_pts = round(100*interp1(1:length(likelihood), likelihood, x, 'linear', 'extrap'))/100;
+pri_pts = round(100*interp1(1:length(prior), prior, y, 'linear', 'extrap'))/100;
 
 pk_fig = figure;
 pk_ax = axes(pk_fig);
