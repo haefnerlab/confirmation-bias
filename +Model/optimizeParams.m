@@ -16,7 +16,7 @@ function [optim_params, optim_correct, optim_flag] = ...
 use_grid = true;
 
 if nargin < 4, variables = {'p_match'}; end
-if nargin < 5, use_grid = false; end
+if nargin < 5 || isempty(ngrid), use_grid = false; end
 
     function correct = percent_correct(vars)
         sample_params = params;

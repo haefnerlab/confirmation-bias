@@ -11,8 +11,7 @@ if ~exist(savedir, 'dir'), mkdir(savedir); end
 if nargin < 6, ideal_observer = false; end
 if nargin < 7, pk = false; end
 if nargin < 8, optimize = {}; end
-
-use_grid = exist('optim_grid_size', 'var');
+if nargin < 9, optim_grid_size = 11; end
 
 if ideal_observer && ~isempty(optimize)
     error('nothing to optimize for the ideal observer');
@@ -43,11 +42,7 @@ parfor i=1:numel(ll)
         end
         optim_prefix = '';
     else
-        if use_grid
-            [optim_params, ~, ~, optim_prefix] = Model.loadOrRunOptimizeParams(trials, frames, params_copy, optimize, optim_grid_size);
-        else
-            [optim_params, ~, ~, optim_prefix] = Model.loadOrRunOptimizeParams(trials, frames, params_copy, optimize);
-        end
+        [optim_params, ~, ~, optim_prefix] = Model.loadOrRunOptimizeParams(trials, frames, params_copy, optimize, optim_grid_size);
         results = Model.loadOrRunSamplingModel(data, [optim_prefix, data_prefix], optim_params);
     end
     % Fit PK if requested
@@ -69,11 +64,7 @@ if ~isempty(optimize)
         params_copy.var_e = Model.getEvidenceVariance(ll(i));
         params_copy.p_match = pp(i);
         
-        if use_grid
-            [optim_params, ~, ~, ~] = Model.loadOrRunOptimizeParams(trials, frames, params_copy, optimize, optim_grid_size);
-        else
-            [optim_params, ~, ~, ~] = Model.loadOrRunOptimizeParams(trials, frames, params_copy, optimize);
-        end
+        [optim_params, ~, ~, ~] = Model.loadOrRunOptimizeParams(trials, frames, params_copy, optimize, optim_grid_size);
         for j=1:length(optimize)
             optim_results{j}(i) = optim_params.(optimize{j});
         end
