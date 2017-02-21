@@ -1,4 +1,4 @@
-function [correct, pk_ab, pk_tau] = plotPriorLikelihoodSpace(trials, frames, prior, likelihood, params, ideal_observer, pk, optimize)
+function [correct, pk_ab, pk_tau] = plotPriorLikelihoodSpace(trials, frames, prior, likelihood, params, ideal_observer, pk, optimize, optim_grid_size)
 %PLOTPRIORLIKELIHOODSPACE make a info_prior vs info_likelihood plot for the
 %given params.
 %
@@ -41,7 +41,11 @@ parfor i=1:numel(ll)
         end
         optim_prefix = '';
     else
-        [optim_params, ~, ~, optim_prefix] = Model.loadOrRunOptimizeParams(trials, frames, params_copy, optimize);
+        if exist('optim_grid_size', 'var')
+            [optim_params, ~, ~, optim_prefix] = Model.loadOrRunOptimizeParams(trials, frames, params_copy, optimize, optim_grid_size);
+        else
+            [optim_params, ~, ~, optim_prefix] = Model.loadOrRunOptimizeParams(trials, frames, params_copy, optimize);
+        end
         results = Model.loadOrRunSamplingModel(data, [optim_prefix, data_prefix], optim_params);
     end
     % Fit PK if requested
