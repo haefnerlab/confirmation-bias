@@ -67,7 +67,7 @@ for i=1:length(like_pts)
         weights = expfit(1)+expfit(2)*exp(-xs/expfit(3));
         plot(pk_ax, xs, weights / max(weights), '-', 'Color', colors(i,:));
     else
-        errorbar(weights, errors, 'Color', colors(i,:));
+        errorbar(weights, errors, 'Color', colors(i,:), 'LineWidth', 2);
     end
 end
 
