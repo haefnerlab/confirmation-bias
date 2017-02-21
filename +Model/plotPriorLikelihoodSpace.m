@@ -69,7 +69,11 @@ if ~isempty(optimize)
         params_copy.var_e = Model.getEvidenceVariance(ll(i));
         params_copy.p_match = pp(i);
         
-        [optim_params, ~, ~, ~] = Model.loadOrRunOptimizeParams(trials, frames, params_copy, optimize);
+        if use_grid
+            [optim_params, ~, ~, ~] = Model.loadOrRunOptimizeParams(trials, frames, params_copy, optimize, optim_grid_size);
+        else
+            [optim_params, ~, ~, ~] = Model.loadOrRunOptimizeParams(trials, frames, params_copy, optimize);
+        end
         for j=1:length(optimize)
             optim_results{j}(i) = optim_params.(optimize{j});
         end
