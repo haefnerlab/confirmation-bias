@@ -1,32 +1,25 @@
-function plotPLPK(trials, frames, prior, likelihood, params, ideal_observer, pk_hprs, fit_pk, optimize, pk_colormap)
+function plotPLPK(trials, frames, prior, likelihood, params, ideal_observer, pk_hprs, fit_pk, optimize, optim_grid_size, pk_colormap)
 
 savedir = fullfile('+Model', 'figures');
 if ~exist(savedir, 'dir'), mkdir(savedir); end
 if nargin < 8, fit_pk = false; end
 if nargin < 9, optimize = {}; end
+if nargin < 10, optim_grid_size = 11; end
+
+optim_prefix = Model.getOptimPrefix(optimize, optim_grid_size);
 
 % Keep in sync with plotPLSpace
-if isempty(optimize)
-    if ~ideal_observer
-        figname = sprintf('PLSpace_%dx%d_vx%.2f_pD%.2f_gam%.2f_ns%d_b%d.fig', ...
-            trials, frames, params.var_x, params.prior_D, ...
-            params.gamma, params.samples, params.batch);
-    else
-        figname = sprintf('PLSpace_%dx%d_vx%.2f_ideal.fig', trials, frames, params.var_x);
-    end
-    if ~exist(fullfile(savedir, figname), 'file')
-        Model.plotPriorLikelihoodSpace(trials, frames, prior, likelihood, params, ideal_observer);
-        close all;
-    end
+if ~ideal_observer
+    figname = sprintf('PLSpace_%dx%d_%s_vx%.2f_pD%.2f_gam%.2f_ns%d_b%d.fig', ...
+        trials, frames, optim_prefix, params.var_x, params.prior_D, ...
+        params.gamma, params.samples, params.batch);
 else
-    figname = sprintf('PLSpace_%dx%d_optimized_vx%.2f_pD%.2f_gam%.2f_ns%d_b%d.fig', ...
-            trials, frames, params.var_x, params.prior_D, ...
-            params.gamma, params.samples, params.batch);
-    if ~exist(fullfile(savedir, figname), 'file')
-        % Get PL-space data for optimized params
-        Model.plotPriorLikelihoodSpace(trials, frames, prior, likelihood, params, false, false, optimize);
-        close all;
-    end
+    figname = sprintf('PLSpace_%dx%d_vx%.2f_ideal.fig', trials, frames, params.var_x);
+end
+
+if ~exist(fullfile(savedir, figname), 'file')
+    Model.plotPriorLikelihoodSpace(trials, frames, prior, likelihood, params, ideal_observer, false, optimize, optim_grid_size);
+    close all;
 end
 
 pl_fig = openfig(fullfile(savedir, figname));
@@ -42,7 +35,7 @@ pri_pts = round(100*interp1(1:length(prior), prior, y, 'linear', 'extrap'))/100;
 pk_fig = figure;
 pk_ax = axes(pk_fig);
 
-if nargin < 10
+if nargin < 11
     % create pk_colormap that is dark blue -> dark red
     fade = linspace(0, 1, npts)';
     colors = [fade*170/255, zeros(size(fade)), (1-fade)*170/255];
@@ -60,7 +53,7 @@ for i=1:length(like_pts)
     
     params.p_match = p;
     params.var_e = Model.getEvidenceVariance(l);
-    [weights, errors, expfit, tmp_fig] = Model.plotSamplingPK(trials, frames, params, pk_hprs);
+    [weights, errors, expfit, tmp_fig] = Model.plotSamplingPK(trials, frames, params, pk_hprs, ideal_observer, optimize, optim_grid_size);
     close(tmp_fig);
     hold(pk_ax, 'on');
     if fit_pk

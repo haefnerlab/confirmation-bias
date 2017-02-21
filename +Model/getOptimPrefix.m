@@ -1,4 +1,9 @@
 function prefix = getOptimPrefix(variables, grid_search_size)
+if isempty(variables)
+    prefix = '';
+    return
+end
+
 prefix = 'optim';
 
 if nargin > 1 && ~isempty(grid_search_size)

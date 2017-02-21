@@ -26,6 +26,8 @@ pk_tau = nan(size(ll));
 optim_results = cell(size(optimize));
 for i=1:length(optimize), optim_results{i} = nan(size(ll)); end
 
+optim_prefix = Model.getOptimPrefix(optimize, optim_grid_size);
+
 parfor i=1:numel(ll)
     params_copy = params;
     % Set variances for this pair of prior & likelihood values.
@@ -40,9 +42,8 @@ parfor i=1:numel(ll)
         else
             results = Model.runIdealObserver(data, params_copy);
         end
-        optim_prefix = '';
     else
-        [optim_params, ~, ~, optim_prefix] = Model.loadOrRunOptimizeParams(trials, frames, params_copy, optimize, optim_grid_size);
+        optim_params = Model.loadOrRunOptimizeParams(trials, frames, params_copy, optimize, optim_grid_size);
         results = Model.loadOrRunSamplingModel(data, [optim_prefix, data_prefix], optim_params);
     end
     % Fit PK if requested
@@ -87,8 +88,8 @@ xlabel('P_{likelihood}');
 ylabel('P_{prior}');
 title('PL-Space');
 if ~ideal_observer
-    figname = sprintf('PLSpace_%dx%d_vx%.2f_pD%.2f_gam%.2f_ns%d_b%d.fig', ...
-        trials, frames, params.var_x, params.prior_D, ...
+    figname = sprintf('PLSpace_%dx%d_%s_vx%.2f_pD%.2f_gam%.2f_ns%d_b%d.fig', ...
+        trials, frames, optim_prefix, params.var_x, params.prior_D, ...
         params.gamma, params.samples, params.batch);
 else
     figname = sprintf('PLSpace_%dx%d_vx%.2f_ideal.fig', trials, frames, params.var_x);
