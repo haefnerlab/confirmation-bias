@@ -12,6 +12,8 @@ if nargin < 6, ideal_observer = false; end
 if nargin < 7, pk = false; end
 if nargin < 8, optimize = {}; end
 
+use_grid = exist('optim_grid_size', 'var');
+
 if ideal_observer && ~isempty(optimize)
     error('nothing to optimize for the ideal observer');
 end
@@ -41,7 +43,7 @@ parfor i=1:numel(ll)
         end
         optim_prefix = '';
     else
-        if exist('optim_grid_size', 'var')
+        if use_grid
             [optim_params, ~, ~, optim_prefix] = Model.loadOrRunOptimizeParams(trials, frames, params_copy, optimize, optim_grid_size);
         else
             [optim_params, ~, ~, optim_prefix] = Model.loadOrRunOptimizeParams(trials, frames, params_copy, optimize);
