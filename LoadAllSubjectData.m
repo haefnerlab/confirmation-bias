@@ -22,6 +22,9 @@ for i=1:length(files)
             imagesToAppend = contents.image_collection;
         elseif endsWith(files(i).name, ['GaborData' expt_type 'Quit.mat'])
             contents = load(fullfile(datadir, files(i).name));
+            if contents.GaborData.current_trial < 10
+                continue;
+            end
             [dataToAppend, imagesToAppend] = TruncateQuitDataGabor(contents.GaborData, contents.image_collection);
         else
             continue;
