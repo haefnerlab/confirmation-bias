@@ -42,6 +42,11 @@ for i=1:length(files)
     end
 end
 
+% Add a 'true_ratio' field if phase is 1
+if phase == 1
+    GaborData.true_ratio = sum(GaborData.order_of_orientations == +1, 2) / 10;
+end
+
 if ~loaded_one
     error('No data found for %s in %s experiment.', subjectID, expt_type);
 end

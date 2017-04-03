@@ -27,7 +27,7 @@ if ~exist(memodir, 'dir'), mkdir(memodir); end
 if phase == 0
     stair_var = 'contrast';
 elseif phase == 1
-    stair_var = 'ratio';
+    stair_var = 'true_ratio';
 else
     error('Expected phase 0 for Contrast or 1 for Ratio');
 end
@@ -50,13 +50,13 @@ nP = length(plot_types);
             local_fit_result = LoadOrRun(@GaborPsychometric, ...
                 {LocalSubjectData, phase}, ...
                 fullfile(memodir, ['PM-' stair_var '-' subjectID '.mat']));
-            floor = getThreshold(local_fit_result, perf_lo, phase == 0);
-            thresh = getThreshold(local_fit_result, perf_hi, phase == 0);
+            floor = getThreshold(local_fit_result, perf_lo, false);
+            thresh = getThreshold(local_fit_result, perf_hi, false);
         
             % Adjust from '#clicks' to threshold
             if phase == 1
-                thresh = max(thresh, 10-floor) / 10;
-                floor = .5;
+                thresh = thresh / 10;
+                floor = 1 - thresh;
             end
         end
     end
@@ -66,7 +66,7 @@ for i=1:nS
     s = subjectIDs{i};
     [SubjectData, stim_images] = ...
         LoadOrRun(@LoadAllSubjectData, {s, phase, datadir}, fullfile(catdir, [s '-' stair_var '.mat']));
-    [floor, thresh] = getThresholdWindow(s, .2, .5);
+    [floor, thresh] = getThresholdWindow(s, .6, .75);
     trials = SubjectData.(stair_var) <= thresh & SubjectData.(stair_var) >= floor;
     
     for j=1:length(plot_types)
@@ -130,6 +130,9 @@ for i=1:nS
                         stderrs(b) = std(SubjectData.accuracy(indices)) / sqrt(sum(indices));
                     end
                     errorbar(exp(bin_centers), means, stderrs, 'bs');
+                    ys = get(gca, 'YLim');
+                    plot([floor floor], ys, '--r');
+                    plot([thresh thresh], ys, '--r');
                 elseif phase == 1
                     % Add remaining plot options.
                     plotOptions.xLabel = 'True # Left Frames';
@@ -148,8 +151,14 @@ for i=1:nS
                     num_trials_at_vals = arrayfun(@(u) sum(true_ratio == u), uniq_vals);
                     stderrs = arrayfun(@(u) std(SubjectData.choice(true_ratio == u)), uniq_vals) ./ sqrt(num_trials_at_vals);
                     errorbar(uniq_vals, yvals, stderrs, 'bs');
+                    ys = get(gca, 'YLim');
+                    plot(10*[floor floor], ys, '--r');
+                    plot(10*[thresh thresh], ys, '--r');
                 end
                 title('Psychometric curve');
+                
+                % Display floor+threshold values
+                [floor, thresh] = getThresholdWindow(s, .6, .75);
             case 'template'
                 [SubjectDataThresh, images_thresh] = GaborThresholdTrials(...
                     SubjectData, stim_images, phase, thresh, floor);
@@ -195,7 +204,7 @@ if length(subjectIDs) > 1 && any(strcmpi('pk', plot_types))
         s = subjectIDs{i};
         [SubjectData, stim_images] = ...
             LoadOrRun(@LoadAllSubjectData, {s, phase, datadir}, fullfile(catdir, [s '-' stair_var '.mat']));
-        [floor, thresh] = getThresholdWindow(s, .2, .5);
+        [floor, thresh] = getThresholdWindow(s, .6, .75);
         all_ids = strcat(all_ids, ['-' s '-' num2str(thresh) '-' num2str(floor)]);
         [this_subject, this_imgs] = GaborThresholdTrials(SubjectData, stim_images, phase, thresh, floor);
         if isempty(all_data)
