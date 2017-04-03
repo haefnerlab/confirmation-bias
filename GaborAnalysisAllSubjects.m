@@ -7,7 +7,8 @@ function [grid, combined] = GaborAnalysisAllSubjects(subjectIDs, thresholds, pha
 %
 % Inputs:
 % - subjectIDs: a cell array of subject IDs (strings)
-% - thresholds: an array the same size as subjectIDs with each subject's threshold.
+% - thresholds: an array the same size as subjectIDs with each subject's
+%   threshold, or a 2d array (subjects x 2) with [lo hi] ranges to keep.
 % - phase: 0 for contrast, 1 for ratio
 % - plot_types: (optional) cell array of plots to show. options are 'staircase', 'rt', 'pm', 'template', 'pk', 'sd'
 % - ideal_template: (optional) if true, uses ideal observer spatial template.
@@ -31,16 +32,42 @@ else
     error('Expected phase 0 for Contrast or 1 for Ratio');
 end
 
+if numel(thresholds) == length(subjectIDs)
+    thresholds = [zeros(length(subjectIDs), 1), thresholds(:)];
+end
+
 nS = length(subjectIDs);
 nP = length(plot_types);
+
+    function [floor, thresh] = getThresholdWindow(subjectID, perf_lo, perf_hi)
+        subjectIdx = strcmpi(subjectID, subjectIDs);
+        floor = thresholds(subjectIdx, 1);
+        thresh = thresholds(subjectIdx, 2);
+        if isinf(thresh)
+            [LocalSubjectData, ~] = ...
+                LoadOrRun(@LoadAllSubjectData, {subjectID, phase, datadir}, fullfile(catdir, [subjectID '-' stair_var '.mat']));
+            % Use PM fit to get floor and threshold
+            local_fit_result = LoadOrRun(@GaborPsychometric, ...
+                {LocalSubjectData, phase}, ...
+                fullfile(memodir, ['PM-' stair_var '-' subjectID '.mat']));
+            floor = getThreshold(local_fit_result, perf_lo, phase == 0);
+            thresh = getThreshold(local_fit_result, perf_hi, phase == 0);
+        
+            % Adjust from '#clicks' to threshold
+            if phase == 1
+                thresh = max(thresh, 10-floor) / 10;
+                floor = .5;
+            end
+        end
+    end
 
 grid = figure();
 for i=1:nS
     s = subjectIDs{i};
     [SubjectData, stim_images] = ...
-        LoadOrRun(@LoadAllSubjectData, {s, phase, datadir}, fullfile(catdir, [s '.mat']));
-    thresh = thresholds(i);
-    trials = SubjectData.(stair_var) <= thresh;
+        LoadOrRun(@LoadAllSubjectData, {s, phase, datadir}, fullfile(catdir, [s '-' stair_var '.mat']));
+    [floor, thresh] = getThresholdWindow(s, .2, .5);
+    trials = SubjectData.(stair_var) <= thresh & SubjectData.(stair_var) >= floor;
     
     for j=1:length(plot_types)
         ax = subplot(nS, nP, (i-1)*nP + j);
@@ -50,6 +77,9 @@ for i=1:nS
                 plot(SubjectData.(stair_var), '-k');
                 plot(find(trials), SubjectData.(stair_var)(trials), 'ob');
                 line([1 length(trials)], [thresh thresh], 'LineStyle', '--', 'Color', 'r');
+                if floor > 0
+                    line([1 length(trials)], [floor floor], 'LineStyle', '--', 'Color', 'r');
+                end
                 ylabel(stair_var);
                 title([num2str(sum(trials)) '/' num2str(length(trials)) ' trials']);
             case 'rt'
@@ -62,7 +92,7 @@ for i=1:nS
                 ylabel('Prob(choose left)');
                 set(ax, 'XTick', 1:4);
                 set(ax, 'XTickLabel', {'Left+Correct', 'Right+Correct', 'Left+Wrong', 'Right+Wrong'});
-                xtickangle(ax, 25);
+                if exist('xtickangle', 'file'), xtickangle(ax, 25); end
                 title('serial dependencies');
             case 'pm'
                 % Get PM fit.
@@ -111,7 +141,7 @@ for i=1:nS
                     % Plot data.
                     true_ratio = sum(SubjectData.order_of_orientations, 2);
                     uniq_vals = unique(true_ratio);
-
+                    
                     % The next line exploits the fact that 'Left' is coded as 1 and 'right'
                     % as 0, so mean() returns the fraction of left choices.
                     yvals = arrayfun(@(u) mean(SubjectData.choice(true_ratio == u)), uniq_vals);
@@ -122,11 +152,11 @@ for i=1:nS
                 title('Psychometric curve');
             case 'template'
                 [SubjectDataThresh, images_thresh] = GaborThresholdTrials(...
-                    SubjectData, stim_images, phase, thresh);
+                    SubjectData, stim_images, phase, thresh, floor);
                 if ideal_template
-                    memo_name = ['Boot-PK-' stair_var '-' s '-' num2str(thresh) '.mat'];
+                    memo_name = ['Boot-PK-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
                 else
-                    memo_name = ['Boot-SpPK-' stair_var '-' s '-' num2str(thresh) '.mat'];
+                    memo_name = ['Boot-SpPK-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
                 end
                 [M, ~, ~] = LoadOrRun(@BootstrapWeightsGabor, ...
                     {SubjectDataThresh, images_thresh, 500, ideal_template}, ...
@@ -139,11 +169,11 @@ for i=1:nS
                 title('spatial kernel');
             case 'pk'
                 [SubjectDataThresh, images_thresh] = GaborThresholdTrials(...
-                    SubjectData, stim_images, phase, thresh);
+                    SubjectData, stim_images, phase, thresh, floor);
                 if ideal_template
-                    memo_name = ['Boot-PK-' stair_var '-' s '-' num2str(thresh)  '.mat'];
+                    memo_name = ['Boot-PK-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
                 else
-                    memo_name = ['Boot-SpPK-' stair_var '-' s '-' num2str(thresh)  '.mat'];
+                    memo_name = ['Boot-SpPK-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
                 end
                 [M, L, U] = LoadOrRun(@BootstrapWeightsGabor, ...
                     {SubjectDataThresh, images_thresh, 500, ideal_template}, ...
@@ -156,5 +186,34 @@ for i=1:nS
     end
 end
 
-% combined = figure();
+if length(subjectIDs) > 1 && any(strcmpi('pk', plot_types))
+    combined = figure();
+    all_data = [];
+    all_imgs = [];
+    all_ids = '';
+    for i=1:nS
+        s = subjectIDs{i};
+        [SubjectData, stim_images] = ...
+            LoadOrRun(@LoadAllSubjectData, {s, phase, datadir}, fullfile(catdir, [s '-' stair_var '.mat']));
+        [floor, thresh] = getThresholdWindow(s, .2, .5);
+        all_ids = strcat(all_ids, ['-' s '-' num2str(thresh) '-' num2str(floor)]);
+        [this_subject, this_imgs] = GaborThresholdTrials(SubjectData, stim_images, phase, thresh, floor);
+        if isempty(all_data)
+            all_data = this_subject;
+            all_imgs = this_imgs;
+        else
+            [all_data, all_imgs] = ConcatGaborData(all_data, all_imgs, this_subject, this_imgs);
+        end
+    end
+    [M, L, U] = LoadOrRun(@BootstrapWeightsGabor, ...
+        {all_data, all_imgs, 500, ideal_template}, ...
+        fullfile(memodir, ['combo-PK-' stair_var all_ids '.mat']));
+    [~, frames, h, w] = size(all_imgs);
+    time_idxs = w*h+1:length(M)-1;
+    boundedline(1:frames, M(time_idxs)', [U(time_idxs)-M(time_idxs); M(time_idxs)-L(time_idxs)]');
+    title('combined temporal kernel');
+    
+elseif nargout > 1
+    error('Need ''pk'' plot type and at least 2 subjects to make a combined plot');
+end
 end
