@@ -15,7 +15,7 @@ function GaborData = newGaborData(varargin)
 %% User-settable params
 GaborData.trials_per_block = get_arg('trials_per_block', 100);
 GaborData.blocks = get_arg('blocks', 4);
-GaborData.stair_fn = get_arg('stair_fn', @GaborStaircase.contrast);
+GaborData.stair_fn = get_arg('stair_fn', @Staircase.contrast);
 GaborData.reversals_per_epoch = get_arg('reversals_per_epoch', 6);
 
 total_trials = GaborData.trials_per_block * GaborData.blocks;
@@ -31,15 +31,15 @@ GaborData.step_size = zeros(1, total_trials);
 
 % Staircase bounds and step size, with defaults set depending on stair_fn
 GaborData.model_observer = get_arg('model_observer', '');
-if isequal(GaborData.stair_fn, @GaborStaircase.contrast)
+if isequal(GaborData.stair_fn, @Staircase.contrast)
     GaborData.stair_bounds = get_arg('stair_bounds', [0 64]);
     GaborData.step_size(1) = get_arg('step_size', 2); % multiplicative (in the "easier" direction)
     GaborData.min_step_size = get_arg('min_step_size', 1+(GaborData.step_size(1) - 1)/4); % Default to two 'halvings' of the step size
-elseif isequal(GaborData.stair_fn, @GaborStaircase.ratio)
+elseif isequal(GaborData.stair_fn, @Staircase.ratio)
     GaborData.stair_bounds = get_arg('stair_bounds', [0.5 1.0]);
     GaborData.step_size(1) = get_arg('step_size', .1); % additive (in the "easier" direction)
     GaborData.min_step_size = get_arg('min_step_size', GaborData.step_size(1)/4); % Default to two 'halvings' of the step size
-elseif isequal(GaborData.stair_fn, @GaborStaircase.pixel_noise)
+elseif isequal(GaborData.stair_fn, @Staircase.pixel_noise)
     GaborData.stair_bounds = get_arg('stair_bounds', [0 32]);
     GaborData.step_size(1) = get_arg('step_size', -4); % additive (in the "easier" direction)
     GaborData.min_step_size = get_arg('min_step_size', GaborData.step_size(1)/4); % Default to two 'halvings' of the step size
@@ -84,21 +84,21 @@ if ~isempty(GaborData.model_observer) && ~isempty(GaborData.stair_fn)
     warning('Model observer with a staircase?');
 end
 
-if isequal(GaborData.stair_fn, @GaborStaircase.ratio)
+if isequal(GaborData.stair_fn, @Staircase.ratio)
     if GaborData.step_size(1) < 0
         warning('Changing sign of ratio step_size from %d to %d', GaborData.step_size(1), -GaborData.step_size(1));
         GaborData.step_size = -GaborData.step_size;
     end
 end
 
-if isequal(GaborData.stair_fn, @GaborStaircase.pixel_noise)
+if isequal(GaborData.stair_fn, @Staircase.pixel_noise)
     if GaborData.step_size(1) > 0
         warning('Changing sign of pixel_noise step_size from %d to %d', GaborData.step_size(1), -GaborData.step_size(1));
         GaborData.step_size = -GaborData.step_size;
     end
 end
 
-if isequal(GaborData.stair_fn, @GaborStaircase.contrast)
+if isequal(GaborData.stair_fn, @Staircase.contrast)
     if GaborData.step_size(1) < 0
         error('Contrast staircase is multiplicative; step size of %f doesn''t make sense', GaborData.step_size(1));
     elseif GaborData.step_size(1) < 1

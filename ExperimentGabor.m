@@ -50,13 +50,13 @@ KbName('UnifyKeyNames');
 goKey = KbName(settings.keyGo);
 exitKey = KbName(settings.keyExit);
 
-if isequal(GaborData.stair_fn, @GaborStaircase.contrast)
+if isequal(GaborData.stair_fn, @Staircase.contrast)
     fileName = fullfile(datadir, [subjectID '-GaborDataContrast.mat']);
     fileNameQuit = fullfile(datadir, [subjectID '-GaborDataContrastQuit.mat']);
-elseif isequal(GaborData.stair_fn, @GaborStaircase.ratio)
+elseif isequal(GaborData.stair_fn, @Staircase.ratio)
     fileName = fullfile(datadir, [subjectID '-GaborDataRatio.mat']);
     fileNameQuit = fullfile(datadir, [subjectID '-GaborDataRatioQuit.mat']);
-elseif isequal(GaborData.stair_fn, @GaborStaircase.pixel_noise)
+elseif isequal(GaborData.stair_fn, @Staircase.pixel_noise)
     fileName = fullfile(datadir, [subjectID '-GaborDataNoise.mat']);
     fileNameQuit = fullfile(datadir, [subjectID '-GaborDataNoiseQuit.mat']);
 else
