@@ -4,7 +4,7 @@ Data.image_length_x = 5;
 Data.number_of_images = n_images;
 Data.left_template = eye(5);
 Data.right_template = rot90(Data.left_template);
-Data.pixel_noise = noise;
+Data.noise = noise;
 
 order = sign(p_match - rand(1:n_images));
 

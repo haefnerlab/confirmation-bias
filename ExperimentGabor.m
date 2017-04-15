@@ -56,7 +56,7 @@ if isequal(GaborData.stair_fn, @Staircase.contrast)
 elseif isequal(GaborData.stair_fn, @Staircase.ratio)
     fileName = fullfile(datadir, [subjectID '-GaborDataRatio.mat']);
     fileNameQuit = fullfile(datadir, [subjectID '-GaborDataRatioQuit.mat']);
-elseif isequal(GaborData.stair_fn, @Staircase.pixel_noise)
+elseif isequal(GaborData.stair_fn, @Staircase.noise)
     fileName = fullfile(datadir, [subjectID '-GaborDataNoise.mat']);
     fileNameQuit = fullfile(datadir, [subjectID '-GaborDataNoiseQuit.mat']);
 else
@@ -152,7 +152,7 @@ try
             GaborData.reversal_counter(trial) = 0;
             GaborData.contrast(trial) = GaborData.contrast(1);
             GaborData.ratio(trial) = GaborData.ratio(1);
-            GaborData.pixel_noise(trial) = GaborData.pixel_noise(1);
+            GaborData.noise(trial) = GaborData.noise(1);
             GaborData.step_size(trial) = GaborData.step_size(1);
             block_trial = 1;
         else
@@ -160,7 +160,7 @@ try
             
             GaborData.contrast(trial) = GaborData.contrast(trial-1);
             GaborData.ratio(trial) = GaborData.ratio(trial-1);
-            GaborData.pixel_noise(trial) = GaborData.pixel_noise(trial-1);
+            GaborData.noise(trial) = GaborData.noise(trial-1);
             GaborData.step_size(trial) = GaborData.step_size(trial-1);
             
             % Count correct streak (with respect to the ideal observer's
@@ -217,7 +217,7 @@ try
         % independent of the prior, and for the decision (including the prior)
         [log_frame_odds, log_decision_odds] = GaborLogOdds(image_array, ...
             GaborData.left_template, GaborData.right_template, ...
-            GaborData.contrast(trial), GaborData.pixel_noise(trial)^2, ...
+            GaborData.contrast(trial), GaborData.noise(trial)^2, ...
             GaborData.ratio(trial));
         GaborData.log_frame_odds(trial, :) = log_frame_odds;
         GaborData.log_decision_odds(trial, :) = log_decision_odds;

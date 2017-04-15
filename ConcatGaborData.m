@@ -7,7 +7,7 @@ GaborData.current_trial = Data1.current_trial + Data2.current_trial;
 
 GaborData.contrast = [Data1.contrast, Data2.contrast];
 GaborData.ratio = [Data1.ratio, Data2.ratio];
-GaborData.pixel_noise = [Data1.pixel_noise, Data2.pixel_noise];
+GaborData.noise = [Data1.noise, Data2.noise];
 GaborData.step_size = [Data1.step_size, Data2.step_size];
 
 GaborData.streak = [Data1.streak, Data2.streak];

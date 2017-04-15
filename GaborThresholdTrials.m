@@ -22,7 +22,7 @@ Data.current_trial = elements;
 
 Data.contrast = Data.contrast(test_trials);
 Data.ratio = Data.ratio(test_trials);
-Data.pixel_noise = Data.pixel_noise(test_trials);
+Data.noise = Data.noise(test_trials);
 Data.step_size = Data.step_size(test_trials);
 
 Data.streak = Data.streak(test_trials);

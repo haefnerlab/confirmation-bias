@@ -18,7 +18,7 @@ width = Data.image_length_x;
 frames = Data.number_of_images;
 t = Data.current_trial;
 c = Data.contrast(t);
-noise = Data.pixel_noise(t);
+noise = Data.noise(t);
 
 background = 127.0;
 image_array = zeros(frames, height, width);

@@ -25,8 +25,8 @@ GaborData.contrast = zeros(1, total_trials);
 GaborData.contrast(1) = get_arg('contrast', 32);
 GaborData.ratio = zeros(1, total_trials);
 GaborData.ratio(1) = get_arg('ratio', 0.8);
-GaborData.pixel_noise = zeros(1, total_trials);
-GaborData.pixel_noise(1) = get_arg('pixel_noise', 1); % standard deviation of pixel noise
+GaborData.noise = zeros(1, total_trials);
+GaborData.noise(1) = get_arg('noise', 1); % standard deviation of pixel noise
 GaborData.step_size = zeros(1, total_trials);
 
 % Staircase bounds and step size, with defaults set depending on stair_fn
@@ -39,7 +39,7 @@ elseif isequal(GaborData.stair_fn, @Staircase.ratio)
     GaborData.stair_bounds = get_arg('stair_bounds', [0.5 1.0]);
     GaborData.step_size(1) = get_arg('step_size', .1); % additive (in the "easier" direction)
     GaborData.min_step_size = get_arg('min_step_size', GaborData.step_size(1)/4); % Default to two 'halvings' of the step size
-elseif isequal(GaborData.stair_fn, @Staircase.pixel_noise)
+elseif isequal(GaborData.stair_fn, @Staircase.noise)
     GaborData.stair_bounds = get_arg('stair_bounds', [0 32]);
     GaborData.step_size(1) = get_arg('step_size', -4); % additive (in the "easier" direction)
     GaborData.min_step_size = get_arg('min_step_size', GaborData.step_size(1)/4); % Default to two 'halvings' of the step size
@@ -91,9 +91,9 @@ if isequal(GaborData.stair_fn, @Staircase.ratio)
     end
 end
 
-if isequal(GaborData.stair_fn, @Staircase.pixel_noise)
+if isequal(GaborData.stair_fn, @Staircase.noise)
     if GaborData.step_size(1) > 0
-        warning('Changing sign of pixel_noise step_size from %d to %d', GaborData.step_size(1), -GaborData.step_size(1));
+        warning('Changing sign of noise step_size from %d to %d', GaborData.step_size(1), -GaborData.step_size(1));
         GaborData.step_size = -GaborData.step_size;
     end
 end

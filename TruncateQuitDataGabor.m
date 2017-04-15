@@ -7,7 +7,7 @@ GaborData.current_trial = point;
 
 GaborData.contrast(point+1:end) = [];
 GaborData.ratio(point+1:end) = [];
-GaborData.pixel_noise(point+1:end) = [];
+GaborData.noise(point+1:end) = [];
 GaborData.step_size (point+1:end) = [];
 
 GaborData.streak (point+1:end) = [];

@@ -1,12 +1,12 @@
 function GaborData = contrast(GaborData)
 %CONTRAST updates staircase-able parameters (contrast, ratio, and
-%pixel_noise) in GaborData for the current trial based on the results of
+%noise) in GaborData for the current trial based on the results of
 %the previous trial. Only contrast may change to alter the difficulty.
 %Requires the following are already set appropriately:
 %
 % GaborData.contrast(trial-1)
 % GaborData.ratio(trial-1)
-% GaborData.pixel_noise(trial-1)
+% GaborData.noise(trial-1)
 % GaborData.step_size(trial-1)
 % GaborData.streak(trial)
 % GaborData.reversal_counter(trial)
@@ -15,7 +15,7 @@ function GaborData = contrast(GaborData)
 %
 % GaborData.contrast(trial)
 % GaborData.ratio(trial)
-% GaborData.pixel_noise(trial)
+% GaborData.noise(trial)
 % GaborData.step_size(trial)
 
 trial = GaborData.current_trial;
@@ -23,7 +23,7 @@ trial = GaborData.current_trial;
 %% Copy over params - contrast may be overwritten below
 GaborData.contrast(trial) = GaborData.contrast(trial-1);
 GaborData.ratio(trial) = GaborData.ratio(trial-1);
-GaborData.pixel_noise(trial) = GaborData.pixel_noise(trial-1);
+GaborData.noise(trial) = GaborData.noise(trial-1);
 
 %% Reduce step size after 10 reversals
 prev_reversals = GaborData.reversal_counter(trial-1);
