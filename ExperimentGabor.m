@@ -172,19 +172,14 @@ try
                 GaborData.reversal_counter(trial) = GaborData.reversal_counter(trial-1);
             end
             
-            % Every 10 reversals, halve the step size
-            if GaborData.reversal_counter(trial) > 1 && mod(GaborData.reversal_counter(trial), 10) == 0
-                GaborData.step_size(trial) = GaborData.step_size(trial-1) / 2;
-            end
-            
             % Apply the staircase
             GaborData = GaborData.stair_fn(GaborData);
         end
         
         %% Run this trial
         
-        % Randomly set each frame match (or mismatch) the correct choice for
-        % this trail, using the current 'ratio' to decide.
+        % Randomly set each frame to match (or mismatch) the correct choice
+        % for this trail, using the current 'ratio' to decide.
         match_frames = 1 * (rand(1, GaborData.number_of_images) <= GaborData.ratio(trial));
         
         % Choose whether correct answer this trial will be Left or Right
@@ -200,15 +195,16 @@ try
             GaborData.order_of_orientations(trial, :) = 1 - match_frames;
         end
         
-        % A function to generate a struct containing properties of the images used in this trial, I,
-        % and an collection of the gabors which will be displayed to the screen, image_array
+        % A function to generate the stimulus frames which will be
+        % displayed to the screen.
         image_array = makeImages(GaborData);
         
         % Store all images shown
         image_collection(trial,:,:,:) = image_array;
         
-        % Calculate log odds at each frame, both for the category of that frame
-        % independent of the prior, and for the decision (including the prior)
+        % Calculate log odds at each frame, both for the category of that
+        % frame independent of the prior, and for the decision (including
+        % the prior)
         [log_frame_odds, log_decision_odds] = GaborLogOdds(image_array, ...
             GaborData.left_template, GaborData.right_template, ...
             GaborData.contrast(trial), GaborData.noise(trial)^2, ...
