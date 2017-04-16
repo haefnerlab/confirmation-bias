@@ -70,15 +70,7 @@ if exist(fileName, 'file')
 end
 
 %% Timing calculations and checks
-
-monitor_frames_per_stimulus = settings.monitorFPS / GaborData.stimulus_fps;
-number_blank = monitor_frames_per_stimulus * GaborData.fraction_blank;
-rounded_number_blank = ceil(number_blank);
-if number_blank ~= rounded_number_blank
-    warning('At %d stimulus fps on a %.2fHz monitor, %.2f fraction_blank requires rounding to %d blank frames per stimulus.', ...
-        GaborData.stimulus_fps, settings.monitorFPS, GaborData.fraction_blank, rounded_number_blank);
-end
-GaborData.blank_duration = rounded_number_blank / settings.monitorFPS;
+GaborData.blank_duration = settings.monitorFPS * GaborData.blank_frames;
 
 %% Begin experiment
 EyeTracker.AutoCalibrate(tracker_info);
