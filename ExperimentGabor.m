@@ -76,15 +76,16 @@ GaborData.blank_duration = settings.monitorFPS * GaborData.blank_frames;
 EyeTracker.AutoCalibrate(tracker_info);
 
 % Instruction Screen
-Screen('TextSize', wPtr, 20); % Set text size to 20
+Screen('TextSize', wPtr, 30); % Set text size to 30
 Screen('FillRect', wPtr, 127);
-Screen('DrawText', wPtr, 'You will see a series of images flashing very quickly at the bottom of the screen.', xc-500, yc-150, white);
-Screen('DrawText', wPtr, 'You are required to keep your eyes on the bull''s eye target at the top of the screen.', xc-500, yc-100, white);
-Screen('DrawText', wPtr, 'Then you will be shown two images.', xc-500, yc-50, white);
-Screen('DrawText', wPtr, 'You will have to decide which image appeared more frequently.', xc-500, yc, white);
-Screen('DrawText', wPtr, sprintf('Select the image positioned to the left or right by pressing %s or %s respectively', settings.keyLeftName, settings.keyRightName), xc-500, yc+50, white);
-Screen('DrawText', wPtr, 'Ask the researcher if you need further clarification.', xc-500, yc+100, white);
-Screen('DrawText', wPtr, sprintf('Press %s to begin.', settings.keyGoName), xc-500, yc+150, white);    % Display text colored white
+DrawFormattedText(wPtr, ...
+    ['You will see a series of images flashing very quickly at the bottom of the screen. ' ...
+    'You are required to keep your eyes on the white cross. Then you will be shown two images. ' ...
+    'You will have to decide which image is most consistent with the preceding frames. ' ...
+    sprintf('Select the image positioned to the left or right by pressing %s or %s respectively. ', settings.keyLeftName, settings.keyRightName) ...
+    'Ask the researcher if you need further clarification. ' ...
+    sprintf('Press %s to begin.', settings.keyGoName)], ...
+    'centerblock', 'center', white, 100, 0, 0, 1.5, 0, ptbCenteredRect([xc yc], settings.screenSize(3:4)/2));
 Screen('Flip', wPtr); % Function to flip to the next screen image
 if ptbWaitKey([goKey exitKey]) == exitKey
     Screen('CloseAll');
@@ -125,10 +126,11 @@ try
             if trial ~= 1 && isempty(GaborData.model_observer) && ~seen_block_notification
                 seen_block_notification = true;
                 sounds(-1, 1.5);
-                Screen('TextSize', wPtr, 20); % Set text size to 20
-                Screen('DrawText', wPtr, 'You have completed a block.', xc-500, yc-150, white);
-                Screen('DrawText', wPtr, 'You may take a break if you want!', xc-500, yc-100, white);
-                Screen('DrawText', wPtr, sprintf('Press %s whenever you are ready again.', settings.keyGoName), xc-500, yc-50, white);
+                DrawFormattedText(wPtr, ...
+                    ['You have completed a block. ' ...
+                    'You may take a break if you want! ' ...
+                    sprintf('Press %s whenever you are ready again.', settings.keyGoName)], ...
+                    'centerblock', 'center', white, 60, 0, 0, 1.5, 0, ptbCenteredRect([xc yc], settings.screenSize(3:4)/2));
                 Screen('Flip', wPtr);
                 
                 if ptbWaitKey([goKey exitKey]) == exitKey
