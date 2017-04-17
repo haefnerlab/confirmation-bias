@@ -44,8 +44,8 @@ nP = length(plot_types);
         floor = thresholds(subjectIdx, 1);
         thresh = thresholds(subjectIdx, 2);
         if isinf(thresh)
-            [LocalSubjectData, ~] = ...
-                LoadOrRun(@LoadAllSubjectData, {subjectID, phase, datadir}, fullfile(catdir, [subjectID '-' stair_var '.mat']));
+            LocalSubjectData = LoadOrRun(@LoadAllSubjectData, ...
+                {subjectID, phase, datadir}, fullfile(catdir, [subjectID '-' stair_var '.mat']));
             % Use PM fit to get floor and threshold
             local_fit_result = LoadOrRun(@GaborPsychometric, ...
                 {LocalSubjectData, phase}, ...
@@ -64,8 +64,8 @@ nP = length(plot_types);
 grid = figure();
 for i=1:nS
     s = subjectIDs{i};
-    [SubjectData, stim_images] = ...
-        LoadOrRun(@LoadAllSubjectData, {s, phase, datadir}, fullfile(catdir, [s '-' stair_var '.mat']));
+    SubjectData = LoadOrRun(@LoadAllSubjectData, ...
+        {s, phase, datadir}, fullfile(catdir, [s '-' stair_var '.mat']));
     [floor, thresh] = getThresholdWindow(s, .6, .75);
     trials = SubjectData.(stair_var) <= thresh & SubjectData.(stair_var) >= floor;
     
@@ -160,7 +160,7 @@ for i=1:nS
                 % Display floor+threshold values
                 [floor, thresh] = getThresholdWindow(s, .6, .75);
             case 'template'
-                [SubjectDataThresh, images_thresh] = GaborThresholdTrials(...
+                SubjectDataThresh = GaborThresholdTrials(...
                     SubjectData, stim_images, phase, thresh, floor);
                 if ideal_template
                     memo_name = ['Boot-PK-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
@@ -168,7 +168,7 @@ for i=1:nS
                     memo_name = ['Boot-SpPK-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
                 end
                 [M, ~, ~] = LoadOrRun(@BootstrapWeightsGabor, ...
-                    {SubjectDataThresh, images_thresh, 500, ideal_template}, ...
+                    {SubjectDataThresh, 500, ideal_template}, ...
                     fullfile(memodir, memo_name));
                 [~, ~, h, w] = size(stim_images);
                 template = reshape(M(1:h*w), [h w]);
@@ -177,7 +177,7 @@ for i=1:nS
                 colorbar;
                 title('spatial kernel');
             case 'pk'
-                [SubjectDataThresh, images_thresh] = GaborThresholdTrials(...
+                SubjectDataThresh = GaborThresholdTrials(...
                     SubjectData, stim_images, phase, thresh, floor);
                 if ideal_template
                     memo_name = ['Boot-PK-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
@@ -185,7 +185,7 @@ for i=1:nS
                     memo_name = ['Boot-SpPK-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
                 end
                 [M, L, U] = LoadOrRun(@BootstrapWeightsGabor, ...
-                    {SubjectDataThresh, images_thresh, 500, ideal_template}, ...
+                    {SubjectDataThresh, 500, ideal_template}, ...
                     fullfile(memodir, memo_name));
                 [~, frames, h, w] = size(stim_images);
                 time_idxs = w*h+1:length(M)-1;
@@ -198,24 +198,22 @@ end
 if length(subjectIDs) > 1 && any(strcmpi('pk', plot_types))
     combined = figure();
     all_data = [];
-    all_imgs = [];
     all_ids = '';
     for i=1:nS
         s = subjectIDs{i};
-        [SubjectData, stim_images] = ...
-            LoadOrRun(@LoadAllSubjectData, {s, phase, datadir}, fullfile(catdir, [s '-' stair_var '.mat']));
+        SubjectData = LoadOrRun(@LoadAllSubjectData, ...
+            {s, phase, datadir}, fullfile(catdir, [s '-' stair_var '.mat']));
         [floor, thresh] = getThresholdWindow(s, .6, .75);
         all_ids = strcat(all_ids, ['-' s '-' num2str(thresh) '-' num2str(floor)]);
-        [this_subject, this_imgs] = GaborThresholdTrials(SubjectData, stim_images, phase, thresh, floor);
+        this_subject = GaborThresholdTrials(SubjectData, phase, thresh, floor);
         if isempty(all_data)
             all_data = this_subject;
-            all_imgs = this_imgs;
         else
-            [all_data, all_imgs] = ConcatGaborData(all_data, all_imgs, this_subject, this_imgs);
+            all_data = ConcatGaborData(all_data, all_imgs, this_subject, this_imgs);
         end
     end
     [M, L, U] = LoadOrRun(@BootstrapWeightsGabor, ...
-        {all_data, all_imgs, 500, ideal_template}, ...
+        {all_data, 500, ideal_template}, ...
         fullfile(memodir, ['combo-PK-' stair_var all_ids '.mat']));
     [~, frames, h, w] = size(all_imgs);
     time_idxs = w*h+1:length(M)-1;
