@@ -70,7 +70,6 @@ nextStimTime = cueOnsetTime + Data.cue_duration;
 % Present each image for 'frame_duration' seconds.
 % TODO - track eyes at full temporal resolution rather than once per frame.
 for i = 1:total_frames
-    EyeTracker.drawFixationSymbol(tracker_info, wPtr);
     gaze_point = EyeTracker.getGazePoint(tracker_info, 'pixels');
     % If fixation is broken at any time, end the trial.
     if ~EyeTracker.isFixation(tracker_info, gaze_point)
@@ -82,13 +81,14 @@ for i = 1:total_frames
     
     % Show stimulus.
     Screen('DrawTexture', wPtr, image_texture(i), [], stimulus_bbox); %Fill the buffer with the first texture
+    EyeTracker.drawFixationSymbol(tracker_info, wPtr);
     [~, stimOnsetTime] = Screen('Flip', wPtr, nextStimTime);
     nextStimTime = stimOnsetTime + frame_duration;
 
     % (Maybe) end stimulus frame with some blank frames.
     if Data.blank_duration > 0
-        EyeTracker.drawFixationSymbol(tracker_info, wPtr);
         Screen('FillRect', wPtr, gray, stimulus_bbox);
+        EyeTracker.drawFixationSymbol(tracker_info, wPtr);
         Screen('Flip', wPtr, stimOnsetTime + frame_duration - Data.blank_duration);
     end
 end
