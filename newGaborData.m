@@ -15,18 +15,18 @@ function GaborData = newGaborData(varargin)
 %% User-settable params
 GaborData.trials_per_block = get_arg('trials_per_block', 100);
 GaborData.blocks = get_arg('blocks', 4);
-GaborData.stair_fn = get_arg('stair_fn', @Staircase.contrast);
+GaborData.stair_fn = get_arg('stair_fn', @Staircase.noise);
 GaborData.reversals_per_epoch = get_arg('reversals_per_epoch', 6);
 
 total_trials = GaborData.trials_per_block * GaborData.blocks;
 
 % Initial values of staircase-able parameters
 GaborData.contrast = zeros(1, total_trials);
-GaborData.contrast(1) = get_arg('contrast', 32);
+GaborData.contrast(1) = get_arg('contrast', 64);
 GaborData.ratio = zeros(1, total_trials);
 GaborData.ratio(1) = get_arg('ratio', 0.8);
 GaborData.noise = zeros(1, total_trials);
-GaborData.noise(1) = get_arg('noise', 70); % stdev of bpg orientation band
+GaborData.noise(1) = get_arg('noise', 45); % stdev of bpg orientation band
 GaborData.step_size = zeros(1, total_trials);
 
 % Staircase bounds and step size, with defaults set depending on stair_fn
@@ -48,15 +48,16 @@ end
 % Other misc. user-definable parameters relating to stimulus/rig.
 GaborData.number_of_images = get_arg('number_of_images', 10);
 GaborData.stimulus_fps = get_arg('stimulus_fps', 12);  % frame rate of stimuli
-GaborData.blank_frames = get_arg('blank_frames', 2);  % number of blank screen frames per stimulus frame
+GaborData.blank_frames = get_arg('blank_frames', 0);  % number of blank screen frames per stimulus frame
 GaborData.cue_duration = get_arg('cue_duration', 0.2);  % Fixed duration, seconds to display cue after getting fixation.
 GaborData.left_category = get_arg('left_category', +45);
 GaborData.right_category = get_arg('right_category', -45);
+GaborData.go_cue_time = get_arg('go_cue_time', 1.2);  % Time between final stimulus/mask frame and the targets appearing.
 % BPG Stimulus parameters
 GaborData.stim_size = get_arg('stim_size', 300);  % Size of the image along x-axis
 GaborData.stim_std_ori_deg = get_arg('stim_std_ori_deg', 70);  % standard-deviation of orientations present in image (analogous to pixel noise)
-GaborData.stim_sp_freq_cycles = get_arg('stim_sp_freq_cycles', 6);  % Mean spatial frequency of images in cycles.
-GaborData.stim_std_sp_freq_cycles = get_arg('stim_std_sp_freq_cycles', 10);  % Std deviation of spatial frequency in cycles.
+GaborData.stim_sp_freq_cycles = get_arg('stim_sp_freq_cycles', 3);  % Mean spatial frequency of images in cycles.
+GaborData.stim_std_sp_freq_cycles = get_arg('stim_std_sp_freq_cycles', 4);  % Std deviation of spatial frequency in cycles.
 
 GaborData.stim_sp_freq_cpp = GaborData.stim_sp_freq_cycles / GaborData.stim_size;
 GaborData.stim_std_sp_freq_cpp = GaborData.stim_std_sp_freq_cycles / GaborData.stim_size;
