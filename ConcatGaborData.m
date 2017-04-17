@@ -18,7 +18,7 @@ GaborData.ideal_answer = [Data1.ideal_answer, Data2.ideal_answer];
 GaborData.reaction_time = [Data1.reaction_time, Data2.reaction_time];
 GaborData.choice = [Data1.choice, Data2.choice];
 GaborData.accuracy = [Data1.accuracy, Data2.accuracy];
-GaborData.order_of_orientations = [Data1.order_of_orientations; Data2.order_of_orientations];
+GaborData.frame_categories = [Data1.frame_categories; Data2.frame_categories];
 GaborData.log_frame_odds = [Data1.log_frame_odds; Data2.log_frame_odds];
 GaborData.log_decision_odds = [Data1.log_decision_odds; Data2.log_decision_odds];
 

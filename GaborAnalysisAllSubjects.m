@@ -142,7 +142,7 @@ for i=1:nS
                     plotPsych(fit_result, plotOptions);
                     
                     % Plot data.
-                    true_ratio = sum(SubjectData.order_of_orientations, 2);
+                    true_ratio = sum(SubjectData.frame_categories, 2);
                     uniq_vals = unique(true_ratio);
                     
                     % The next line exploits the fact that 'Left' is coded as 1 and 'right'

@@ -178,7 +178,7 @@ try
         % Generate stimulus for this trial.
         [image_array, frame_categories, true_category] = ...
             GaborStimulus(GaborData, trial);
-        GaborData.order_of_orientations(trial, :) = frame_categories;
+        GaborData.frame_categories(trial, :) = frame_categories;
         GaborData.correct_answer(trial) = true_category;
                 
         % Calculate log odds at each frame, both for the category of that

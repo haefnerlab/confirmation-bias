@@ -17,7 +17,7 @@ GaborData.ideal_answer(point+1:end) = [];
 GaborData.reaction_time(point+1:end) = [];
 GaborData.choice(point+1:end) = [];
 GaborData.accuracy(point+1:end) = [];
-GaborData.order_of_orientations(point+1:end,:) = [];
+GaborData.frame_categories(point+1:end,:) = [];
 GaborData.log_frame_odds(point+1:end,:) = [];
 GaborData.log_decision_odds(point+1:end,:) = [];
 

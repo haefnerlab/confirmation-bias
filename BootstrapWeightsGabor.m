@@ -1,6 +1,6 @@
 function [M, L, U] = BootstrapWeightsGabor(Test_Data, bootstrapsteps, ideal_template)
 
-[trials, frames] = size(Test_Data.order_of_orientations);
+[trials, frames] = size(Test_Data.frame_categories);
 h = Test_Data.image_length_y;
 w = Test_Data.image_length_x;
 num_weights = h*w + frames + 1;

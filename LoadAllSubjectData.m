@@ -40,7 +40,7 @@ end
 
 % Add a 'true_ratio' field if phase is 1
 if phase == 1
-    GaborData.true_ratio = sum(GaborData.order_of_orientations == +1, 2) / 10;
+    GaborData.true_ratio = sum(GaborData.frame_categories == +1, 2) / 10;
 end
 
 if ~loaded_one

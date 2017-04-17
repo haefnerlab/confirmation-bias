@@ -29,7 +29,7 @@ Data.ideal_answer = Data.ideal_answer(test_trials);
 Data.reaction_time = Data.reaction_time(test_trials);
 Data.choice = Data.choice(test_trials);
 Data.accuracy = Data.accuracy(test_trials);
-Data.order_of_orientations = Data.order_of_orientations(test_trials, :);
+Data.frame_categories = Data.frame_categories(test_trials, :);
 Data.log_frame_odds = Data.log_frame_odds(test_trials, :);
 Data.log_decision_odds = Data.log_decision_odds(test_trials, :);
 

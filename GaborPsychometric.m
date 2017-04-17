@@ -15,7 +15,7 @@ elseif phase == 1
     options.expType      = 'YesNo';
     
     % Count how often subject chose left at each ratio value.
-    true_ratio = sum(Data.order_of_orientations, 2);
+    true_ratio = sum(Data.frame_categories, 2);
     uniq_vals = unique(true_ratio);
     
     % The next line exploits the fact that 'Left' is coded as 1 and 'right'
