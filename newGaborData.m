@@ -56,6 +56,7 @@ GaborData.cue_duration = get_arg('cue_duration', 0.2); % Fixed duration, seconds
 
 % Preallocate fields that will be populated with data by running the
 % experiment.
+GaborData.seed = zeros(1, total_trials);
 GaborData.streak = zeros(1, total_trials);
 GaborData.reversal_counter = zeros(1, total_trials);
 GaborData.correct_answer = zeros(1, total_trials);
@@ -66,7 +67,6 @@ GaborData.accuracy = zeros(1, total_trials);
 GaborData.order_of_orientations = zeros(total_trials, GaborData.number_of_images);
 GaborData.log_frame_odds = zeros(total_trials, GaborData.number_of_images);
 GaborData.log_decision_odds = zeros(total_trials, GaborData.number_of_images);
-GaborData.average_orientations = zeros(2, total_trials);
 
 GaborData.current_trial = 0;
 

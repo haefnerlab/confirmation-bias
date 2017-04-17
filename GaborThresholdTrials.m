@@ -21,6 +21,7 @@ Data.ratio = Data.ratio(test_trials);
 Data.noise = Data.noise(test_trials);
 Data.step_size = Data.step_size(test_trials);
 
+Data.seed = Data.seed(test_trials);
 Data.streak = Data.streak(test_trials);
 Data.reversal_counter = Data.reversal_counter(test_trials);
 Data.correct_answer = Data.correct_answer(test_trials);
@@ -31,7 +32,6 @@ Data.accuracy = Data.accuracy(test_trials);
 Data.order_of_orientations = Data.order_of_orientations(test_trials, :);
 Data.log_frame_odds = Data.log_frame_odds(test_trials, :);
 Data.log_decision_odds = Data.log_decision_odds(test_trials, :);
-Data.average_orientations = Data.average_orientations(:, test_trials);
 
 Data.eye_tracker_points = Data.eye_tracker_points(test_trials);
 

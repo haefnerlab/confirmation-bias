@@ -10,6 +10,7 @@ GaborData.ratio = [Data1.ratio, Data2.ratio];
 GaborData.noise = [Data1.noise, Data2.noise];
 GaborData.step_size = [Data1.step_size, Data2.step_size];
 
+GaborData.seed = [Data1.seed, Data2.seed];
 GaborData.streak = [Data1.streak, Data2.streak];
 GaborData.reversal_counter = [Data1.reversal_counter, Data2.reversal_counter ];
 GaborData.correct_answer = [Data1.correct_answer, Data2.correct_answer];
@@ -20,7 +21,6 @@ GaborData.accuracy = [Data1.accuracy, Data2.accuracy];
 GaborData.order_of_orientations = [Data1.order_of_orientations; Data2.order_of_orientations];
 GaborData.log_frame_odds = [Data1.log_frame_odds; Data2.log_frame_odds];
 GaborData.log_decision_odds = [Data1.log_decision_odds; Data2.log_decision_odds];
-GaborData.average_orientations = [Data1.average_orientations, Data2.average_orientations];
 
 GaborData.eye_tracker_points = horzcat(Data1.eye_tracker_points, Data2.eye_tracker_points);
 end

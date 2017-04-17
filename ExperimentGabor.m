@@ -172,26 +172,14 @@ try
         
         %% Run this trial
         
-        % Randomly set each frame to match (or mismatch) the correct choice
-        % for this trail, using the current 'ratio' to decide.
-        match_frames = 1 * (rand(1, GaborData.number_of_images) <= GaborData.ratio(trial));
+        % Choose and record random seed for this trial.
+        GaborData.seed(trial) = randseed;
         
-        % Choose whether correct answer this trial will be Left or Right
-        if rand < 0.5
-            GaborData.correct_answer(trial) = 1; % this trial is Left
-            GaborData.average_orientations(1, trial) = GaborData.number_of_images * GaborData.ratio(trial);
-            GaborData.average_orientations(2, trial) = GaborData.number_of_images * (1 - GaborData.ratio(trial));
-            GaborData.order_of_orientations(trial, :) = match_frames;
-        else
-            GaborData.correct_answer(trial) = 0; % this trial is Right
-            GaborData.average_orientations(1, trial) = GaborData.number_of_images * (1 - GaborData.ratio(trial));
-            GaborData.average_orientations(2, trial) = GaborData.number_of_images * GaborData.ratio(trial);
-            GaborData.order_of_orientations(trial, :) = 1 - match_frames;
-        end
-        
-        % A function to generate the stimulus frames which will be
-        % displayed to the screen.
-        image_array = makeImages(GaborData);
+        % Generate stimulus for this trial.
+        [image_array, frame_categories, true_category] = ...
+            GaborStimulus(GaborData, trial);
+        GaborData.order_of_orientations(trial, :) = frame_categories;
+        GaborData.correct_answer(trial) = true_category;
                 
         % Calculate log odds at each frame, both for the category of that
         % frame independent of the prior, and for the decision (including
