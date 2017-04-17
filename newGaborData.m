@@ -47,12 +47,16 @@ end
 
 % Other misc. user-definable parameters relating to stimulus/rig.
 GaborData.number_of_images = get_arg('number_of_images', 10);
-GaborData.stimulus_fps = get_arg('stimulus_fps', 12);	% frame rate of stimuli
-GaborData.blank_frames = get_arg('blank_frames', 2); % number of blank screen frames per stimulus frame
-GaborData.screen_resolution = get_arg('screen_resolution', 25);          % how many pixels correspond to a single datapoint of a gabor
-GaborData.image_length_x = get_arg('image_length_x', 5);  % Size of the image along x-axis
-GaborData.image_length_y = get_arg('image_length_y', 5);
-GaborData.cue_duration = get_arg('cue_duration', 0.2); % Fixed duration, seconds to display cue after getting fixation.
+GaborData.stimulus_fps = get_arg('stimulus_fps', 12);  % frame rate of stimuli
+GaborData.blank_frames = get_arg('blank_frames', 2);  % number of blank screen frames per stimulus frame
+GaborData.cue_duration = get_arg('cue_duration', 0.2);  % Fixed duration, seconds to display cue after getting fixation.
+GaborData.left_category = get_arg('left_category', +45);
+GaborData.right_category = get_arg('right_category', -45);
+% BPG Stimulus parameters
+GaborData.stim_size = get_arg('stim_size', 300);  % Size of the image along x-axis
+GaborData.stim_std_ori_deg = get_arg('stim_std_ori_deg', 70);  % standard-deviation of orientations present in image (analogous to pixel noise)
+GaborData.stim_sp_freq_cycles = get_arg('stim_sp_freq_cycles', 6);  % Mean spatial frequency of images in cycles.
+GaborData.stim_std_sp_freq_cycles = get_arg('stim_std_sp_freq_cycles', 10);  % Std deviation of spatial frequency in cycles.
 
 % Preallocate fields that will be populated with data by running the
 % experiment.
@@ -71,9 +75,6 @@ GaborData.log_decision_odds = zeros(total_trials, GaborData.number_of_images);
 GaborData.current_trial = 0;
 
 GaborData.eye_tracker_points = {};
-
-GaborData.left_template = eye(GaborData.image_length_y, GaborData.image_length_x);
-GaborData.right_template = rot90(GaborData.left_template);
 
 if ~isempty(varargin)
     warning('Unkown arguments given to newGaborParams');
