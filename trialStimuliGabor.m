@@ -13,12 +13,9 @@ broke_fixation = false;
 %% Make sure to have left/right patch to match the orientations used
 res = Data.screen_resolution;
 
-left_template = Data.left_template;
-right_template = Data.right_template;
-
 % Create images to be displayed as left or right options
-left_patch = left_template * 100.0 + 127.0;
-right_patch = right_template * 100.0 + 127.0;
+left_patch = squeeze(makeImages(Data.stim_size, 1, Data.left_category, Data.right_category, 1, 1)) * 10.0 + 127.0;
+right_patch = squeeze(makeImages(Data.stim_size, 0, Data.left_category, Data.right_category, 1, 1)) * 10.0 + 127.0;
 
 xc = settings.screenSize(3)/2; % Get the middle of the horizontal axis
 yc = settings.screenSize(4)/2; % Get the middle of the vertical axis

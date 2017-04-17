@@ -180,19 +180,9 @@ try
             GaborStimulus(GaborData, trial);
         GaborData.frame_categories(trial, :) = frame_categories;
         GaborData.correct_answer(trial) = true_category;
-                
-        % Calculate log odds at each frame, both for the category of that
-        % frame independent of the prior, and for the decision (including
-        % the prior)
-        [log_frame_odds, log_decision_odds] = GaborLogOdds(image_array, ...
-            GaborData.left_template, GaborData.right_template, ...
-            GaborData.contrast(trial), GaborData.noise(trial)^2, ...
-            GaborData.ratio(trial));
-        GaborData.log_frame_odds(trial, :) = log_frame_odds;
-        GaborData.log_decision_odds(trial, :) = log_decision_odds;
         
         % Record answer of the ideal observer
-        GaborData.ideal_answer(trial) = 1 * (sum(GaborData.log_decision_odds(trial, :)) > 0);
+        GaborData.ideal_answer(trial) = error; % TODO
         
         if isempty(GaborData.model_observer)
             % Pass in the contrast level, all of the images, screen being
