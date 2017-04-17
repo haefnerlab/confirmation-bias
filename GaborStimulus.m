@@ -12,19 +12,29 @@ rng(GaborData.seed(trial), 'twister');
 % for this trail, using the current 'ratio' to decide.
 match_frames = 1 * (rand(1, GaborData.number_of_images) <= GaborData.ratio(trial));
 
+frame_categories = zeros(size(match_frames));
+
 % Choose whether correct answer this trial will be Left or Right
 if rand < 0.5
-    frame_categories = match_frames;
+    frame_categories(match_frames) = GaborData.left_category;
+    frame_categories(~match_frames) = GaborData.right_category;
     true_category = 1;
 else
-    frame_categories = 1 - match_frames;
+    frame_categories(~match_frames) = GaborData.left_category;
+    frame_categories(match_frames) = GaborData.right_category;
     true_category = 0;
 end
 
 % Set random seed again to keep match_frames independent of pixel noise.
-rng(GaborData.seed(t), 'twister');
-image_array = makeImages(GaborData.stim_size, frame_categories, ...
-    GaborData.left_category, GaborData.right_category, ...
-    GaborData.contrast(trial), GaborData.noise(trial));
+rng(GaborData.seed(trial), 'twister');
+image_array = bpg.genImages(GaborData.number_of_images, GaborData.stim_size, ...
+    GaborData.stim_sp_freq_cycles / GaborData.stim_size, ...
+    GaborData.stim_std_sp_freq_cycles/ GaborData.stim_size, ...
+    frame_categories, GaborData.noise(trial));
+
+image_array = uint8(image_array * GaborData.contrast(trial) + 127);
+
+image_array = min(image_array, 255);
+image_array = max(image_array, 0);
 
 end

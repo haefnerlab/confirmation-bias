@@ -14,8 +14,8 @@ broke_fixation = false;
 res = Data.screen_resolution;
 
 % Create images to be displayed as left or right options
-left_patch = squeeze(makeImages(Data.stim_size, 1, Data.left_category, Data.right_category, 1, 1)) * 10.0 + 127.0;
-right_patch = squeeze(makeImages(Data.stim_size, 0, Data.left_category, Data.right_category, 1, 1)) * 10.0 + 127.0;
+left_patch = squeeze(bpg.genImages(1, Data.stim_size, Data.stim_sp_freq_cycles, Data.stim_std_sp_freq_cycles, Data.left_category, Data.noise(1))) * 32.0 + 127.0;
+right_patch = squeeze(bpg.genImages(1, Data.stim_size, Data.stim_sp_freq_cycles, Data.stim_std_sp_freq_cycles, Data.right_category, Data.noise(1))) * 32.0 + 127.0;
 
 xc = settings.screenSize(3)/2; % Get the middle of the horizontal axis
 yc = settings.screenSize(4)/2; % Get the middle of the vertical axis
