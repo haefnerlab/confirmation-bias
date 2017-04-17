@@ -181,8 +181,11 @@ try
         GaborData.frame_categories(trial, :) = frame_categories;
         GaborData.correct_answer(trial) = true_category;
         
-        % Record answer of the ideal observer
-        GaborData.ideal_answer(trial) = error; % TODO
+        % Record answer of the ideal observer.
+        GaborData.ideal_frame_signals(trial, :) = ...
+            bpg.getSignal(image_array, GaborData.left_category, GaborData.noise(trial)) - ...
+            bpg.getSignal(image_array, GaborData.right_category, GaborData.noise(trial));
+        GaborData.ideal_answer(trial) = 1 * (sum(GaborData.ideal_frame_signals(trial, :)) > 0);
         
         if isempty(GaborData.model_observer)
             % Pass in the contrast level, all of the images, screen being

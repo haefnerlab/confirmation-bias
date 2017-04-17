@@ -69,8 +69,7 @@ GaborData.reaction_time = zeros(1, total_trials);
 GaborData.choice = zeros(1, total_trials);
 GaborData.accuracy = zeros(1, total_trials);
 GaborData.frame_categories = zeros(total_trials, GaborData.number_of_images);
-GaborData.log_frame_odds = zeros(total_trials, GaborData.number_of_images);
-GaborData.log_decision_odds = zeros(total_trials, GaborData.number_of_images);
+GaborData.ideal_frame_signals = zeros(total_trials, GaborData.number_of_images);
 
 GaborData.current_trial = 0;
 
