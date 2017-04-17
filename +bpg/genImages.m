@@ -16,7 +16,7 @@ x = linspace(-1, 1, width);
 [xx, yy] = meshgrid(x, x);
 % Get polar coordinates: rr is radius, tt is angle.
 rr = sqrt(xx.^2 + yy.^2);
-tt = atan2(yy, xx);
+tt = -atan2(yy, xx);
 
 if length(oriDEG) == 1, oriDEG = oriDEG * ones(1, frames); end
 
