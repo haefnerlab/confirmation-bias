@@ -1,16 +1,18 @@
-function [M, L, U] = BootstrapWeightsGabor(Test_Data, image_collection, bootstrapsteps, ideal_template)
+function [M, L, U] = BootstrapWeightsGabor(Test_Data, bootstrapsteps, ideal_template)
 
-[trials, frames, h, w] = size(image_collection);
-assert(Test_Data.current_trial == trials, 'Mismatch between Test_Data.current_trial and size(image_collection, 1)');
+[trials, frames] = size(Test_Data.order_of_orientations);
+h = Test_Data.image_length_y;
+w = Test_Data.image_length_x;
 num_weights = h*w + frames + 1;
 weight_matrix = zeros(bootstrapsteps, num_weights);
 
 template_difference = Test_Data.left_template(:) - Test_Data.right_template(:);
 
-% Permute dimensions of images to shape [trials h w frames] once so it
-% doesn't have to be done each loop.
-if ~ideal_template
-    image_collection = permute(image_collection, [1 3 4 2]);
+% Regenerate stimulus frames.
+% TODO - smarter use of space for high res images.
+image_collection = zeros(trials, h, w, frames);
+parfor t=1:trials
+    image_collection(t, :) = permute(GaborStimulus(Test_Data, t), [2 3 1]);
 end
 
 parfor i=1:bootstrapsteps
