@@ -1,4 +1,4 @@
-if ~exist('psignifit', 'file'), addpath('psignifit-master'); end
-if ~exist('smoothn', 'file'), addpath('smoothn'); end
-if ~exist('fadecolors', 'file'), addpath('tools'); end
-if ~exist('boundedline', 'file'), addpath(fullfile('tools', 'boundedline-pkg', 'boundedline')); end
+if exist('psignifit', 'file')~=2, addpath('psignifit-master'); end
+if exist('smoothn', 'file')~=2, addpath('smoothn'); end
+if exist('fadecolors', 'file')~=2, addpath('tools'); end
+if exist('boundedline', 'file')~=2, addpath(fullfile('tools', 'boundedline-pkg', 'boundedline')); end
