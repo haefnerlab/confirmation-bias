@@ -35,7 +35,7 @@ for i = 1:Data.number_of_images
     image_texture(i) = Screen('MakeTexture', wPtr, squeeze(image_array(i, :, :)));
 end
 [~, h, w] = size(image_array);
-noise_mask = 127 + randn(h, w) * Data.contrast(1);
+noise_mask = squeeze(bpg.genImages(1, Data.stim_size, Data.stim_sp_freq_cpp, Data.stim_std_sp_freq_cpp, 0, inf)) * 64.0 + 127.0;
 image_texture(end) = Screen('MakeTexture', wPtr, noise_mask);
 
 show_left_patch = Screen('MakeTexture', wPtr, left_patch);
@@ -43,7 +43,7 @@ show_right_patch = Screen('MakeTexture', wPtr, right_patch);
 
 stimulus_bbox = ptbCenteredRect([xc yc], 1.1 * [w h]);
 
-Screen('FillRect', wPtr, gray);        % Make the background gray
+Screen('FillRect', wPtr, gray);  % Make the background gray
 [~, stimOnsetTime] = Screen('Flip', wPtr);
 
 % Get fixation (takes a variable amount of time).
@@ -60,7 +60,7 @@ end
 Screen('FillRect', wPtr, gray);
 drawTrialNo();
 EyeTracker.drawFixationSymbol(tracker_info, wPtr);
-drawStimulusFrame(wPtr, black, stimulus_bbox, 20, 2);
+Screen('FrameOval', wPtr, black, stimulus_bbox);
 [~, cueOnsetTime] = Screen('Flip', wPtr);
 
 % Prep for first stimulus frame by clearing the drawStimulusFrame.
@@ -92,6 +92,11 @@ for i = 1:total_frames
         Screen('Flip', wPtr, stimOnsetTime + frame_duration - Data.blank_duration);
     end
 end
+
+Screen('FillRect', wPtr, gray, stimulus_bbox);
+[~, endTime] = Screen('Flip', wPtr);
+EyeTracker.drawFixationSymbol(tracker_info, wPtr);
+Screen('Flip', wPtr, endTime + Data.go_cue_time);
 
 Screen('DrawTexture', wPtr, show_left_patch, [], ptbCenteredRect([xc-w yc], [w h]));   % xc, yc indicates the coordinates of the middle of the screen
 Screen('DrawTexture', wPtr, show_right_patch, [], ptbCenteredRect([xc+w yc], [w h]));
@@ -126,15 +131,4 @@ end
 function drawTrialNo()
     Screen('DrawText', wPtr, sprintf('Current Trial - #%d', Data.current_trial), xc-900, yc+550, 0);
 end
-end
-
-function drawStimulusFrame(wPtr, color, bbox, length, lineWidth)
-Screen('DrawLine', wPtr, color, bbox(1), bbox(2), bbox(1)+length, bbox(2), lineWidth);
-Screen('DrawLine', wPtr, color, bbox(1), bbox(2), bbox(1), bbox(2)+length, lineWidth);
-Screen('DrawLine', wPtr, color, bbox(1), bbox(4), bbox(1)+length, bbox(4), lineWidth);
-Screen('DrawLine', wPtr, color, bbox(1), bbox(4), bbox(1), bbox(4)-length, lineWidth);
-Screen('DrawLine', wPtr, color, bbox(3), bbox(2), bbox(3)-length, bbox(2), lineWidth);
-Screen('DrawLine', wPtr, color, bbox(3), bbox(2), bbox(3), bbox(2)+length, lineWidth);
-Screen('DrawLine', wPtr, color, bbox(3), bbox(4), bbox(3)-length, bbox(4), lineWidth);
-Screen('DrawLine', wPtr, color, bbox(3), bbox(4), bbox(3), bbox(4)-length, lineWidth);
 end
