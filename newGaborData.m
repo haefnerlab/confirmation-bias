@@ -50,6 +50,7 @@ GaborData.number_of_images = get_arg('number_of_images', 10);
 GaborData.stimulus_fps = get_arg('stimulus_fps', 12);  % frame rate of stimuli
 GaborData.blank_frames = get_arg('blank_frames', 0);  % number of blank screen frames per stimulus frame
 GaborData.cue_duration = get_arg('cue_duration', 0.2);  % Fixed duration, seconds to display cue after getting fixation.
+GaborData.annulus = get_arg('annulus', 50); % Size, in pixels, of hole in center of stimulus
 GaborData.left_category = get_arg('left_category', +45);
 GaborData.right_category = get_arg('right_category', -45);
 GaborData.go_cue_time = get_arg('go_cue_time', 1.2);  % Time between final stimulus/mask frame and the targets appearing.
@@ -112,7 +113,7 @@ if isequal(GaborData.stair_fn, @Staircase.contrast)
 end
 
 if GaborData.ratio(1) > 1 || GaborData.ratio(1) < 0
-    error('Ratio should be between 0 and 1');
+    error('Ratio should be between 0.5 and 1');
 end
 
 if ~isempty(GaborData.model_observer) && ~any(strcmpi(GaborData.model_observer), {'ideal'})

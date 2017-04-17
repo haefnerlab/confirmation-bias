@@ -5,7 +5,7 @@ oriDEG = 0;
 oriStdDEG = 30;
 spFreqCycles = 6;
 spFreqStdCycles = 1;
-aperture = 10;
+annulus = 10;
 seed = randseed;
 
 f = figure;
@@ -13,7 +13,7 @@ f = figure;
     function genAndPlot()
         rng(seed, 'twister');
         [im, imF] = bpg.genImages(1, sz, spFreqCycles / sz, spFreqStdCycles / sz, ...
-            oriDEG, oriStdDEG, aperture);
+            oriDEG, oriStdDEG, annulus);
         ax1 = subplot(1, 2, 1);
         imagesc(squeeze(im));
         colormap gray;
@@ -55,9 +55,9 @@ sliders(4) = uicontrol('Parent', f, 'Style', 'slider', 'min', 0, 'max', 20, 'val
     'Callback', @(es, ed) sliderUpdate('spFreqStdCycles', es.Value));
 labels{4} = 'Sp. F. Width';
 
-sliders(5) = uicontrol('Parent', f, 'Style', 'slider', 'min', 0, 'max', 20, 'value', aperture, ...
-    'Callback', @(es, ed) sliderUpdate('aperture', es.Value));
-labels{5} = 'Aperture';
+sliders(5) = uicontrol('Parent', f, 'Style', 'slider', 'min', 0, 'max', 20, 'value', annulus, ...
+    'Callback', @(es, ed) sliderUpdate('annulus', es.Value));
+labels{5} = 'annulus';
 
 figPos = f.Position;
 sliderWidth = figPos(3) / length(sliders);

@@ -29,7 +29,7 @@ end
 rng(GaborData.seed(trial), 'twister');
 image_array = bpg.genImages(GaborData.number_of_images, GaborData.stim_size, ...
     GaborData.stim_sp_freq_cpp, GaborData.stim_std_sp_freq_cpp, ...
-    frame_categories, GaborData.noise(trial));
+    frame_categories, GaborData.noise(trial), GaborData.annulus);
 
 image_array = uint8(image_array * GaborData.contrast(trial) + 127);
 
