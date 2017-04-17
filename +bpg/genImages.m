@@ -6,6 +6,8 @@ function [im, imF] = genImages(frames, width, spFreqCPP, spFreqStdCPP, oriDEG, o
 % spatial frequency in cycles per pixel. spFreqStdCPP sets the range of
 % spatial frequencies present. oriDEG sets the mean rotation, oriStdDeg
 % sets the range of orientation energy present.
+%
+% oriDEG may be a vector of orientations of length 'frames'.
 
 noise = randn(frames, width, width);
 noiseF = framefun(@(f) fftshift(fft2(f)), noise);
@@ -16,24 +18,34 @@ x = linspace(-1, 1, width);
 rr = sqrt(xx.^2 + yy.^2);
 tt = atan2(yy, xx);
 
+if length(oriDEG) == 1, oriDEG = oriDEG * ones(1, frames); end
+
+im = zeros(frames, width, width);
+imF = zeros(frames, width, width);
+
 %% Create spatial frequency filter
-spFreqFilter = pdf('rician', rr, spFreqCPP, spFreqStdCPP);
-
-%% Create orientation filter
-oriFilter = bpg.vmpdf(2 * tt, deg2rad(oriDEG), 1 / deg2rad(oriStdDEG));
-
-%% Apply fourier-domain filters
-filterF = spFreqFilter .* oriFilter;
-filterF = filterF / max(filterF(:));
-
-imF = framefun(@(f) f .* filterF, noiseF);
-im = framefun(@(f) real(ifft2(ifftshift(f))), imF);
+spFreqFilter = pdf('rician', rr / 2, spFreqCPP, spFreqStdCPP);
 
 %% Create gaussian aperture
 aperture = exp(-4 * rr.^2);
 
-im = framefun(@(f) f .* aperture, im);
+%% Generate each frame.
 
+for f=1:frames
+    % Create orientation filters for each frame.
+    oriFilter = bpg.vmpdf(2 * tt, deg2rad(oriDEG(f)), 1 / deg2rad(oriStdDEG));
+    
+    % Get full, normalized foureir-domain filter.
+    filterF = spFreqFilter .* oriFilter;
+    filterF = filterF / sum(filterF(:));
+    
+    % Apply fourier-domain filters on each frame.
+    imF(f, :, :) = squeeze(noiseF(f, :, :)) .* filterF;
+    im(f, :, :) = aperture .* real(ifft2(ifftshift(squeeze(imF(f, :, :)))));
+end
+
+%% Normalize range in pixel space to +/- 1
+im = im / max(abs(im(:)));
 end
 
 function frames = framefun(fn ,frames)
