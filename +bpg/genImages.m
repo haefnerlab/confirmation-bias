@@ -1,4 +1,4 @@
-function [im, imF] = genImages(frames, width, spFreqCPP, spFreqStdCPP, oriDEG, oriStdDEG)
+function [im, imF] = genImages(frames, width, spFreqCPP, spFreqStdCPP, oriDEG, oriStdDEG, annulus)
 %BPG.GENIMAGES Create a sequence band-pass grating (bpg) stimuli.
 %
 %[im, imF] = BPG.GENIMAGES(frames, width, spFreqCPP, spFreqStdCPP, oriDEG, oriStdDEG)
@@ -28,6 +28,10 @@ spFreqFilter = pdf('rician', rr / 2, spFreqCPP, spFreqStdCPP);
 
 %% Create gaussian aperture
 aperture = exp(-4 * rr.^2);
+
+if nargin >= 7
+    aperture = aperture .* (1 - exp(-1/annulus * rr.^2));
+end
 
 %% Generate each frame.
 
