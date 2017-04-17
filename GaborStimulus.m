@@ -10,7 +10,7 @@ rng(GaborData.seed(trial), 'twister');
 
 % Randomly set each frame to match (or mismatch) the correct choice
 % for this trail, using the current 'ratio' to decide.
-match_frames = 1 * (rand(1, GaborData.number_of_images) <= GaborData.ratio(trial));
+match_frames = rand(1, GaborData.number_of_images) <= GaborData.ratio(trial);
 
 frame_categories = zeros(size(match_frames));
 
@@ -28,8 +28,7 @@ end
 % Set random seed again to keep match_frames independent of pixel noise.
 rng(GaborData.seed(trial), 'twister');
 image_array = bpg.genImages(GaborData.number_of_images, GaborData.stim_size, ...
-    GaborData.stim_sp_freq_cycles / GaborData.stim_size, ...
-    GaborData.stim_std_sp_freq_cycles/ GaborData.stim_size, ...
+    GaborData.stim_sp_freq_cpp, GaborData.stim_std_sp_freq_cpp, ...
     frame_categories, GaborData.noise(trial));
 
 image_array = uint8(image_array * GaborData.contrast(trial) + 127);

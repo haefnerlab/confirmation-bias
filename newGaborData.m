@@ -58,6 +58,9 @@ GaborData.stim_std_ori_deg = get_arg('stim_std_ori_deg', 70);  % standard-deviat
 GaborData.stim_sp_freq_cycles = get_arg('stim_sp_freq_cycles', 6);  % Mean spatial frequency of images in cycles.
 GaborData.stim_std_sp_freq_cycles = get_arg('stim_std_sp_freq_cycles', 10);  % Std deviation of spatial frequency in cycles.
 
+GaborData.stim_sp_freq_cpp = GaborData.stim_sp_freq_cycles / GaborData.stim_size;
+GaborData.stim_std_sp_freq_cpp = GaborData.stim_std_sp_freq_cycles / GaborData.stim_size;
+
 % Preallocate fields that will be populated with data by running the
 % experiment.
 GaborData.seed = zeros(1, total_trials);
