@@ -1,4 +1,4 @@
-function [GaborData, image_collection, sources] = LoadAllSubjectData(subjectID, phase, datadir)
+function [GaborData, sources] = LoadAllSubjectData(subjectID, phase, datadir)
 %LOADALLSUBJECTDATA Looks for and concatenates .mat files for this subject
 %across all sessions, including Quit sessions.
 if nargin < 3, datadir = fullfile(pwd, '..', 'RawData'); end
@@ -19,25 +19,21 @@ for i=1:length(files)
         if endsWith(files(i).name, ['GaborData' expt_type '.mat'])
             contents = load(fullfile(datadir, files(i).name));
             dataToAppend = contents.GaborData;
-            imagesToAppend = contents.image_collection;
         elseif endsWith(files(i).name, ['GaborData' expt_type 'Quit.mat'])
             contents = load(fullfile(datadir, files(i).name));
             if contents.GaborData.current_trial < 10
                 continue;
             end
-            [dataToAppend, imagesToAppend] = TruncateQuitDataGabor(contents.GaborData, contents.image_collection);
+            dataToAppend = TruncateQuitDataGabor(contents.GaborData);
         else
             continue;
         end
         sources = horzcat(sources, files(i).name);
         if ~loaded_one
             GaborData = dataToAppend;
-            image_collection = imagesToAppend;
             loaded_one = true;
         else
-            [GaborData, image_collection] = ConcatGaborData(...
-                GaborData, image_collection, ...
-                dataToAppend, imagesToAppend);
+            GaborData = ConcatGaborData(GaborData, dataToAppend);
         end
     end
 end

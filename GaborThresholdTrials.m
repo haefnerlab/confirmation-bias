@@ -1,4 +1,4 @@
-function [Data, image_collection] = GaborThresholdTrials(Data, image_collection, phase, threshold, floor)
+function Data = GaborThresholdTrials(Data, phase, threshold, floor)
 
 if phase == 0
     stair_param = 'contrast';
@@ -11,10 +11,6 @@ if exist('floor', 'var')
     test_trials = test_trials & Data.(stair_param) > floor;
 end
 elements = sum(test_trials);
-
-%% Subselect images.
-
-image_collection = image_collection(test_trials, :, :, :);
 
 %% Subselect trial data.
 

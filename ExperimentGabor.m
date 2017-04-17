@@ -1,4 +1,4 @@
-function [GaborData, image_collection] = ExperimentGabor(GaborData, varargin)
+function GaborData = ExperimentGabor(GaborData, varargin)
 
 directory = fullfile(pwd, '..');
 settings = LoadSettings(directory);
@@ -93,15 +93,9 @@ if ptbWaitKey([goKey exitKey]) == exitKey
 end
 Screen('Flip', wPtr); % Function to flip to the next screen image
 
-% Preallocate images
-image_collection = zeros(GaborData.blocks * GaborData.trials_per_block, ...
-    GaborData.number_of_images, ...
-    GaborData.image_length_x, ...
-    GaborData.image_length_y);
-
     function earlyQuit
         if GaborData.current_trial > 5
-            save(fileNameQuit, 'GaborData', 'image_collection');
+            save(fileNameQuit, 'GaborData');
         end
         ShowCursor();
         Screen('CloseAll');
@@ -198,10 +192,7 @@ try
         % A function to generate the stimulus frames which will be
         % displayed to the screen.
         image_array = makeImages(GaborData);
-        
-        % Store all images shown
-        image_collection(trial,:,:,:) = image_array;
-        
+                
         % Calculate log odds at each frame, both for the category of that
         % frame independent of the prior, and for the decision (including
         % the prior)
@@ -260,5 +251,5 @@ end
 
 %% Save final data to folder
 Screen('CloseAll');
-save(fileName, 'GaborData', 'image_collection');
+save(fileName, 'GaborData');
 end

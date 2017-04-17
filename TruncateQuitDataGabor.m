@@ -1,7 +1,6 @@
-function [GaborData, image_collection] = TruncateQuitDataGabor(GaborData, image_collection)
+function GaborData = TruncateQuitDataGabor(GaborData)
 %TRUNCATEQUITDATAGABOR given that the subject quit the experiment before
-%completion, return a truncated version of GaborData and the associated
-%image_collection
+%completion, return a truncated version of GaborData
 point = GaborData.current_trial-2;
 GaborData.current_trial = point;
 
@@ -23,6 +22,4 @@ GaborData.log_decision_odds(point+1:end,:) = [];
 GaborData.average_orientations(:,point+1) = [];
 
 GaborData.eye_tracker_points(point+1:end) = [];
-
-image_collection(point+1:end,:,:,:)=[];
 end

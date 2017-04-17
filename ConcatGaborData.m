@@ -1,4 +1,4 @@
-function [GaborData, image_collection] = ConcatGaborData(Data1, images1, Data2, images2)
+function GaborData = ConcatGaborData(Data1, Data2)
 %CONCATPRELIMGABOR Concatenate experiment results.
 
 GaborData = Data1;
@@ -23,6 +23,4 @@ GaborData.log_decision_odds = [Data1.log_decision_odds; Data2.log_decision_odds]
 GaborData.average_orientations = [Data1.average_orientations, Data2.average_orientations];
 
 GaborData.eye_tracker_points = horzcat(Data1.eye_tracker_points, Data2.eye_tracker_points);
-
-image_collection = cat(1, images1, images2);
 end
