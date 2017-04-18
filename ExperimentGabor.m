@@ -184,8 +184,8 @@ try
         
         % Record answer of the ideal observer.
         GaborData.ideal_frame_signals(trial, :) = ...
-            bpg.getSignal(image_array, GaborData.left_category, GaborData.noise(trial)) - ...
-            bpg.getSignal(image_array, GaborData.right_category, GaborData.noise(trial));
+            bpg.getSignal(image_array - 127, GaborData.left_category, GaborData.noise(trial)) - ...
+            bpg.getSignal(image_array - 127, GaborData.right_category, GaborData.noise(trial));
         GaborData.ideal_answer(trial) = 1 * (sum(GaborData.ideal_frame_signals(trial, :)) > 0);
         
         if isempty(GaborData.model_observer)
