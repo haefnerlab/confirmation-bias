@@ -94,8 +94,8 @@ for i = 1:total_frames
 end
 
 Screen('FillRect', wPtr, gray, stimulus_bbox);
-[~, endTime] = Screen('Flip', wPtr);
 EyeTracker.drawFixationSymbol(tracker_info, wPtr);
+[~, endTime] = Screen('Flip', wPtr);
 Screen('Flip', wPtr, endTime + Data.go_cue_time);
 
 Screen('DrawTexture', wPtr, show_left_patch, [], ptbCenteredRect([xc-w yc], [w h]));   % xc, yc indicates the coordinates of the middle of the screen
