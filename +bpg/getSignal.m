@@ -17,13 +17,13 @@ end
 
 x = linspace(-1, 1, sz);
 [xx, yy] = meshgrid(x, x);
-tt = atan2(yy, xx);
-oriFilter = bpg.vmpdf(2 * tt, deg2rad(oriDEG), 1 / deg2rad(oriStdDEG));
+tt = -atan2(yy, xx);
+oriFilter = bpg.vmpdf(2 * tt, 2 * deg2rad(oriDEG), 1 / deg2rad(oriStdDEG));
 
 %% Get signal of each frame.
 sig = zeros(frames, 1);
 for f=1:frames
-    frameF = fftshift(fft2(bpg_im(f, :, :)));
+    frameF = fftshift(fft2(squeeze(bpg_im(f, :, :))));
     sig(f) = dot(oriFilter(:), abs(frameF(:)));
 end
 end

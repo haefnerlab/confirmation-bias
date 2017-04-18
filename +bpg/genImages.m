@@ -37,8 +37,10 @@ end
 %% Generate each frame.
 
 for f=1:frames
-    % Create orientation filters for each frame.
-    oriFilter = bpg.vmpdf(2 * tt, deg2rad(oriDEG(f)), 1 / deg2rad(oriStdDEG));
+    % Create orientation filters for each frame. Note that 'tt' is doubled
+    % to create two symmetric filters in the Fourier domain (bow-tie rather
+    % than cone shape). 'oriDEG' must also be doubled to compensate.
+    oriFilter = bpg.vmpdf(2 * tt, 2 * deg2rad(oriDEG(f)), 1 / deg2rad(oriStdDEG));
     
     % Get full, normalized foureir-domain filter.
     filterF = spFreqFilter .* oriFilter;
