@@ -37,7 +37,8 @@ else
     GaborData.step_size(trial) = GaborData.step_size(trial-1);
 end
 
-if GaborData.step_size(trial) < GaborData.min_step_size
+% Note: noise step size is reversed since more noise makes things harder.
+if -GaborData.step_size(trial) < -GaborData.min_step_size
     GaborData.step_size(trial) = GaborData.min_step_size;
 end
 

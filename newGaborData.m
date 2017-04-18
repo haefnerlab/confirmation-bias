@@ -41,7 +41,7 @@ elseif isequal(GaborData.stair_fn, @Staircase.ratio)
     GaborData.min_step_size = get_arg('min_step_size', GaborData.step_size(1)/4); % Default to two 'halvings' of the step size
 elseif isequal(GaborData.stair_fn, @Staircase.noise)
     GaborData.stair_bounds = get_arg('stair_bounds', [0 360]);
-    GaborData.step_size(1) = get_arg('step_size', -20); % additive (in the "easier" direction)
+    GaborData.step_size(1) = get_arg('step_size', -40); % additive (in the "easier" direction)
     GaborData.min_step_size = get_arg('min_step_size', GaborData.step_size(1)/4); % Default to two 'halvings' of the step size
 end
 
