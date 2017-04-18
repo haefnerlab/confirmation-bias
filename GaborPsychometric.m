@@ -22,6 +22,14 @@ elseif phase == 1
     % as 0, so mean() returns the fraction of left choices.
     yvals = arrayfun(@(u) mean(Data.choice(true_ratio == u)), uniq_vals);
     num_trials_at_vals = arrayfun(@(u) sum(true_ratio == u), uniq_vals);
+elseif phase == 2
+    options.sigmoidName  = 'weibull';
+    options.expType      = '2AFC';
+    
+    % Count how often subject was correct at each noise level.
+    uniq_vals = unique(Data.neg_noise);
+    yvals = arrayfun(@(u) mean(Data.accuracy(Data.neg_noise == u)), uniq_vals);
+    num_trials_at_vals = arrayfun(@(u) sum(Data.neg_noise == u), uniq_vals);
 end
 
 % Run PM fitting.

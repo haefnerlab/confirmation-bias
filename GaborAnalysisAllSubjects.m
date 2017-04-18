@@ -1,22 +1,20 @@
-function [grid, combined] = GaborAnalysisAllSubjects(subjectIDs, thresholds, phase, plot_types, ideal_template, datadir)
+function [grid, combined] = GaborAnalysisAllSubjects(subjectIDs, thresholds, phase, plot_types, datadir)
 %GABORANALYSISALLSUBJECTS creates two figures: one a grid of subplots with
 %each subject as a row and each plot type as a column. The second shows the
 %combined PK for all subjects. Returns figure handles. Example:
 %
-% GABORANALYSISALLSUBJECTS(subjectIDs, thresholds, phase, plot_types, ideal_template, datadir)
+% GABORANALYSISALLSUBJECTS(subjectIDs, thresholds, phase, plot_types, datadir)
 %
 % Inputs:
 % - subjectIDs: a cell array of subject IDs (strings)
 % - thresholds: an array the same size as subjectIDs with each subject's
 %   threshold, or a 2d array (subjects x 2) with [lo hi] ranges to keep.
 % - phase: 0 for contrast, 1 for ratio
-% - plot_types: (optional) cell array of plots to show. options are 'staircase', 'rt', 'pm', 'template', 'pk', 'sd'
-% - ideal_template: (optional) if true, uses ideal observer spatial template.
+% - plot_types: (optional) cell array of plots to show. options are 'staircase', 'rt', 'pm', 'pk', 'sd'
 % - datadir: (optional) override the default place to look for data files.
 
-if nargin < 4, plot_types = {'staircase', 'pm', 'template', 'pk'}; end
-if nargin < 5, ideal_template = true; end
-if nargin < 6, datadir = fullfile(pwd, '..', 'RawData'); end
+if nargin < 4, plot_types = {'staircase', 'pm', 'pk'}; end
+if nargin < 5, datadir = fullfile(pwd, '..', 'RawData'); end
 
 catdir = fullfile(datadir, '..', 'ConcatData');
 if ~exist(catdir, 'dir'), mkdir(catdir); end
@@ -28,8 +26,10 @@ if phase == 0
     stair_var = 'contrast';
 elseif phase == 1
     stair_var = 'true_ratio';
+elseif phase == 2
+    stair_var = 'neg_noise';
 else
-    error('Expected phase 0 for Contrast or 1 for Ratio');
+    error('Expected phase 0 for Contrast or 1 for Ratio or 2 for Noise');
 end
 
 if numel(thresholds) == length(subjectIDs)
@@ -52,7 +52,7 @@ nP = length(plot_types);
                 fullfile(memodir, ['PM-' stair_var '-' subjectID '.mat']));
             floor = getThreshold(local_fit_result, perf_lo, false);
             thresh = getThreshold(local_fit_result, perf_hi, false);
-        
+            
             % Adjust from '#clicks' to threshold
             if phase == 1
                 thresh = thresh / 10;
@@ -154,42 +154,46 @@ for i=1:nS
                     ys = get(gca, 'YLim');
                     plot(10*[floor floor], ys, '--r');
                     plot(10*[thresh thresh], ys, '--r');
+                elseif phase == 2
+                    % Add remaining plot options.
+                    plotOptions.xLabel = '(Negative) Noise Level';
+                    plotOptions.yLabel = 'Percent Correct';
+                    
+                    % Plot PM curve and data.
+                    plotPsych(fit_result, plotOptions);
+                    
+                    % Bin the data further for visualization
+                    log_noise = log(SubjectData.noise);
+                    bin_edges = linspace(min(log_noise), max(log_noise), 11);
+                    bin_halfwidth = (bin_edges(2) - bin_edges(1)) / 2;
+                    bin_centers = bin_edges(1:end-1) + bin_halfwidth;
+                    means = zeros(size(bin_centers));
+                    stderrs = zeros(size(bin_centers));
+                    for b=1:length(bin_centers)
+                        % Select all points for which bin i is closest.
+                        bin_dists = abs(log_noise - bin_centers(b));
+                        indices = bin_dists <= bin_halfwidth;
+                        means(b) = mean(SubjectData.accuracy(indices));
+                        stderrs(b) = std(SubjectData.accuracy(indices)) / sqrt(sum(indices));
+                    end
+                    errorbar(-exp(bin_centers), means, stderrs, 'bs');
+                    ys = get(gca, 'YLim');
+                    plot([floor floor], ys, '--r');
+                    plot([thresh thresh], ys, '--r');
                 end
                 title('Psychometric curve');
                 
                 % Display floor+threshold values
                 [floor, thresh] = getThresholdWindow(s, .6, .75);
-            case 'template'
-                SubjectDataThresh = GaborThresholdTrials(...
-                    SubjectData, stim_images, phase, thresh, floor);
-                if ideal_template
-                    memo_name = ['Boot-PK-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
-                else
-                    memo_name = ['Boot-SpPK-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
-                end
-                [M, ~, ~] = LoadOrRun(@BootstrapWeightsGabor, ...
-                    {SubjectDataThresh, 500, ideal_template}, ...
-                    fullfile(memodir, memo_name));
-                [~, ~, h, w] = size(stim_images);
-                template = reshape(M(1:h*w), [h w]);
-                imagesc(template);
-                axis image;
-                colorbar;
-                title('spatial kernel');
             case 'pk'
                 SubjectDataThresh = GaborThresholdTrials(...
-                    SubjectData, stim_images, phase, thresh, floor);
-                if ideal_template
-                    memo_name = ['Boot-PK-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
-                else
-                    memo_name = ['Boot-SpPK-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
-                end
+                    SubjectData, phase, thresh, floor);
+                memo_name = ['Boot-SpPK-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
                 [M, L, U] = LoadOrRun(@BootstrapWeightsGabor, ...
-                    {SubjectDataThresh, 500, ideal_template}, ...
+                    {SubjectDataThresh, 500}, ...
                     fullfile(memodir, memo_name));
-                [~, frames, h, w] = size(stim_images);
-                time_idxs = w*h+1:length(M)-1;
-                boundedline(1:frames, M(time_idxs)', [U(time_idxs)-M(time_idxs); M(time_idxs)-L(time_idxs)]');
+                frames = SubjectData.number_of_images;
+                boundedline(1:frames, M(1:frames)', [U(1:frames)-M(1:frames); M(1:frames)-L(1:frames)]');
                 title('temporal kernel');
         end
     end
@@ -213,7 +217,7 @@ if length(subjectIDs) > 1 && any(strcmpi('pk', plot_types))
         end
     end
     [M, L, U] = LoadOrRun(@BootstrapWeightsGabor, ...
-        {all_data, 500, ideal_template}, ...
+        {all_data, 500}, ...
         fullfile(memodir, ['combo-PK-' stair_var all_ids '.mat']));
     [~, frames, h, w] = size(all_imgs);
     time_idxs = w*h+1:length(M)-1;

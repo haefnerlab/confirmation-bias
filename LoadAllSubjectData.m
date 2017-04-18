@@ -7,8 +7,10 @@ if phase == 0
     expt_type = 'Contrast';
 elseif phase == 1
     expt_type = 'Ratio';
+elseif phase == 2
+    expt_type = 'Noise';
 else
-    error('Expected phase 0 for Contrast or 1 for Ratio');
+    error('Expected phase 0 for Contrast or 1 for Ratio or 2 for Noise');
 end
 
 loaded_one = false;
@@ -40,7 +42,12 @@ end
 
 % Add a 'true_ratio' field if phase is 1
 if phase == 1
-    GaborData.true_ratio = sum(GaborData.frame_categories == +1, 2) / 10;
+    GaborData.true_ratio = sum(GaborData.frame_categories > 0, 2) / GaborData.number_of_images;
+end
+
+% Add a 'neg_noise' field if phase is 2
+if phase == 2
+    GaborData.neg_noise = max(GaborData.noise) - GaborData.noise;
 end
 
 if ~loaded_one

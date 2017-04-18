@@ -19,8 +19,7 @@ GaborData.reaction_time = [Data1.reaction_time, Data2.reaction_time];
 GaborData.choice = [Data1.choice, Data2.choice];
 GaborData.accuracy = [Data1.accuracy, Data2.accuracy];
 GaborData.frame_categories = [Data1.frame_categories; Data2.frame_categories];
-GaborData.log_frame_odds = [Data1.log_frame_odds; Data2.log_frame_odds];
-GaborData.log_decision_odds = [Data1.log_decision_odds; Data2.log_decision_odds];
+GaborData.ideal_frame_signals = [Data1.ideal_frame_signals; Data2.ideal_frame_signals];
 
 GaborData.eye_tracker_points = horzcat(Data1.eye_tracker_points, Data2.eye_tracker_points);
 end

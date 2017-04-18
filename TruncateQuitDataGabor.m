@@ -18,8 +18,7 @@ GaborData.reaction_time(point+1:end) = [];
 GaborData.choice(point+1:end) = [];
 GaborData.accuracy(point+1:end) = [];
 GaborData.frame_categories(point+1:end,:) = [];
-GaborData.log_frame_odds(point+1:end,:) = [];
-GaborData.log_decision_odds(point+1:end,:) = [];
+GaborData.ideal_frame_signals(point+1:end,:) = [];
 
 GaborData.eye_tracker_points(point+1:end) = [];
 end
