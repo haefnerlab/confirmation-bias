@@ -22,7 +22,7 @@ total_trials = GaborData.trials_per_block * GaborData.blocks;
 
 % Initial values of staircase-able parameters
 GaborData.contrast = zeros(1, total_trials);
-GaborData.contrast(1) = get_arg('contrast', 64);
+GaborData.contrast(1) = get_arg('contrast', 24);
 GaborData.ratio = zeros(1, total_trials);
 GaborData.ratio(1) = get_arg('ratio', 0.8);
 GaborData.noise = zeros(1, total_trials);
