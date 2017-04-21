@@ -1,10 +1,10 @@
-function [im, imF] = genImages(frames, width, spFreqCPP, spFreqStdCPP, oriDEG, oriStdDEG, annulusPix)
+function [im, imF] = genImages(frames, width, spFreqCPP, spFreqStdCPP, oriDEG, oriKappa, annulusPix)
 %BPG.GENIMAGES Create a sequence band-pass grating (bpg) stimuli.
 %
-%[im, imF] = BPG.GENIMAGES(frames, width, spFreqCPP, spFreqStdCPP, oriDEG, oriStdDEG)
+%[im, imF] = BPG.GENIMAGES(frames, width, spFreqCPP, spFreqStdCPP, oriDEG, oriKappa)
 % creates [frames x width x width] array of images. spFreqCPP sets the mean
 % spatial frequency in cycles per pixel. spFreqStdCPP sets the range of
-% spatial frequencies present. oriDEG sets the mean rotation, oriStdDeg
+% spatial frequencies present. oriDEG sets the mean rotation, oriKappa
 % sets the range of orientation energy present.
 %
 % oriDEG may be a vector of orientations of length 'frames'.
@@ -40,7 +40,7 @@ for f=1:frames
     % Create orientation filters for each frame. Note that 'tt' is doubled
     % to create two symmetric filters in the Fourier domain (bow-tie rather
     % than cone shape). 'oriDEG' must also be doubled to compensate.
-    oriFilter = bpg.vmpdf(2 * tt, 2 * deg2rad(oriDEG(f)), 1 / deg2rad(oriStdDEG));
+    oriFilter = bpg.vmpdf(2 * tt, 2 * deg2rad(oriDEG(f)), oriKappa);
     
     % Get full, normalized foureir-domain filter.
     filterF = spFreqFilter .* oriFilter;

@@ -2,7 +2,7 @@ function demoBPGStimulus
 
 sz = 100;
 oriDEG = 0;
-oriStdDEG = 30;
+oriKappa = 0.3;
 spFreqCycles = 6;
 spFreqStdCycles = 1;
 annulus = 10;
@@ -13,7 +13,7 @@ f = figure;
     function genAndPlot()
         rng(seed, 'twister');
         [im, imF] = bpg.genImages(1, sz, spFreqCycles / sz, spFreqStdCycles / sz, ...
-            oriDEG, oriStdDEG, annulus);
+            oriDEG, oriKappa, annulus);
         ax1 = subplot(1, 2, 1);
         imagesc(squeeze(im));
         colormap gray;
@@ -43,9 +43,9 @@ sliders(1) = uicontrol('Parent', f, 'Style', 'slider', 'min', 0, 'max', 180, 'va
     'Callback', @(es, ed) sliderUpdate('oriDEG', es.Value));
 labels{1} = 'Orientation';
 
-sliders(2) = uicontrol('Parent', f, 'Style', 'slider', 'min', 0, 'max', 180, 'value', oriStdDEG, ...
-    'Callback', @(es, ed) sliderUpdate('oriStdDEG', es.Value));
-labels{2} = 'Ori. Width';
+sliders(2) = uicontrol('Parent', f, 'Style', 'slider', 'min', 0, 'max', 2.5, 'value', oriKappa, ...
+    'Callback', @(es, ed) sliderUpdate('oriKappa', es.Value));
+labels{2} = 'Ori. Kappa';
 
 sliders(3) = uicontrol('Parent', f, 'Style', 'slider', 'min', 0, 'max', 20, 'value', spFreqCycles, ...
     'Callback', @(es, ed) sliderUpdate('spFreqCycles', es.Value));

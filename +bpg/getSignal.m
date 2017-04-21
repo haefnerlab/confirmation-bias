@@ -1,5 +1,5 @@
-function sig = getSignal(bpg_im, oriDEG, oriStdDEG)
-%GETSIGNAL(bpg_im, oriDEG, oriStdDEG) compute the amount of energy there is
+function sig = getSignal(bpg_im, oriDEG, oriKappa)
+%GETSIGNAL(bpg_im, oriDEG, oriKappa) compute the amount of energy there is
 %in the given image(s) at the given orientation band. Spatial Frequency is
 %integrated out.
 %
@@ -18,7 +18,7 @@ end
 x = linspace(-1, 1, sz);
 [xx, yy] = meshgrid(x, x);
 tt = -atan2(yy, xx);
-oriFilter = bpg.vmpdf(2 * tt, 2 * deg2rad(oriDEG), 1 / deg2rad(oriStdDEG));
+oriFilter = bpg.vmpdf(2 * tt, 2 * deg2rad(oriDEG), oriKappa);
 
 %% Get signal of each frame.
 sig = zeros(frames, 1);

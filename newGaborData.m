@@ -26,7 +26,7 @@ GaborData.contrast(1) = get_arg('contrast', 64);
 GaborData.ratio = zeros(1, total_trials);
 GaborData.ratio(1) = get_arg('ratio', 0.8);
 GaborData.noise = zeros(1, total_trials);
-GaborData.noise(1) = get_arg('noise', 45); % stdev of bpg orientation band
+GaborData.noise(1) = get_arg('noise', 0.8); % kappa of bpg orientation band
 GaborData.step_size = zeros(1, total_trials);
 
 % Staircase bounds and step size, with defaults set depending on stair_fn
@@ -40,9 +40,13 @@ elseif isequal(GaborData.stair_fn, @Staircase.ratio)
     GaborData.step_size(1) = get_arg('step_size', .1); % additive (in the "easier" direction)
     GaborData.min_step_size = get_arg('min_step_size', GaborData.step_size(1)/4); % Default to two 'halvings' of the step size
 elseif isequal(GaborData.stair_fn, @Staircase.noise)
-    GaborData.stair_bounds = get_arg('stair_bounds', [0 360]);
-    GaborData.step_size(1) = get_arg('step_size', -40); % additive (in the "easier" direction)
-    GaborData.min_step_size = get_arg('min_step_size', GaborData.step_size(1)/4); % Default to two 'halvings' of the step size
+    % Note: noise is treated as a special case, where we use a discrete set
+    % of values for kappa, and the staircase simply increments/decrements
+    % the index.
+    GaborData.kappa_set = get_arg('kappa_set', linspace(0, 0.8, 21)); % Higher indices correspond to easier values of kappa.
+    GaborData.stair_bounds = get_arg('stair_bounds', [1 length(GaborData.kappa_set)]); % Not actually used; bounds implied by length of array. See Staircase.noise
+    GaborData.step_size(1) = get_arg('step_size', 4); % additive (in the "easier" direction)
+    GaborData.min_step_size = get_arg('min_step_size', 1); % Cannot step fewer than 1 indices in an array.
 end
 
 % Other misc. user-definable parameters relating to stimulus/rig.

@@ -5,7 +5,7 @@ if phase == 0
 elseif phase == 1
     stair_param = 'ratio';
 elseif phase == 2
-    stair_param = 'neg_noise';
+    stair_param = 'noise';
 end
 
 test_trials = Data.(stair_param) < threshold;

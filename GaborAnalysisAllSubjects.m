@@ -27,7 +27,7 @@ if phase == 0
 elseif phase == 1
     stair_var = 'true_ratio';
 elseif phase == 2
-    stair_var = 'neg_noise';
+    stair_var = 'noise';
 else
     error('Expected phase 0 for Contrast or 1 for Ratio or 2 for Noise');
 end
@@ -47,7 +47,7 @@ nP = length(plot_types);
             LocalSubjectData = LoadOrRun(@LoadAllSubjectData, ...
                 {subjectID, phase, datadir}, fullfile(catdir, [subjectID '-' stair_var '.mat']));
             % Use PM fit to get floor and threshold
-            local_fit_result = LoadOrRun(@GaborPsychometric, ...
+            [local_fit_result, ~, ~, ~] = LoadOrRun(@GaborPsychometric, ...
                 {LocalSubjectData, phase}, ...
                 fullfile(memodir, ['PM-' stair_var '-' subjectID '.mat']));
             floor = getThreshold(local_fit_result, perf_lo, false);
@@ -96,7 +96,7 @@ for i=1:nS
                 title('serial dependencies');
             case 'pm'
                 % Get PM fit.
-                fit_result = LoadOrRun(@GaborPsychometric, ...
+                [fit_result, uniq_vals, yvals, stderrs] = LoadOrRun(@GaborPsychometric, ...
                     {SubjectData, phase}, ...
                     fullfile(memodir, ['PM-' stair_var '-' s '.mat']));
                 
@@ -142,41 +142,20 @@ for i=1:nS
                     plotPsych(fit_result, plotOptions);
                     
                     % Plot data.
-                    true_ratio = sum(SubjectData.frame_categories, 2);
-                    uniq_vals = unique(true_ratio);
-                    
-                    % The next line exploits the fact that 'Left' is coded as 1 and 'right'
-                    % as 0, so mean() returns the fraction of left choices.
-                    yvals = arrayfun(@(u) mean(SubjectData.choice(true_ratio == u)), uniq_vals);
-                    num_trials_at_vals = arrayfun(@(u) sum(true_ratio == u), uniq_vals);
-                    stderrs = arrayfun(@(u) std(SubjectData.choice(true_ratio == u)), uniq_vals) ./ sqrt(num_trials_at_vals);
                     errorbar(uniq_vals, yvals, stderrs, 'bs');
                     ys = get(gca, 'YLim');
                     plot(10*[floor floor], ys, '--r');
                     plot(10*[thresh thresh], ys, '--r');
                 elseif phase == 2
                     % Add remaining plot options.
-                    plotOptions.xLabel = '(Negative) Noise Level';
+                    plotOptions.xLabel = 'Noise (\kappa)';
                     plotOptions.yLabel = 'Percent Correct';
                     
                     % Plot PM curve and data.
                     plotPsych(fit_result, plotOptions);
                     
-                    % Bin the data further for visualization
-                    log_noise = log(SubjectData.noise);
-                    bin_edges = linspace(min(log_noise), max(log_noise), 11);
-                    bin_halfwidth = (bin_edges(2) - bin_edges(1)) / 2;
-                    bin_centers = bin_edges(1:end-1) + bin_halfwidth;
-                    means = zeros(size(bin_centers));
-                    stderrs = zeros(size(bin_centers));
-                    for b=1:length(bin_centers)
-                        % Select all points for which bin i is closest.
-                        bin_dists = abs(log_noise - bin_centers(b));
-                        indices = bin_dists <= bin_halfwidth;
-                        means(b) = mean(SubjectData.accuracy(indices));
-                        stderrs(b) = std(SubjectData.accuracy(indices)) / sqrt(sum(indices));
-                    end
-                    errorbar(-exp(bin_centers), means, stderrs, 'bs');
+                    % Plot data.
+                    errorbar(uniq_vals, yvals, stderrs, 'bs');
                     ys = get(gca, 'YLim');
                     plot([floor floor], ys, '--r');
                     plot([thresh thresh], ys, '--r');
