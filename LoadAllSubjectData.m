@@ -40,6 +40,10 @@ for i=1:length(files)
     end
 end
 
+if ~loaded_one
+    error('No data found for %s in %s experiment.', subjectID, expt_type);
+end
+
 % Add a 'true_ratio' field for analysis.
 GaborData.true_ratio = sum(GaborData.frame_categories' > 0, 1) / GaborData.number_of_images;
 
@@ -47,8 +51,4 @@ GaborData.true_ratio = sum(GaborData.frame_categories' > 0, 1) / GaborData.numbe
 trial_sign = sign(GaborData.true_ratio - 0.5);
 GaborData.sign_noise = trial_sign .* GaborData.noise;
 GaborData.sign_contrast = trial_sign .* GaborData.contrast;
-
-if ~loaded_one
-    error('No data found for %s in %s experiment.', subjectID, expt_type);
-end
 end

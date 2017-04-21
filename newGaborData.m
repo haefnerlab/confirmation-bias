@@ -105,6 +105,9 @@ if isequal(GaborData.stair_fn, @Staircase.noise)
         warning('Changing sign of noise step_size from %d to %d', GaborData.step_size(1), -GaborData.step_size(1));
         GaborData.step_size = -GaborData.step_size;
     end
+    if ~(isinteger(GaborData.step_size(1)) && isinteger(GaborData.min_step_size))
+        error('In Noise condition, step_size and min_step_size act on indices and must be integers');
+    end
 end
 
 if isequal(GaborData.stair_fn, @Staircase.contrast)
