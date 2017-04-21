@@ -40,15 +40,13 @@ for i=1:length(files)
     end
 end
 
-% Add a 'true_ratio' field if phase is 1
-if phase == 1
-    GaborData.true_ratio = sum(GaborData.frame_categories > 0, 2) / GaborData.number_of_images;
-end
+% Add a 'true_ratio' field for analysis.
+GaborData.true_ratio = sum(GaborData.frame_categories' > 0, 1) / GaborData.number_of_images;
 
-% Add a 'neg_noise' field if phase is 2
-if phase == 2
-    GaborData.neg_noise = max(GaborData.noise) - GaborData.noise;
-end
+% Add a 'signed noise' and 'signed contrast' field.
+trial_sign = sign(GaborData.true_ratio - 0.5);
+GaborData.sign_noise = trial_sign .* GaborData.noise;
+GaborData.sign_contrast = trial_sign .* GaborData.contrast;
 
 if ~loaded_one
     error('No data found for %s in %s experiment.', subjectID, expt_type);
