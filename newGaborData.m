@@ -101,11 +101,11 @@ if isequal(GaborData.stair_fn, @Staircase.ratio)
 end
 
 if isequal(GaborData.stair_fn, @Staircase.noise)
-    if GaborData.step_size(1) > 0
+    if GaborData.step_size(1) < 0
         warning('Changing sign of noise step_size from %d to %d', GaborData.step_size(1), -GaborData.step_size(1));
         GaborData.step_size = -GaborData.step_size;
     end
-    if ~(isinteger(GaborData.step_size(1)) && isinteger(GaborData.min_step_size))
+    if ~(iseffectiveinteger(GaborData.step_size(1)) && iseffectiveinteger(GaborData.min_step_size))
         error('In Noise condition, step_size and min_step_size act on indices and must be integers');
     end
 end
@@ -128,5 +128,10 @@ if ~isempty(GaborData.model_observer) && ~any(strcmpi(GaborData.model_observer),
 end
 
 disp(GaborData);
+
+
+    function TF = iseffectiveinteger(v)
+        TF = (v == floor(v));
+    end
 
 end
