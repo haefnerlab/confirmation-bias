@@ -55,7 +55,6 @@ nP = length(plot_types);
             
             % Adjust from '#clicks' to threshold
             if phase == 1
-                thresh = thresh / 10;
                 floor = 1 - thresh;
             end
         end
@@ -135,7 +134,7 @@ for i=1:nS
                     plot([thresh thresh], ys, '--r');
                 elseif phase == 1
                     % Add remaining plot options.
-                    plotOptions.xLabel = 'True # Left Frames';
+                    plotOptions.xLabel = 'True Ratio';
                     plotOptions.yLabel = 'Percent Chose Left';
                     
                     % Plot PM curve and data.
@@ -144,8 +143,8 @@ for i=1:nS
                     % Plot data.
                     errorbar(uniq_vals, yvals, stderrs, 'bs');
                     ys = get(gca, 'YLim');
-                    plot(10*[floor floor], ys, '--r');
-                    plot(10*[thresh thresh], ys, '--r');
+                    plot([floor floor], ys, '--r');
+                    plot([thresh thresh], ys, '--r');
                 elseif phase == 2
                     % Add remaining plot options.
                     plotOptions.xLabel = 'Noise (\kappa)';

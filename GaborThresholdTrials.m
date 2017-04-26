@@ -3,7 +3,7 @@ function Data = GaborThresholdTrials(Data, phase, threshold, floor)
 if phase == 0
     stair_param = 'contrast';
 elseif phase == 1
-    stair_param = 'ratio';
+    stair_param = 'true_ratio';
 elseif phase == 2
     stair_param = 'noise';
 end
