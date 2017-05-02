@@ -66,23 +66,27 @@ for i=1:trials
     for j=1:frames
         e = data(i, j);
         for s=1:samples
-            like_e_D = [0 0]; % sum of [p(e|D=+1) p(e|D=-1)] estimates
+            like_e_D_partial = [0 0]; % sum of [p(e|D=+1) p(e|D=-1)] estimates (but not the gamma term)
             % post_D contains [p(D=+1|e_1,...,e_j-1), p(D=-1|e_1,...,e_j-1)]
             post_D = exp(log_post_D - max(log_post_D)); post_D = post_D / sum(post_D);
             for b=1:batch
                 % sample x using best posterior estimate of D
-                results.x(i, s_idx) = sample_x(e, post_D(1));
-                % accumulate estimate of p(e|D) using this sample of x
-                like_e_D_cur = [mogpdf(results.x(i, s_idx), p_x_Dp), ...
-                                mogpdf(results.x(i, s_idx), p_x_Dm)];
-                like_e_D = like_e_D + like_e_D_cur / sum(like_e_D_cur);
+                x_i = sample_x(e, post_D(1));
+                results.x(i, s_idx) = x_i;
+                % evaluate category probability with respect to current
+                % sample and importance weights
+                p_tm1_xi_Dp = mogpdf(x_i, p_x_Dp) * post_D(1); % p_{t-1}(x^{i}, D=+1)
+                p_tm1_xi_Dm = mogpdf(x_i, p_x_Dm) * post_D(2); % p_{t-1}(x^{i}, D=-1)
+                like_e_D_partial = like_e_D_partial + [...
+                    1/(1 + p_tm1_xi_Dm / p_tm1_xi_Dp), ...
+                    1/(1 + p_tm1_xi_Dp / p_tm1_xi_Dm)];
                 % increment sample index
                 s_idx = s_idx + 1;
             end
             % update log_post_D with log of p(e|D), subtracting out the
             % previous log[p(D|e)]
             log_post_D = (1 - gamma / samples) * log_post_D + ...
-                log(like_e_D / sum(like_e_D)) / samples;
+                log(like_e_D_partial) / samples;
             % record the posterior log odds in results.walk
             results.walk(i, w_idx) = log_post_D(1) - log_post_D(2);
             % increment walk index
