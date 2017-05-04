@@ -12,6 +12,8 @@ function results = runSamplingModel(data, params)
 %   results.choices - [trials x 1] array of {-1, +1} values
 %   results.x       - [trials x (frames*samples*batch+1)] sampled values of
 %                     x (including extra 'initial' sample)
+%   results.w       - [trials x (frames*samples*batch+1)] weight of
+%                     corresponding sample.
 %   results.walk    - [trials x samples*frames+1] posterior log odds of
 %                     D=+1/D=-1 (where walk(1) is the prior, hence size 
 %                     frames+1)
@@ -26,7 +28,6 @@ sig_e = sqrt(params.var_e);
 sig_x = sqrt(params.var_x);
 p_match = params.p_match;
 prior_D = params.prior_D;
-gamma = params.gamma;
 samples = params.samples;
 batch = params.batch;
 
@@ -34,6 +35,7 @@ results = struct(...
     'params', params, ...
     'choices', zeros(trials, 1), ...
     'x', zeros(trials, frames*samples*batch+1), ...
+    'w', zeros(trials, frames*samples*batch+1), ...
     'walk', zeros(trials, frames*samples+1));
 
 % Anonymous function to create (scaled) mixture-of-gaussians p(x|D)
@@ -62,35 +64,34 @@ for i=1:trials
     % Loop over evidence frames. Each frame, we apply 'samples' updates to
     % p(D), once for each 'batch' of samples from x.
     s_idx = 2;
-    w_idx = 2;
+    walk_idx = 2;
     for j=1:frames
         e = data(i, j);
         for s=1:samples
-            like_e_D_partial = [0 0]; % sum of [p(e|D=+1) p(e|D=-1)] estimates (but not the gamma term)
+            like_e_D = [0 0]; % batch sum of [p(e|D=+1) p(e|D=-1)]
             % post_D contains [p(D=+1|e_1,...,e_j-1), p(D=-1|e_1,...,e_j-1)]
             post_D = exp(log_post_D - max(log_post_D)); post_D = post_D / sum(post_D);
             for b=1:batch
                 % sample x using best posterior estimate of D
                 x_i = sample_x(e, post_D(1));
                 results.x(i, s_idx) = x_i;
+                % compute importance-sampling weight
+                w_i = 1 / (mogpdf(x_i, p_x_Dp) * post_D(1) + ...
+                    mogpdf(x_i, p_x_Dm) * post_D(2));
+                results.w(i, s_idx) = w_i;
                 % evaluate category probability with respect to current
                 % sample and importance weights
-                p_tm1_xi_Dp = mogpdf(x_i, p_x_Dp) * post_D(1); % p_{t-1}(x^{i}, D=+1)
-                p_tm1_xi_Dm = mogpdf(x_i, p_x_Dm) * post_D(2); % p_{t-1}(x^{i}, D=-1)
-                like_e_D_partial = like_e_D_partial + [...
-                    1/(1 + p_tm1_xi_Dm / p_tm1_xi_Dp), ...
-                    1/(1 + p_tm1_xi_Dp / p_tm1_xi_Dm)];
+                like_e_D = like_e_D + [mogpdf(x_i, p_x_Dp) * w_i, mogpdf(x_i, p_x_Dm) * w_i];
                 % increment sample index
                 s_idx = s_idx + 1;
             end
             % update log_post_D with log of p(e|D), subtracting out the
             % previous log[p(D|e)]
-            log_post_D = (1 - gamma / samples) * log_post_D + ...
-                log(like_e_D_partial) / samples;
+            log_post_D = log_post_D + log(like_e_D) / samples;
             % record the posterior log odds in results.walk
-            results.walk(i, w_idx) = log_post_D(1) - log_post_D(2);
+            results.walk(i, walk_idx) = log_post_D(1) - log_post_D(2);
             % increment walk index
-            w_idx = w_idx + 1;
+            walk_idx = walk_idx + 1;
         end
     end
     
