@@ -134,7 +134,7 @@ for i=1:nS
                     plot([thresh thresh], ys, '--r');
                 elseif phase == 1
                     % Add remaining plot options.
-                    plotOptions.xLabel = 'True # Left Frames';
+                    plotOptions.xLabel = 'True Ratio';
                     plotOptions.yLabel = 'Percent Chose Left';
                     
                     % Plot PM curve and data.
