@@ -35,7 +35,7 @@ for i = 1:Data.number_of_images
     image_texture(i) = Screen('MakeTexture', wPtr, squeeze(image_array(i, :, :)));
 end
 [~, h, w] = size(image_array);
-noise_mask = squeeze(bpg.genImages(1, Data.stim_size, Data.stim_sp_freq_cpp, Data.stim_std_sp_freq_cpp, 0, 0, Data.annulus)) * 64.0 + 127.0;
+noise_mask = squeeze(bpg.genImages(1, Data.stim_size, Data.stim_sp_freq_cpp, Data.stim_std_sp_freq_cpp, 0, 0, Data.annulus)) * Data.contrast(Data.current_trial) * 2 + 127.0;
 image_texture(end) = Screen('MakeTexture', wPtr, noise_mask);
 
 show_left_patch = Screen('MakeTexture', wPtr, left_patch);
