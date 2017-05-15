@@ -41,7 +41,7 @@ image_texture(end) = Screen('MakeTexture', wPtr, noise_mask);
 show_left_patch = Screen('MakeTexture', wPtr, left_patch);
 show_right_patch = Screen('MakeTexture', wPtr, right_patch);
 
-stimulus_bbox = ptbCenteredRect([xc yc], 1.1 * [w h]);
+stimulus_bbox = ptbCenteredRect([xc yc], [w h]);
 
 Screen('FillRect', wPtr, gray);  % Make the background gray
 [~, stimOnsetTime] = Screen('Flip', wPtr);
