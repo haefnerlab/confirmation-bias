@@ -21,9 +21,9 @@ function GaborData = noise(GaborData)
 
 trial = GaborData.current_trial;
 
-%% Copy over params - contrast may be overwritten below
+%% Copy over params - noise may be overwritten below
+% Ratio set as a special case at the end.
 GaborData.contrast(trial) = GaborData.contrast(trial-1);
-GaborData.ratio(trial) = GaborData.ratio(trial-1);
 GaborData.noise(trial) = GaborData.noise(trial-1);
 
 %% Reduce step size after 10 reversals
@@ -71,5 +71,6 @@ if is_test_trial
     GaborData.ratio(trial) = GaborData.test_ratio;
 else
     GaborData.iid(trial) = true;
+    GaborData.ratio(trial) = GaborData.ratio(1);
 end
 end
