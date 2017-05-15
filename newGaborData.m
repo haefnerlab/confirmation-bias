@@ -35,7 +35,8 @@ if isequal(GaborData.stair_fn, @Staircase.contrast)
     GaborData.stair_bounds = get_arg('stair_bounds', [0 64]);
     GaborData.step_size(1) = get_arg('step_size', 2); % multiplicative (in the "easier" direction)
     GaborData.min_step_size = get_arg('min_step_size', 1+(GaborData.step_size(1) - 1)/4); % Default to two 'halvings' of the step size
-    GaborData.iid_threshold = get_arg('iid_threshold', 0);
+    GaborData.test_threshold = get_arg('test_threshold', 0);
+    GaborData.test_ratio = get_arg('test_ratio', 0.9);
 elseif isequal(GaborData.stair_fn, @Staircase.ratio)
     GaborData.stair_bounds = get_arg('stair_bounds', [0.5 1.0]);
     GaborData.step_size(1) = get_arg('step_size', .1); % additive (in the "easier" direction)
@@ -48,7 +49,8 @@ elseif isequal(GaborData.stair_fn, @Staircase.noise)
     GaborData.stair_bounds = get_arg('stair_bounds', [1 length(GaborData.kappa_set)]); % Not actually used; bounds implied by length of array. See Staircase.noise
     GaborData.step_size(1) = get_arg('step_size', 4); % additive (in the "easier" direction)
     GaborData.min_step_size = get_arg('min_step_size', 1); % Cannot step fewer than 1 indices in an array.
-    GaborData.iid_threshold = get_arg('iid_threshold', 0);
+    GaborData.test_threshold = get_arg('test_threshold', 0);
+    GaborData.test_ratio = get_arg('test_ratio', 0.9);
 end
 
 % Other misc. user-definable parameters relating to stimulus/rig.

@@ -59,8 +59,16 @@ GaborData.contrast(trial) = ...
 GaborData.contrast(trial) = ...
     min(GaborData.contrast(trial), GaborData.stair_bounds(2));
 
-%% Handle special case where frames are not iid, but 'shuffled'.
-GaborData.iid(trial) = ~(isfield(GaborData, 'iid_threshold') && ...
-    GaborData.contrast(trial) < GaborData.iid_threshold);
+%% Handle special 'test' condition
+% (using the 'test_ratio' and shuffling frames rather than iid).
+is_test_trial = isfield(GaborData, 'test_threshold') && ...
+    GaborData.contrast(trial) < GaborData.test_threshold;
+
+if is_test_trial
+    GaborData.iid(trial) = false;
+    GaborData.ratio(trial) = GaborData.test_ratio;
+else
+    GaborData.iid(trial) = true;
+end
 
 end
