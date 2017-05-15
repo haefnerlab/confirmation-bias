@@ -44,13 +44,19 @@ end
 
 %% Apply staircase logic
 [~, cur_idx] = closest(GaborData.kappa_set, GaborData.noise(trial));
+next_idx = cur_idx;
 if GaborData.streak(trial) == 0
     % Got it wrong - make things easier
-    next_idx = min(cur_idx + GaborData.step_size(trial), length(GaborData.kappa_set));
-    GaborData.noise(trial) = GaborData.kappa_set(next_idx);
+    next_idx = cur_idx + GaborData.step_size(trial);
 elseif mod(GaborData.streak(trial), 2) == 0
     % Got 2 right in a row - make things harder
-    next_idx = max(cur_idx - GaborData.step_size(trial), 1);
-    GaborData.noise(trial) = GaborData.kappa_set(next_idx);
+    next_idx = cur_idx - GaborData.step_size(trial);
 end
+
+% Apply bounds.
+next_idx = min(next_idx, GaborData.stair_bounds(2));
+next_idx = max(next_idx, GaborData.stair_bounds(1));
+
+% Set noise level for this trial.
+GaborData.noise(trial) = GaborData.kappa_set(next_idx);
 end
