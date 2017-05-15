@@ -17,6 +17,7 @@ function GaborData = contrast(GaborData)
 % GaborData.ratio(trial)
 % GaborData.noise(trial)
 % GaborData.step_size(trial)
+% GaborData.iid(trial)
 
 trial = GaborData.current_trial;
 
@@ -57,5 +58,9 @@ GaborData.contrast(trial) = ...
     max(GaborData.contrast(trial), GaborData.stair_bounds(1));
 GaborData.contrast(trial) = ...
     min(GaborData.contrast(trial), GaborData.stair_bounds(2));
+
+%% Handle special case where frames are not iid, but 'shuffled'.
+GaborData.iid(trial) = ~(isfield(GaborData, 'iid_threshold') && ...
+    GaborData.contrast(trial) < GaborData.iid_threshold);
 
 end

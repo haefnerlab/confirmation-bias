@@ -8,9 +8,9 @@ elseif phase == 2
     stair_param = 'noise';
 end
 
-test_trials = Data.(stair_param) < threshold;
+test_trials = Data.(stair_param) <= threshold;
 if exist('floor', 'var')
-    test_trials = test_trials & Data.(stair_param) > floor;
+    test_trials = test_trials & Data.(stair_param) >= floor;
 end
 elements = sum(test_trials);
 
@@ -23,6 +23,7 @@ Data.ratio = Data.ratio(test_trials);
 Data.noise = Data.noise(test_trials);
 Data.step_size = Data.step_size(test_trials);
 
+Data.iid = Data.iid(test_trials);
 Data.seed = Data.seed(test_trials);
 Data.streak = Data.streak(test_trials);
 Data.reversal_counter = Data.reversal_counter(test_trials);

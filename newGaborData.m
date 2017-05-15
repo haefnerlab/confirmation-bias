@@ -22,7 +22,7 @@ total_trials = GaborData.trials_per_block * GaborData.blocks;
 
 % Initial values of staircase-able parameters
 GaborData.contrast = zeros(1, total_trials);
-GaborData.contrast(1) = get_arg('contrast', 24);
+GaborData.contrast(1) = get_arg('contrast', 8);
 GaborData.ratio = zeros(1, total_trials);
 GaborData.ratio(1) = get_arg('ratio', 0.8);
 GaborData.noise = zeros(1, total_trials);
@@ -35,6 +35,7 @@ if isequal(GaborData.stair_fn, @Staircase.contrast)
     GaborData.stair_bounds = get_arg('stair_bounds', [0 64]);
     GaborData.step_size(1) = get_arg('step_size', 2); % multiplicative (in the "easier" direction)
     GaborData.min_step_size = get_arg('min_step_size', 1+(GaborData.step_size(1) - 1)/4); % Default to two 'halvings' of the step size
+    GaborData.iid_threshold = get_arg('iid_threshold', 0);
 elseif isequal(GaborData.stair_fn, @Staircase.ratio)
     GaborData.stair_bounds = get_arg('stair_bounds', [0.5 1.0]);
     GaborData.step_size(1) = get_arg('step_size', .1); % additive (in the "easier" direction)
@@ -47,6 +48,7 @@ elseif isequal(GaborData.stair_fn, @Staircase.noise)
     GaborData.stair_bounds = get_arg('stair_bounds', [1 length(GaborData.kappa_set)]); % Not actually used; bounds implied by length of array. See Staircase.noise
     GaborData.step_size(1) = get_arg('step_size', 4); % additive (in the "easier" direction)
     GaborData.min_step_size = get_arg('min_step_size', 1); % Cannot step fewer than 1 indices in an array.
+    GaborData.iid_threshold = get_arg('iid_threshold', 0);
 end
 
 % Other misc. user-definable parameters relating to stimulus/rig.
@@ -57,7 +59,7 @@ GaborData.cue_duration = get_arg('cue_duration', 0.2);  % Fixed duration, second
 GaborData.annulus = get_arg('annulus', 50); % Size, in pixels, of hole in center of stimulus
 GaborData.left_category = get_arg('left_category', +45);
 GaborData.right_category = get_arg('right_category', -45);
-GaborData.go_cue_time = get_arg('go_cue_time', 1.2);  % Time between final stimulus/mask frame and the targets appearing.
+GaborData.go_cue_time = get_arg('go_cue_time', 0.75);  % Time between final stimulus/mask frame and the targets appearing.
 % BPG Stimulus parameters
 GaborData.stim_size = get_arg('stim_size', 300);  % Size of the image along x-axis
 GaborData.stim_std_ori_deg = get_arg('stim_std_ori_deg', 70);  % standard-deviation of orientations present in image (analogous to pixel noise)
@@ -69,6 +71,7 @@ GaborData.stim_std_sp_freq_cpp = GaborData.stim_std_sp_freq_cycles / GaborData.s
 
 % Preallocate fields that will be populated with data by running the
 % experiment.
+GaborData.iid = true(1, total_trials);
 GaborData.seed = zeros(1, total_trials);
 GaborData.streak = zeros(1, total_trials);
 GaborData.reversal_counter = zeros(1, total_trials);

@@ -17,6 +17,7 @@ function GaborData = noise(GaborData)
 % GaborData.ratio(trial)
 % GaborData.noise(trial)
 % GaborData.step_size(trial)
+% GaborData.iid(trial)
 
 trial = GaborData.current_trial;
 
@@ -59,4 +60,8 @@ next_idx = max(next_idx, GaborData.stair_bounds(1));
 
 % Set noise level for this trial.
 GaborData.noise(trial) = GaborData.kappa_set(next_idx);
+
+%% Handle special case where frames are not iid, but 'shuffled'.
+GaborData.iid(trial) = ~(isfield(GaborData, 'iid_threshold') && ...
+    GaborData.noise(trial) < GaborData.iid_threshold);
 end

@@ -17,6 +17,7 @@ function GaborData = ratio(GaborData)
 % GaborData.ratio(trial)
 % GaborData.noise(trial)
 % GaborData.step_size(trial)
+% GaborData.iid(trial)
 
 trial = GaborData.current_trial;
 
@@ -57,5 +58,9 @@ GaborData.ratio(trial) = ...
     max(GaborData.ratio(trial), GaborData.stair_bounds(1));
 GaborData.ratio(trial) = ...
     min(GaborData.ratio(trial), GaborData.stair_bounds(2));
+
+%% In ratio condition, trials always have iid frames.
+
+GaborData.iid(trial) = true;
 
 end
