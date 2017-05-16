@@ -14,7 +14,8 @@ f = figure;
         rng(seed, 'twister');
         [im, imF] = bpg.genImages(1, sz, spFreqCycles / sz, spFreqStdCycles / sz, ...
             oriDEG, oriKappa, annulus);
-        ax1 = subplot(1, 2, 1);
+        emp_imF = fftshift(fft2(squeeze(im)));
+        ax1 = subplot(1, 3, 1);
         imagesc(squeeze(im));
         colormap gray;
         axis image;
@@ -24,7 +25,7 @@ f = figure;
         colorbar;
         title('Stimulus');
         
-        ax2 = subplot(1, 2, 2);
+        ax2 = subplot(1, 3, 2);
         imagesc(abs(squeeze(imF)));
         colormap gray;
         axis image;
@@ -33,6 +34,16 @@ f = figure;
         set(ax2, 'YDir', 'reverse');
         colorbar;
         title('Fourier Domain');
+        
+        ax2 = subplot(1, 3, 3);
+        imagesc(abs(squeeze(emp_imF)));
+        colormap gray;
+        axis image;
+        set(ax2, 'XTick', []);
+        set(ax2, 'YTick', []);
+        set(ax2, 'YDir', 'reverse');
+        colorbar;
+        title('Fourier Domain (with aperture)');
     end
 
 genAndPlot();
