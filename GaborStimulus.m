@@ -10,7 +10,7 @@ function [image_array, frame_categories, true_category] = GaborStimulus(GaborDat
 % Set RNG state to recreate stimulus for this trail.
 rng(GaborData.seed(trial), 'twister');
 
-if GaborData.iid(trial)
+if ~isfield(GaborData, 'iid') || GaborData.iid(trial)
     % Randomly set each frame to match (or mismatch) the correct choice
     % for this trail, using the current 'ratio' to decide.
     match_frames = rand(1, GaborData.number_of_images) <= GaborData.ratio(trial);
