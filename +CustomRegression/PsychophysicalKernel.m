@@ -1,5 +1,5 @@
 function [weights, postVal, errors, map_ridge, map_ar1, map_curvature] = ...
-    PsychophysicalKernel(data, responses, hpr_ridge, hpr_ar1, hpr_curvature, split_smoothness)
+    PsychophysicalKernel(data, responses, hpr_ridge, hpr_ar1, hpr_curvature, split_smoothness, data_mean)
 %PSYCHOPHYSICALKERNEL Regress PK
 %
 % [ weights, postVal, errors ] = PSYCHOPHYSICALKERNEL(data, responses) 
@@ -32,8 +32,18 @@ if nargin < 5, hpr_curvature = 0; end
 if nargin < 4, hpr_ar1 = 0; end
 if nargin < 3, hpr_ridge = 0; end
 
-% Equalize variance for each regressor.
-data = zscore(data);
+% Standardize each regressor.
+if nargin < 7
+    data = zscore(data);
+else
+    % We can do our own (more precise) z-scoring when we know the true
+    % mean.
+    data_centered = data - data_mean;
+    % Note we can /N rather than /(N-1) for an unbiased variance estimate
+    % here.
+    data_variance = sum(data_centered.^2, 1) / size(data, 1);
+    data = (data - data_mean) ./ sqrt(data_variance);
+end
 
 % Add a column of ones to data for a bias term.
 data = [data ones(size(data,1),1)];
