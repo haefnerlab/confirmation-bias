@@ -17,12 +17,13 @@ function GaborData = noise(GaborData)
 % GaborData.ratio(trial)
 % GaborData.noise(trial)
 % GaborData.step_size(trial)
+% GaborData.iid(trial)
 
 trial = GaborData.current_trial;
 
-%% Copy over params - contrast may be overwritten below
+%% Copy over params - noise may be overwritten below
+% Ratio set as a special case at the end.
 GaborData.contrast(trial) = GaborData.contrast(trial-1);
-GaborData.ratio(trial) = GaborData.ratio(trial-1);
 GaborData.noise(trial) = GaborData.noise(trial-1);
 
 %% Reduce step size after 10 reversals
@@ -44,13 +45,32 @@ end
 
 %% Apply staircase logic
 [~, cur_idx] = closest(GaborData.kappa_set, GaborData.noise(trial));
+next_idx = cur_idx;
 if GaborData.streak(trial) == 0
     % Got it wrong - make things easier
-    next_idx = min(cur_idx + GaborData.step_size(trial), length(GaborData.kappa_set));
-    GaborData.noise(trial) = GaborData.kappa_set(next_idx);
+    next_idx = cur_idx + GaborData.step_size(trial);
 elseif mod(GaborData.streak(trial), 2) == 0
     % Got 2 right in a row - make things harder
-    next_idx = max(cur_idx - GaborData.step_size(trial), 1);
-    GaborData.noise(trial) = GaborData.kappa_set(next_idx);
+    next_idx = cur_idx - GaborData.step_size(trial);
+end
+
+% Apply bounds.
+next_idx = min(next_idx, GaborData.stair_bounds(2));
+next_idx = max(next_idx, GaborData.stair_bounds(1));
+
+% Set noise level for this trial.
+GaborData.noise(trial) = GaborData.kappa_set(next_idx);
+
+%% Handle special 'test' condition
+% (using the 'test_ratio' and shuffling frames rather than iid).
+is_test_trial = isfield(GaborData, 'test_threshold') && ...
+    GaborData.noise(trial) < GaborData.test_threshold;
+
+if is_test_trial
+    GaborData.iid(trial) = false;
+    GaborData.ratio(trial) = GaborData.test_ratio;
+else
+    GaborData.iid(trial) = true;
+    GaborData.ratio(trial) = GaborData.ratio(1);
 end
 end

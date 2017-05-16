@@ -9,6 +9,7 @@ GaborData.ratio(point+1:end) = [];
 GaborData.noise(point+1:end) = [];
 GaborData.step_size (point+1:end) = [];
 
+GaborData.iid(point+1:end) = [];
 GaborData.seed(point+1:end) = [];
 GaborData.streak (point+1:end) = [];
 GaborData.reversal_counter (point+1:end) = [];

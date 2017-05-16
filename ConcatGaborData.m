@@ -10,6 +10,7 @@ GaborData.ratio = [Data1.ratio, Data2.ratio];
 GaborData.noise = [Data1.noise, Data2.noise];
 GaborData.step_size = [Data1.step_size, Data2.step_size];
 
+GaborData.iid = [Data1.iid, Data2.iid];
 GaborData.seed = [Data1.seed, Data2.seed];
 GaborData.streak = [Data1.streak, Data2.streak];
 GaborData.reversal_counter = [Data1.reversal_counter, Data2.reversal_counter ];
