@@ -39,10 +39,13 @@ end
 nS = length(subjectIDs);
 nP = length(plot_types);
 
+window_low = 0.5;
+window_high = 0.75;
+
     function [floor, thresh] = getThresholdWrapper(subjectId)
         s_idx = strcmpi(subjectId, subjectIDs);
         if isinf(thresholds(s_idx, 2))
-            [floor, thresh] = GaborAnalysis.getThresholdWindow(subjectId, phase, .6, .75, datadir);
+            [floor, thresh] = GaborAnalysis.getThresholdWindow(subjectId, phase, window_low, window_high, datadir);
         else
             thresh = thresholds(s_idx, 2);
             if phase == 1
@@ -163,6 +166,8 @@ for i=1:nS
                 frames = SubjectData.number_of_images;
                 boundedline(1:frames, M(1:frames)', [U(1:frames)-M(1:frames); M(1:frames)-L(1:frames)]');
                 title('temporal kernel');
+                set(gca, 'XAxisLocation', 'origin');
+                set(gca, 'XTick', [1 frames]);
         end
     end
 end

@@ -18,11 +18,14 @@ if ~exist(catdir, 'dir'), mkdir(catdir); end
 memodir = fullfile(datadir, '..', 'Precomputed');
 if ~exist(memodir, 'dir'), mkdir(memodir); end
 
+window_low = 0.5;
+window_high = 0.75;
+
     function [M, L, U, trials, frames, SubjectDataThresh] = getSubjectKernel(subjectId, phase)
         stair_var = get_stair_var(phase);
         SubjectData = LoadOrRun(@LoadAllSubjectData, ...
             {subjectId, phase, datadir}, fullfile(catdir, [subjectId '-' stair_var '.mat']));
-        [floor, thresh] = GaborAnalysis.getThresholdWindow(subjectId, phase, .6, .75, datadir);
+        [floor, thresh] = GaborAnalysis.getThresholdWindow(subjectId, phase, window_low, window_high, datadir);
         trials = SubjectData.(stair_var) <= thresh & SubjectData.(stair_var) >= floor;
         SubjectDataThresh = GaborThresholdTrials(SubjectData, phase, thresh, floor);
         memo_name = ['Boot-PK-' stair_var '-' subjectId '-' num2str(thresh) '-' num2str(floor) '.mat'];
