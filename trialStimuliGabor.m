@@ -13,8 +13,8 @@ broke_fixation = false;
 %% Make sure to have left/right patch to match the orientations used
 
 % Create images to be displayed as left or right options
-left_patch = squeeze(bpg.genImages(1, Data.stim_size, Data.stim_sp_freq_cpp, Data.stim_std_sp_freq_cpp, Data.left_category, Data.noise(1))) * 64.0 + 127.0;
-right_patch = squeeze(bpg.genImages(1, Data.stim_size, Data.stim_sp_freq_cpp, Data.stim_std_sp_freq_cpp, Data.right_category, Data.noise(1))) * 64.0 + 127.0;
+left_patch = squeeze(bpg.genImages(1, Data.stim_size, Data.stim_sp_freq_cpp, Data.stim_std_sp_freq_cpp, Data.left_category, 2)) * 64.0 + 127.0;
+right_patch = squeeze(bpg.genImages(1, Data.stim_size, Data.stim_sp_freq_cpp, Data.stim_std_sp_freq_cpp, Data.right_category, 2)) * 64.0 + 127.0;
 
 xc = settings.screenSize(3)/2; % Get the middle of the horizontal axis
 yc = settings.screenSize(4)/2; % Get the middle of the vertical axis

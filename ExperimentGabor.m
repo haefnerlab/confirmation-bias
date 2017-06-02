@@ -70,6 +70,14 @@ if exist(fileName, 'file')
     error('Data for %s already exists', fileName);
 end
 
+% Create 2 textures to display templates.
+
+right_template = squeeze(bpg.genImages(1, GaborData.stim_size, GaborData.stim_sp_freq_cpp, GaborData.stim_std_sp_freq_cpp, GaborData.right_category, 2)) * 64.0 + 127.0;
+left_template = squeeze(bpg.genImages(1, GaborData.stim_size, GaborData.stim_sp_freq_cpp, GaborData.stim_std_sp_freq_cpp, GaborData.left_category, 2)) * 64.0 + 127.0;
+right_tex = Screen('MakeTexture', wPtr, right_template);
+left_tex = Screen('MakeTexture', wPtr, left_template);
+[h, w] = size(right_template);
+
 %% Timing calculations and checks
 GaborData.blank_duration = settings.monitorFPS * GaborData.blank_frames;
 
@@ -77,16 +85,20 @@ GaborData.blank_duration = settings.monitorFPS * GaborData.blank_frames;
 EyeTracker.AutoCalibrate(tracker_info);
 
 % Instruction Screen
+textbox = ptbCenteredRect([xc yc], settings.screenSize(3:4)/3);
 Screen('TextSize', wPtr, 30); % Set text size to 30
 Screen('FillRect', wPtr, 127);
 DrawFormattedText(wPtr, ...
     ['You will see a series of images flashing very quickly at the center of the screen. ' ...
-    'You are required to keep your eyes on the white cross. Then you will be shown two images. ' ...
+    'You are required to keep your eyes on the white cross. Then you will be shown two images (examples below). ' ...
     'You will have to decide which image is most consistent with the preceding frames. ' ...
     sprintf('Select the image positioned to the left or right by pressing %s or %s respectively. ', settings.keyLeftName, settings.keyRightName) ...
     'Ask the researcher if you need further clarification. ' ...
     sprintf('Press %s to begin.', settings.keyGoName)], ...
-    'centerblock', 'center', white, 100, 0, 0, 1.5, 0, ptbCenteredRect([xc yc], settings.screenSize(3:4)/2));
+    'centerblock', 'center', white, 100, 0, 0, 1.5, 0, textbox);
+templatey = (textbox(4) + settings.screenSize(4)) / 2;
+Screen('DrawTexture', wPtr, left_tex, [], ptbCenteredRect([xc-w templatey], [w h]));
+Screen('DrawTexture', wPtr, right_tex, [], ptbCenteredRect([xc+w templatey], [w h]));
 Screen('Flip', wPtr); % Function to flip to the next screen image
 if ptbWaitKey([goKey exitKey]) == exitKey
     Screen('CloseAll');
@@ -124,8 +136,11 @@ try
                 DrawFormattedText(wPtr, ...
                     ['You have completed a block. ' ...
                     'You may take a break if you want! ' ...
-                    sprintf('Press %s whenever you are ready again.', settings.keyGoName)], ...
-                    'centerblock', 'center', white, 60, 0, 0, 1.5, 0, ptbCenteredRect([xc yc], settings.screenSize(3:4)/2));
+                    sprintf('Press %s whenever you are ready again.', settings.keyGoName) ...
+                    '\nThe images to be discriminated are displayed again below.'], ...
+                    'centerblock', 'center', white, 60, 0, 0, 1.5, 0, textbox);
+                Screen('DrawTexture', wPtr, left_tex, [], ptbCenteredRect([xc-w templatey], [w h]));
+                Screen('DrawTexture', wPtr, right_tex, [], ptbCenteredRect([xc+w templatey], [w h]));
                 Screen('Flip', wPtr);
                 
                 if ptbWaitKey([goKey exitKey]) == exitKey
