@@ -1,5 +1,13 @@
 function GaborData = newGaborData(varargin)
 
+if ~isempty(varargin) && isstruct(varargin{1})
+    % Get first input as a 'template' struct.
+    template = varargin{1};
+    varargin = varargin(2:end);
+else
+    template = struct();
+end
+
     function value = get_arg(name, default)
         % Helper function to get named arguments with a default
         idx = strcmpi(name, varargin);
@@ -7,6 +15,9 @@ function GaborData = newGaborData(varargin)
             val_idx = find(idx)+1;
             value = varargin{val_idx};
             varargin(find(idx):val_idx) = [];
+        elseif isfield(template, name)
+            expected_size = length(default);
+            value = template.(name)(1:expected_size);
         else
             value = default;
         end
