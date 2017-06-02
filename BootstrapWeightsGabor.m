@@ -1,4 +1,4 @@
-function [M, L, U] = BootstrapWeightsGabor(Test_Data, bootstrapsteps)
+function [M, L, U, weight_matrix] = BootstrapWeightsGabor(Test_Data, bootstrapsteps)
 
 % TODO - different kernel widths each trial? allow 'ideal' arg to flag
 % whether to use ideal_frame_signals?

@@ -27,8 +27,18 @@ SubjectData = LoadOrRun(@LoadAllSubjectData, ...
 [fit_result, ~, ~, ~] = LoadOrRun(@GaborPsychometric, ...
     {SubjectData, phase}, ...
     fullfile(memodir, ['PM-' stair_var '-' subjectID '.mat']));
-floor = getThreshold(fit_result, perf_lo, false);
-thresh = getThreshold(fit_result, perf_hi, false);
+try
+    floor = getThreshold(fit_result, perf_lo, false);
+catch
+    warning('Subject performance never went below %.2f - using min for floor', perf_lo);
+    floor = min(SubjectData.(stair_var));
+end
+try
+    thresh = getThreshold(fit_result, perf_hi, false);
+catch
+    warning('Subject performance never went below %.2f - using max for threshold', perf_hi);
+    thresh = max(SubjectData.(stair_var));
+end
 
 % Adjust from '#clicks' to threshold
 if phase == 1
