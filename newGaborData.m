@@ -16,8 +16,17 @@ end
             value = varargin{val_idx};
             varargin(find(idx):val_idx) = [];
         elseif isfield(template, name)
-            expected_size = length(default);
-            value = template.(name)(1:expected_size);
+            if any(strcmpi(name, {'stair_bounds', 'step_size', 'min_step_size'})) && ~isequal(GaborData.stair_fn, template.stair_fn)
+                warning('Not copying field %s from template since template''s stair_fn is %s', name, func2str(template.stair_fn));
+                value = default;
+                return;
+            end
+            if isnumeric(template.(name))
+                expected_size = length(default);
+                value = template.(name)(1:expected_size);
+            else
+                value = template.(name);
+            end
         else
             value = default;
         end
