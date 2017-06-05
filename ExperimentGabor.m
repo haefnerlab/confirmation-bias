@@ -85,7 +85,7 @@ GaborData.blank_duration = settings.monitorFPS * GaborData.blank_frames;
 EyeTracker.AutoCalibrate(tracker_info);
 
 % Instruction Screen
-textbox = ptbCenteredRect([xc yc], settings.screenSize(3:4)/3);
+textbox = ptbCenteredRect([xc yc/2], settings.screenSize(3:4)/3);
 Screen('TextSize', wPtr, 30); % Set text size to 30
 Screen('FillRect', wPtr, 127);
 DrawFormattedText(wPtr, ...
