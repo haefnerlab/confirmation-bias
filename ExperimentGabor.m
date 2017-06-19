@@ -188,19 +188,14 @@ try
         
         %% Run this trial
         
-        % Choose and record random seed for this trial.
-        GaborData.seed(trial) = randseed;
-        
         % Generate stimulus for this trial.
-        [image_array, frame_categories, true_category] = ...
-            GaborStimulus(GaborData, trial);
+        [image_array, frame_categories] = GaborStimulus(GaborData, trial);
         GaborData.frame_categories(trial, :) = frame_categories;
-        GaborData.correct_answer(trial) = true_category;
         
         % Record answer of the ideal observer.
         GaborData.ideal_frame_signals(trial, :) = ...
-            bpg.getSignal(image_array - 127, GaborData.left_category, max(GaborData.noise(trial), GaborData.kappa_set(2))) - ...
-            bpg.getSignal(image_array - 127, GaborData.right_category, max(GaborData.noise(trial), GaborData.kappa_set(2)));
+            bpg.getSignal(image_array - 127, GaborData.left_category, max(GaborData.noise(trial), .04)) - ...
+            bpg.getSignal(image_array - 127, GaborData.right_category, max(GaborData.noise(trial), .04));
         GaborData.ideal_answer(trial) = 1 * (sum(GaborData.ideal_frame_signals(trial, :)) > 0);
         
         if isempty(GaborData.model_observer)

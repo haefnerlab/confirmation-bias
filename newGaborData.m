@@ -90,16 +90,20 @@ GaborData.stim_std_sp_freq_cpp = get_arg('stim_std_sp_freq_cpp', .0597);  % Std 
 % Preallocate fields that will be populated with data by running the
 % experiment.
 GaborData.iid = true(1, total_trials);
-GaborData.seed = zeros(1, total_trials);
 GaborData.streak = zeros(1, total_trials);
 GaborData.reversal_counter = zeros(1, total_trials);
-GaborData.correct_answer = zeros(1, total_trials);
 GaborData.ideal_answer = zeros(1, total_trials);
 GaborData.reaction_time = zeros(1, total_trials);
 GaborData.choice = zeros(1, total_trials);
 GaborData.accuracy = zeros(1, total_trials);
 GaborData.frame_categories = zeros(total_trials, GaborData.number_of_images);
 GaborData.ideal_frame_signals = zeros(total_trials, GaborData.number_of_images);
+
+% Note that 'seed' and 'correct_answer' must be preset due to esoteric
+% properties of random number generators. GaborStimulus will read out these
+% preset values.
+GaborData.seed = randi(1000000000, 1, total_trials);
+GaborData.correct_answer = rand(1, total_trials) < .5;
 
 GaborData.current_trial = 0;
 
