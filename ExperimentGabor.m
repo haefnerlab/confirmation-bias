@@ -158,6 +158,9 @@ try
             GaborData.ratio(trial) = GaborData.ratio(1);
             GaborData.noise(trial) = GaborData.noise(1);
             GaborData.step_size(trial) = GaborData.step_size(1);
+            if isfield(GaborData, 'iid')
+                GaborData.iid(trial) = GaborData.iid(1);
+            end
             block_trial = 1;
         else
             seen_block_notification = false;
