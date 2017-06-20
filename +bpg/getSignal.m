@@ -22,6 +22,7 @@ x = linspace(-1, 1, sz);
 [xx, yy] = meshgrid(x, x);
 tt = -atan2(yy, xx);
 fouriFilter = bpg.vmpdf(2 * tt, 2 * deg2rad(oriDEG), oriKappa);
+fouriFilter = fouriFilter / sum(fouriFilter(:));
 
 %% Include spatial frequency filter if specified
 
