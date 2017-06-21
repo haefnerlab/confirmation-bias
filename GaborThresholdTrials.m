@@ -35,6 +35,8 @@ Data.accuracy = Data.accuracy(test_trials);
 Data.frame_categories = Data.frame_categories(test_trials, :);
 Data.ideal_frame_signals = Data.ideal_frame_signals(test_trials, :);
 
-Data.eye_tracker_points = Data.eye_tracker_points(test_trials);
+if isempty(Data.model_observer)
+    Data.eye_tracker_points = Data.eye_tracker_points(test_trials);
+end
 
 end

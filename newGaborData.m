@@ -148,7 +148,7 @@ if GaborData.ratio(1) > 1 || GaborData.ratio(1) < 0
     error('Ratio should be between 0.5 and 1');
 end
 
-if ~isempty(GaborData.model_observer) && ~any(strcmpi(GaborData.model_observer), {'ideal'})
+if ~isempty(GaborData.model_observer) && ~any(strcmpi(GaborData.model_observer, {'ideal', 'oracle'}))
     warning('%s is not a known model observer', GaborData.model_observer);
 end
 

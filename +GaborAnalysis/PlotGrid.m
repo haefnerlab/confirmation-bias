@@ -171,32 +171,4 @@ for i=1:nS
         end
     end
 end
-
-if length(subjectIDs) > 1 && any(strcmpi('pk', plot_types))
-    combined = figure();
-    all_data = [];
-    all_ids = '';
-    for i=1:nS
-        s = subjectIDs{i};
-        SubjectData = LoadOrRun(@LoadAllSubjectData, ...
-            {s, phase, datadir}, fullfile(catdir, [s '-' stair_var '.mat']));
-        [floor, thresh] = getThresholdWrapper(s);
-        all_ids = strcat(all_ids, ['-' s '-' num2str(thresh) '-' num2str(floor)]);
-        this_subject = GaborThresholdTrials(SubjectData, phase, thresh, floor);
-        if isempty(all_data)
-            all_data = this_subject;
-        else
-            all_data = ConcatGaborData(all_data, this_subject);
-        end
-    end
-    [M, L, U] = LoadOrRun(@BootstrapWeightsGabor, ...
-        {all_data, 500}, ...
-        fullfile(memodir, ['combo-PK-' stair_var all_ids '.mat']));
-    frames = SubjectData.number_of_images;
-    boundedline(1:frames, M(1:frames)', [U(1:frames)-M(1:frames); M(1:frames)-L(1:frames)]');
-    title('combined temporal kernel');
-    
-elseif nargout > 1
-    error('Need ''pk'' plot type and at least 2 subjects to make a combined plot');
-end
 end
