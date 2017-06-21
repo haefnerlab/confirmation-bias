@@ -12,11 +12,9 @@ function [im, imF] = genImages(frames, width, spFreqCPP, spFreqStdCPP, oriDEG, o
 noise = randn(frames, width, width);
 noiseF = framefun(@(f) fftshift(fft2(f)), noise);
 
-x = linspace(-1, 1, width);
-[xx, yy] = meshgrid(x, x);
-% Get polar coordinates: rr is radius, tt is angle.
-rr = sqrt(xx.^2 + yy.^2);
-tt = -atan2(yy, xx);
+[~, ~, rho, theta] = freq_coords(width);
+% Convert rho to range [-1, 1]
+rho = 2 * rho / width;
 
 if length(oriDEG) == 1, oriDEG = oriDEG * ones(1, frames); end
 
@@ -24,23 +22,24 @@ im = zeros(frames, width, width);
 imF = zeros(frames, width, width);
 
 %% Create spatial frequency filter
-spFreqFilter = pdf('rician', rr / 2, spFreqCPP, spFreqStdCPP);
+spFreqFilter = pdf('rician', rho / 2, spFreqCPP, spFreqStdCPP);
 
 %% Create gaussian aperture
-aperture = exp(-4 * rr.^2);
+aperture = exp(-4 * rho.^2);
 
 if nargin >= 7 && annulusPix > 0
     % Cut out annulus hole.
-    aperture = aperture .* (1 + erf(10 * (rr - annulusPix / width)));
+    aperture = aperture .* (1 + erf(10 * (rho - annulusPix / width)));
 end
 
 %% Generate each frame.
 
 for f=1:frames
-    % Create orientation filters for each frame. Note that 'tt' is doubled
-    % to create two symmetric filters in the Fourier domain (bow-tie rather
-    % than cone shape). 'oriDEG' must also be doubled to compensate.
-    oriFilter = bpg.vmpdf(2 * tt, 2 * deg2rad(oriDEG(f)), oriKappa);
+    % Create orientation filters for each frame. Note that 'theta' is
+    % doubled to create two symmetric filters in the Fourier domain
+    % (bow-tie rather than cone shape). 'oriDEG' must also be doubled to
+    % compensate.
+    oriFilter = bpg.vmpdf(2 * theta, 2 * deg2rad(oriDEG(f)), oriKappa);
     oriFilter(isnan(oriFilter)) = 0;
     
     % Get full, normalized foureir-domain filter.

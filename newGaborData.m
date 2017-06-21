@@ -83,7 +83,7 @@ GaborData.left_category = get_arg('left_category', +45);
 GaborData.right_category = get_arg('right_category', -45);
 GaborData.go_cue_time = get_arg('go_cue_time', 0.75);  % Time between final stimulus/mask frame and the targets appearing.
 % BPG Stimulus parameters
-GaborData.stim_size = get_arg('stim_size', 121);  % Width of the stimulus in pixels.
+GaborData.stim_size = get_arg('stim_size', 120);  % Width of the stimulus in pixels.
 GaborData.stim_sp_freq_cpp = get_arg('stim_sp_freq_cpp', 0.1194);  % Mean spatial frequency of images in cycles per pixel.
 GaborData.stim_std_sp_freq_cpp = get_arg('stim_std_sp_freq_cpp', .0597);  % Std deviation of spatial frequency in cycles per pixel.
 
@@ -114,10 +114,6 @@ if ~isempty(varargin)
 end
 
 % Sanity checks for common "gotchas"
-if mod(GaborData.stim_size, 2) == 0
-    error('bpg stimuli require an odd value for stim_size');
-end
-
 if ~isempty(GaborData.model_observer) && ~isempty(GaborData.stair_fn)
     warning('Model observer with a staircase?');
 end
