@@ -18,18 +18,20 @@ end
 
 %% Construct orientation-band filter for the fourier domain.
 
-x = linspace(-1, 1, sz);
-[xx, yy] = meshgrid(x, x);
-tt = -atan2(yy, xx);
-fouriFilter = bpg.vmpdf(2 * tt, 2 * deg2rad(oriDEG), oriKappa);
-fouriFilter = fouriFilter / sum(fouriFilter(:));
+[~, ~, rho, theta] = freq_coords(sz);
+fouriFilter = bpg.vmpdf(2 * theta, 2 * deg2rad(oriDEG), oriKappa);
+fouriFilter(isnan(fouriFilter)) = 0;
 
 %% Include spatial frequency filter if specified
 
 if nargin >= 5
-    spFreqFilter = pdf('rician', rr / 2, spFreqCPP, spFreqStdCPP);
+    spFreqFilter = pdf('rician', rho / sz, spFreqCPP, spFreqStdCPP);
     fouriFilter = fouriFilter .* spFreqFilter;
 end
+
+%% Normalize the filter
+
+fouriFilter = fouriFilter / sum(fouriFilter(:));
 
 %% Get signal of each frame.
 sig = zeros(frames, 1);

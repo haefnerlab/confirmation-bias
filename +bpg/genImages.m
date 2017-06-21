@@ -41,6 +41,7 @@ for f=1:frames
     % to create two symmetric filters in the Fourier domain (bow-tie rather
     % than cone shape). 'oriDEG' must also be doubled to compensate.
     oriFilter = bpg.vmpdf(2 * tt, 2 * deg2rad(oriDEG(f)), oriKappa);
+    oriFilter(isnan(oriFilter)) = 0;
     
     % Get full, normalized foureir-domain filter.
     filterF = spFreqFilter .* oriFilter;
