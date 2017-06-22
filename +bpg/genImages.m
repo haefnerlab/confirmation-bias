@@ -13,8 +13,10 @@ noise = randn(frames, width, width);
 noiseF = framefun(@(f) fftshift(fft2(f)), noise);
 
 [~, ~, rho, theta] = freq_coords(width);
-% Convert rho to range [-1, 1]
-rho = 2 * rho / width;
+
+% Create separate [-1, 1] range meshgrid for pixel-space filters.
+[px, py] = meshgrid(linspace(-1, 1, width));
+pr = sqrt(px.^2 + py.^2);
 
 if length(oriDEG) == 1, oriDEG = oriDEG * ones(1, frames); end
 
@@ -22,14 +24,14 @@ im = zeros(frames, width, width);
 imF = zeros(frames, width, width);
 
 %% Create spatial frequency filter
-spFreqFilter = pdf('rician', rho / 2, spFreqCPP, spFreqStdCPP);
+spFreqFilter = pdf('rician', rho / width, spFreqCPP, spFreqStdCPP);
 
 %% Create gaussian aperture
-aperture = exp(-4 * rho.^2);
+aperture = exp(-4 * pr.^2);
 
 if nargin >= 7 && annulusPix > 0
     % Cut out annulus hole.
-    aperture = aperture .* (1 + erf(10 * (rho - annulusPix / width)));
+    aperture = aperture .* (1 + erf(10 * (pr - annulusPix / width)));
 end
 
 %% Generate each frame.
