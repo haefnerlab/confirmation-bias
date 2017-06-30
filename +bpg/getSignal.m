@@ -12,7 +12,7 @@ function sig = getSignal(bpg_im, oriDEG, oriKappa, spFreqCPP, spFreqStdCPP)
 % Returns a [frames x 1] vector of signal levels.
 
 if ismatrix(bpg_im)
-    bpg_im = resize(bpg_im, [1 size(bpg_im)]);
+    bpg_im = reshape(bpg_im, [1 size(bpg_im)]);
 end
 [frames, sz, ~] = size(bpg_im);
 
