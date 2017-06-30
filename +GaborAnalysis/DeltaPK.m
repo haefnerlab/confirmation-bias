@@ -44,10 +44,12 @@ CombinedIdentifier = strjoin(subjectIDs, '-');
 
 for i=1:length(subjectIDs)
     perSubjectFigs(i) = figure;
+    hold on;
     subjectId = subjectIDs{i};
     if length(phases) == 1
         [M, L, U, trials, frames, variance] = getSubjectKernel(subjectId, phases);
         boundedline(1:frames, M(1:frames)', [U(1:frames)-M(1:frames); M(1:frames)-L(1:frames)]');
+        errorbar(frames+1, M(end), M(end)-L(end), U(end)-M(end), 'LineWidth', 2, 'Color', 'r');
         title([strrep(get_stair_var(phases), '_', ' ') 'temporal kernel (' num2str(sum(trials)) '/' num2str(length(trials)) ')']);
         xlim([-inf, inf]);
         set(gca, 'XTick', []);
@@ -55,6 +57,7 @@ for i=1:length(subjectIDs)
         xlabel('Time');
         ylabel('Psychophysical Kernel');
         set(gca, 'XAxisLocation', 'origin');
+        axis tight;
         if i == 1
             CombinedKernelsByPhase{1} = M ./ variance;
             CombinedNormalizerByPhase{1} = 1 ./ variance;
@@ -120,6 +123,7 @@ end
 combinedfig = -1;
 if length(subjectIDs) > 1
     combinedfig = figure;
+    hold on;
     
     if length(phases) == 1
         % Normalization

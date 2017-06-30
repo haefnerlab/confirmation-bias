@@ -165,9 +165,11 @@ for i=1:nS
                     fullfile(memodir, memo_name));
                 frames = SubjectData.number_of_images;
                 boundedline(1:frames, M(1:frames)', [U(1:frames)-M(1:frames); M(1:frames)-L(1:frames)]');
-                title('temporal kernel');
+                errorbar(frames+1, M(end), M(end)-L(end), U(end)-M(end), 'LineWidth', 2, 'Color', 'r');
+                title(['temporal kernel (' num2str(100*mean(SubjectDataThresh.choice == SubjectDataThresh.ideal_answer)) '% / ' num2str(mean(M(1:end-1))) ')']);
                 set(gca, 'XAxisLocation', 'origin');
                 set(gca, 'XTick', [1 frames]);
+                axis tight;
         end
     end
 end
