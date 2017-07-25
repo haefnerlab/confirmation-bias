@@ -232,6 +232,15 @@ try
             GaborData.choice(trial) = GaborData.ideal_answer(trial);
         elseif strcmpi(GaborData.model_observer, 'oracle')
             GaborData.choice(trial) = GaborData.correct_answer(trial);
+        elseif strcmpi(GaborData.model_observer, 'bernoulli')
+            bernoulli_p = sigmoid(...
+                abs(sum(GaborData.ideal_frame_signals(trial, :))) / GaborData.sigmoid_slope);
+            % behave like 'ideal' with probability bernoulli_p 
+            if rand < bernoulli_p
+                GaborData.choice(trial) = GaborData.ideal_answer(trial);
+            else
+                GaborData.choice(trial) = -GaborData.ideal_answer(trial);
+            end
         end
         
         %% Accuracy & Feedback

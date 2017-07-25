@@ -148,8 +148,12 @@ if GaborData.ratio(1) > 1 || GaborData.ratio(1) < 0
     error('Ratio should be between 0.5 and 1');
 end
 
-if ~isempty(GaborData.model_observer) && ~any(strcmpi(GaborData.model_observer, {'ideal', 'oracle'}))
+if ~isempty(GaborData.model_observer) && ~any(strcmpi(GaborData.model_observer, {'ideal', 'oracle', 'bernoulli'}))
     warning('%s is not a known model observer', GaborData.model_observer);
+end
+
+if streq(GaborData.model_observer, 'bernoulli')
+    GaborData.sigmoid_slope = get_arg('sigmoid_slope', 3);
 end
 
 disp(GaborData);
