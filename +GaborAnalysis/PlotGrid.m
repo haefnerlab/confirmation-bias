@@ -170,6 +170,68 @@ for i=1:nS
                 set(gca, 'XAxisLocation', 'origin');
                 set(gca, 'XTick', [1 frames]);
                 axis tight;
+            case 'streaks'
+                correct_streaks = [];
+                incorrect_streaks = [];
+                mode = 0;
+                current_streak = 0;
+                for t=1:SubjectData.current_trial
+                    if SubjectData.accuracy(t)
+                        if mode == +1
+                            current_streak = current_streak + 1;
+                        elseif mode == -1
+                            incorrect_streaks(end+1) = current_streak;
+                            current_streak = 1;
+                        end
+                        mode = +1;
+                    else
+                        if mode == -1
+                            current_streak = current_streak + 1;
+                        elseif mode == +1
+                            correct_streaks(end+1) = current_streak;
+                            current_streak = 1;
+                        end
+                        mode = -1;
+                    end
+                end
+                mu = mean(correct_streaks);
+                xs = linspace(1, max(correct_streaks));
+                correct_exp_pdf = exppdf(xs, mu);
+                [ux, uc] = unique_counts(correct_streaks);
+                bar(ux, uc/sum(uc), .5, 'k');
+                
+                mu = mean(incorrect_streaks);
+                incorrect_exp_pdf = exppdf(xs, mu);
+                [ux, uc] = unique_counts(incorrect_streaks);
+                bar(ux+.5, uc/sum(uc), .5, 'r');
+                
+                plot(xs, correct_exp_pdf, '--k');
+                plot(xs, incorrect_exp_pdf, '--r');
+                
+                legend('correct', 'incorrect');
+                xlabel('# consecutive');
+                title('histograms of streakiness');
+            case 'ideal-bias'
+                unq_signals = unique(SubjectData.(stair_var));
+                bias = zeros(3, length(unq_signals));
+                for ui=1:length(unq_signals)
+                    trials_at = SubjectData.(stair_var) == unq_signals(ui);
+                    ntrials = sum(trials_at);
+                    left = sum(SubjectData.correct_answer(trials_at));
+                    [bias(1, ui), bias(2:3, ui)] = binofit(left, ntrials);
+                end
+                bar(1:length(unq_signals), bias(1, :));
+                errorbar(1:length(unq_signals), bias(1, :), bias(1, :) - bias(2, :), bias(3, :) - bias(1, :), '.');
+            case 'ideal-signals'
+                unq_signals = unique(SubjectData.(stair_var));
+                for ui=1:length(unq_signals)
+                    trials_at = SubjectData.(stair_var) == unq_signals(ui);
+                    frame_signals = SubjectData.ideal_frame_signals(trials_at, :);
+                    ksdensity(frame_signals(:));
+                end
+                xlabel('Per Frame Signal');
+                legend(arrayfun(@(s) [stair_var '=' num2str(s)], unq_signals, 'UniformOutput', false));
+                axis tight;
         end
     end
 end
