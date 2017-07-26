@@ -156,17 +156,31 @@ for i=1:nS
                     plot([thresh thresh], ys, '--r');
                 end
                 title('Psychometric curve');
-            case 'pk'
+            case {'pk', 'pk-lr'}
                 SubjectDataThresh = GaborThresholdTrials(...
                     SubjectData, phase, thresh, floor);
-                memo_name = ['Boot-SpPK-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
+                memo_name = ['Boot-PK-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
                 [M, L, U, ~] = LoadOrRun(@BootstrapWeightsGabor, ...
-                    {s, SubjectDataThresh, 500}, ...
+                    {SubjectDataThresh, 500}, ...
                     fullfile(memodir, memo_name));
                 frames = SubjectData.number_of_images;
                 boundedline(1:frames, M(1:frames)', [U(1:frames)-M(1:frames); M(1:frames)-L(1:frames)]');
                 errorbar(frames+1, M(end), M(end)-L(end), U(end)-M(end), 'LineWidth', 2, 'Color', 'r');
-                title(['temporal kernel (' num2str(100*mean(SubjectDataThresh.choice == SubjectDataThresh.ideal_answer)) '% / ' num2str(mean(M(1:end-1))) ')']);
+                title(['temporal kernel (LR)']);
+                set(gca, 'XAxisLocation', 'origin');
+                set(gca, 'XTick', [1 frames]);
+                axis tight;
+            case {'cta', 'pk-cta'}
+                SubjectDataThresh = GaborThresholdTrials(...
+                    SubjectData, phase, thresh, floor);
+                memo_name = ['Boot-CTA-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
+                [M, L, U, ~] = LoadOrRun(@BootstrapCTA, ...
+                    {SubjectDataThresh, 500}, ...
+                    fullfile(memodir, memo_name));
+                frames = SubjectData.number_of_images;
+                boundedline(1:frames, M(1:frames)', [U(1:frames)-M(1:frames); M(1:frames)-L(1:frames)]');
+                errorbar(frames+1, M(end), M(end)-L(end), U(end)-M(end), 'LineWidth', 2, 'Color', 'r');
+                title(['temporal kernel (CTA)']);
                 set(gca, 'XAxisLocation', 'origin');
                 set(gca, 'XTick', [1 frames]);
                 axis tight;
@@ -233,6 +247,7 @@ for i=1:nS
                 legend(arrayfun(@(s) [stair_var '=' num2str(s)], unq_signals, 'UniformOutput', false));
                 axis tight;
         end
+        drawnow;
     end
 end
 end

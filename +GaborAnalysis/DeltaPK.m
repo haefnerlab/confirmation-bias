@@ -1,4 +1,4 @@
-function [perSubjectFigs, combinedfig] = DeltaPK(subjectIDs, phases, diffIdeal, datadir)
+function [perSubjectFigs, combinedfig] = DeltaPK(subjectIDs, phases, diffIdeal, method, datadir)
 %GABORANALYSIS.DELTAPK creates one figure per subject and a combined figure
 %(if 2 or more subjects) showing temporal psychophysical kernel analysis.
 %
@@ -11,7 +11,8 @@ function [perSubjectFigs, combinedfig] = DeltaPK(subjectIDs, phases, diffIdeal, 
 % - datadir: (optional) override the default place to look for data files.
 
 if nargin < 3, diffIdeal = false; end
-if nargin < 4, datadir = fullfile(pwd, '..', 'RawData'); end
+if nargin < 4, method = 'lr'; end
+if nargin < 5, datadir = fullfile(pwd, '..', 'RawData'); end
 
 catdir = fullfile(datadir, '..', 'ConcatData');
 if ~exist(catdir, 'dir'), mkdir(catdir); end
@@ -29,19 +30,38 @@ window_high = 0.75;
         [floor, thresh] = GaborAnalysis.getThresholdWindow(subjectId, phase, window_low, window_high, datadir);
         trials = SubjectData.(stair_var) <= thresh & SubjectData.(stair_var) >= floor;
         SubjectDataThresh = GaborThresholdTrials(SubjectData, phase, thresh, floor);
-        memo_name = ['Boot-PK-' stair_var '-' subjectId '-' num2str(thresh) '-' num2str(floor) '.mat'];
-        [M, L, U, all_weights] = LoadOrRun(@BootstrapWeightsGabor, ...
-            {subjectId, SubjectDataThresh, 500}, ...
-            fullfile(memodir, memo_name));
-        if diffIdeal
-            [ideal_kernel, ~, ~, ~, ~, ~] = LoadOrRun(@CustomRegression.PsychophysicalKernel, ...
-                {SubjectDataThresh.ideal_frame_signals, SubjectDataThresh.choice == +1, 1, 0, 10, false, zeros(1, SubjectDataThresh.number_of_images)}, ...
-                fullfile(memodir, strrep(memo_name, 'Boot-', 'Ideal-')));
-            all_weights = all_weights - repmat(ideal_kernel(:)', 500, 1);
-            [M, L, U] = meanci(all_weights, .68);
+        switch lower(method)
+            case {'regress', 'logistic', 'lr'}
+                memo_name = ['Boot-PK-' stair_var '-' subjectId '-' num2str(thresh) '-' num2str(floor) '.mat'];
+                [M, L, U, all_weights] = LoadOrRun(@BootstrapWeightsGabor, ...
+                    {SubjectDataThresh, 500}, ...
+                    fullfile(memodir, memo_name));
+                if diffIdeal
+                    [ideal_kernel, ~, ~, ~, ~, ~] = LoadOrRun(@CustomRegression.PsychophysicalKernel, ...
+                        {SubjectDataThresh.ideal_frame_signals, SubjectDataThresh.choice == +1, 1, 0, 10, false, zeros(1, SubjectDataThresh.number_of_images)}, ...
+                        fullfile(memodir, strrep(memo_name, 'Boot-', 'Ideal-')));
+                    all_weights = all_weights - repmat(ideal_kernel(:)', 500, 1);
+                    [M, L, U] = meanci(all_weights, .68);
+                end
+                frames = SubjectData.number_of_images;
+                variance = var(all_weights);
+            case {'cta'}
+                memo_name = ['Boot-CTA-' stair_var '-' subjectId '-' num2str(thresh) '-' num2str(floor) '.mat'];
+                [M, L, U, all_weights] = LoadOrRun(@BootstrapCTA, ...
+                    {SubjectDataThresh, 500}, ...
+                    fullfile(memodir, memo_name));
+                if diffIdeal
+                    frame_signals = ComputeFrameSignals(SubjectDataThresh, 0);
+                    ideal_kernel = mean(frame_signals(SubjectDataThresh.choice == +1, :)) - ...
+                        mean(frame_signals(SubjectDataThresh.choice ~= +1, :));
+                    all_weights = all_weights - repmat(ideal_kernel(:)', 500, 1);
+                    [M, L, U] = meanci(all_weights, .68);
+                end
+                frames = SubjectData.number_of_images;
+                variance = var(all_weights);
+            otherwise
+                error('Unknown PK method: %s', method);
         end
-        frames = SubjectData.number_of_images;
-        variance = var(all_weights);
     end
 
 % CombinedKernelsByPhase{i} contains a the combined kernel mean (weighted
