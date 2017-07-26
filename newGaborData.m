@@ -153,7 +153,7 @@ if ~isempty(GaborData.model_observer) && ~any(strcmpi(GaborData.model_observer, 
 end
 
 if streq(GaborData.model_observer, 'bernoulli')
-    GaborData.sigmoid_slope = get_arg('sigmoid_slope', 3);
+    GaborData.sigmoid_slope = get_arg('sigmoid_slope', 20);
 end
 
 disp(GaborData);
