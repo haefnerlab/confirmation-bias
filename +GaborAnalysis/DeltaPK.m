@@ -1,4 +1,4 @@
-function [perSubjectFigs, combinedfig] = DeltaPK(subjectIDs, phases, datadir)
+function [perSubjectFigs, combinedfig] = DeltaPK(subjectIDs, phases, diffIdeal, datadir)
 %GABORANALYSIS.DELTAPK creates one figure per subject and a combined figure
 %(if 2 or more subjects) showing temporal psychophysical kernel analysis.
 %
@@ -10,6 +10,7 @@ function [perSubjectFigs, combinedfig] = DeltaPK(subjectIDs, phases, datadir)
 %           the difference phases(1)-phases(2) is plotted.
 % - datadir: (optional) override the default place to look for data files.
 
+if nargin < 3, diffIdeal = false; end
 if nargin < 4, datadir = fullfile(pwd, '..', 'RawData'); end
 
 catdir = fullfile(datadir, '..', 'ConcatData');
@@ -32,6 +33,13 @@ window_high = 0.75;
         [M, L, U, all_weights] = LoadOrRun(@BootstrapWeightsGabor, ...
             {subjectId, SubjectDataThresh, 500}, ...
             fullfile(memodir, memo_name));
+        if diffIdeal
+            [ideal_kernel, ~, ~, ~, ~, ~] = LoadOrRun(@CustomRegression.PsychophysicalKernel, ...
+                {SubjectDataThresh.ideal_frame_signals, SubjectDataThresh.choice == +1, 1, 0, 10, false, zeros(1, SubjectDataThresh.number_of_images)}, ...
+                fullfile(memodir, strrep(memo_name, 'Boot-', 'Ideal-')));
+            all_weights = all_weights - repmat(ideal_kernel(:)', 500, 1);
+            [M, L, U] = meanci(all_weights, .68);
+        end
         frames = SubjectData.number_of_images;
         variance = var(all_weights);
     end
