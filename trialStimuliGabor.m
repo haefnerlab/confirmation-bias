@@ -100,7 +100,7 @@ Screen('Flip', wPtr, endTime + Data.go_cue_time);
 
 Screen('DrawTexture', wPtr, show_left_patch, [], ptbCenteredRect([xc-w yc], [w h]));   % xc, yc indicates the coordinates of the middle of the screen
 Screen('DrawTexture', wPtr, show_right_patch, [], ptbCenteredRect([xc+w yc], [w h]));
-Screen('DrawText', wPtr, sprintf('Current Trial - #%d', Data.current_trial), xc-600, yc+250, 0);   % Unobtrusive output to screen of the current trial number
+%Screen('DrawText', wPtr, sprintf('Current Trial - #%d', Data.current_trial), xc-600, yc+250, 0);   % Unobtrusive output to screen of the current trial number
 Screen('Flip', wPtr);
 
 [key, rt, timeout] = ptbWaitKey([leftKey, rightKey, exitKey], 1);

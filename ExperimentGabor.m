@@ -124,6 +124,8 @@ end
 seen_block_notification = false;
 trial = 1;
 block_trial = 1;
+block = 1;
+
 % Using 'while' rather than 'for' since invalid trials (broke fixation or
 % didn't respond in time) don't increment 'trial'.
 try
@@ -141,7 +143,7 @@ try
                 if isempty(GaborData.model_observer)
                     sounds(-1, 1.5);
                     DrawFormattedText(wPtr, ...
-                        ['You have completed a block. ' ...
+                        [sprintf('You have completed a %d blocks. ', block) ...
                         'You may take a break if you want! ' ...
                         sprintf('Press %s whenever you are ready again.', settings.keyGoName) ...
                         '\nThe images to be discriminated are displayed again below.'], ...
@@ -149,7 +151,7 @@ try
                     Screen('DrawTexture', wPtr, left_tex, [], ptbCenteredRect([xc-w templatey], [w h]));
                     Screen('DrawTexture', wPtr, right_tex, [], ptbCenteredRect([xc+w templatey], [w h]));
                     Screen('Flip', wPtr);
-                    
+                    block=block+1;
                     if ptbWaitKey([goKey exitKey]) == exitKey
                         earlyQuit;
                         return;
