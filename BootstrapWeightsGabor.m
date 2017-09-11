@@ -1,16 +1,15 @@
-function [M, L, U, weight_matrix] = BootstrapWeightsGabor(Test_Data, bootstrapsteps, signalKappa)
+function [M, L, U, weight_matrix] = BootstrapWeightsGabor(Test_Data, bootstrapsteps, signalKappa, binarize)
 
-if nargin < 4
-    signalKappa = 0;
-    kappaArg = 'ideal';
-else
-    kappaArg = num2str(signalKappa);
-end
+if nargin < 3, signalKappa = 0; end
+if nargin < 4, binarize = false; end 
 
 memodir = fullfile(pwd, '..', 'Precomputed');
 if ~exist(memodir, 'dir'), mkdir(memodir); end
 
 frame_signals = ComputeFrameSignals(Test_Data, signalKappa);
+if binarize
+    frame_signals = sign(frame_signals);
+end
 
 [trials, frames] = size(frame_signals);
 num_weights = frames + 1;
