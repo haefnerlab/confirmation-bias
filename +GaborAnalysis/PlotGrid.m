@@ -170,6 +170,9 @@ for i=1:nS
                 set(gca, 'XAxisLocation', 'origin');
                 set(gca, 'XTick', [1 frames]);
                 axis tight;
+                if isfield(SubjectDataThresh, 'model_pk')
+                    plot(1:frames, SubjectDataThresh.model_pk, 'LineWidth', 2);
+                end
             case {'cta', 'pk-cta'}
                 SubjectDataThresh = GaborThresholdTrials(...
                     SubjectData, phase, thresh, floor);
@@ -184,6 +187,9 @@ for i=1:nS
                 set(gca, 'XAxisLocation', 'origin');
                 set(gca, 'XTick', [1 frames]);
                 axis tight;
+                if isfield(SubjectDataThresh, 'model_pk')
+                    plot(1:frames, SubjectDataThresh.model_pk, 'LineWidth', 2);
+                end
             case 'streaks'
                 correct_streaks = [];
                 incorrect_streaks = [];
