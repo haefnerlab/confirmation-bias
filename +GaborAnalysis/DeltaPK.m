@@ -32,9 +32,9 @@ window_high = 0.75;
         SubjectDataThresh = GaborThresholdTrials(SubjectData, phase, thresh, floor);
         switch lower(method)
             case {'regress', 'logistic', 'lr'}
-                memo_name = ['Boot-PK-' stair_var '-' subjectId '-' num2str(thresh) '-' num2str(floor) '.mat'];
+                memo_name = ['Boot-PK-ideal-' stair_var '-' subjectId '-' num2str(thresh) '-' num2str(floor) '.mat'];
                 [M, L, U, all_weights] = LoadOrRun(@BootstrapWeightsGabor, ...
-                    {SubjectDataThresh, 500}, ...
+                    {SubjectDataThresh, 500, 0, false}, ...
                     fullfile(memodir, memo_name));
                 if diffIdeal
                     [ideal_kernel, ~, ~, ~, ~, ~] = LoadOrRun(@CustomRegression.PsychophysicalKernel, ...
@@ -66,6 +66,7 @@ window_high = 0.75;
 
 % CombinedKernelsByPhase{i} contains a the combined kernel mean (weighted
 % by inverse variance pr subject) for phase i.
+PerSubjectKernelsByPhase = cell(length(phases), length(subjectIDs));
 CombinedKernelsByPhase = cell(size(phases));
 CombinedNormalizerByPhase = cell(size(phases));
 CombinedIdentifier = strjoin(subjectIDs, '-');
@@ -93,6 +94,7 @@ for i=1:length(subjectIDs)
             CombinedKernelsByPhase{1} = CombinedKernelsByPhase{1} + M ./ variance;
             CombinedNormalizerByPhase{1} = CombinedNormalizerByPhase{1} + 1 ./ variance;
         end
+        PerSubjectKernelsByPhase{1, i} = M;
     else
         % 2 subplots: 2 pks in one and their difference in the other
         subplot(1, 2, 1);
@@ -140,6 +142,8 @@ for i=1:length(subjectIDs)
             CombinedKernelsByPhase{2} = CombinedKernelsByPhase{2} + M2 ./ v2;
             CombinedNormalizerByPhase{2} = CombinedNormalizerByPhase{2} + 1 ./ v2;
         end
+        PerSubjectKernelsByPhase{1, i} = M1;
+        PerSubjectKernelsByPhase{2, i} = M2;
     end
     
     perSubjectFigs(i).PaperUnits = 'inches';
@@ -166,32 +170,54 @@ if length(subjectIDs) > 1
         ylabel('Psychophysical Kernel');
         set(gca, 'XAxisLocation', 'origin');
     else
+        colors = lines(3);
         % Normalization
         CombinedKernelsByPhase{1} = CombinedKernelsByPhase{1} ./ CombinedNormalizerByPhase{1};
         CombinedKernelsByPhase{2} = CombinedKernelsByPhase{2} ./ CombinedNormalizerByPhase{2};
-        % 2 subplots: 2 pks in one and their difference in the other
-        subplot(1, 2, 1);
+        % 3 subplots: each condition per-subject and mean PKs and their difference
+        subplot(1, 3, 1);
         hold on;
-        plot(1:frames1, CombinedKernelsByPhase{1}(1:frames1), '-b', 'LineWidth', 2);
-        plot(1:frames2, CombinedKernelsByPhase{2}(1:frames2), '-r', 'LineWidth', 2);
-        leg{1} = strrep(get_stair_var(phases(1)), '_', ' ');
-        leg{2} = strrep(get_stair_var(phases(2)), '_', ' ');
-        title('combined kernels');
+        for i=1:length(subjectIDs)
+            plot(1:frames1, PerSubjectKernelsByPhase{1, i}(1:frames1), 'Color', colors(1, :));
+        end
+        plot(1:frames1, CombinedKernelsByPhase{1}(1:frames1), 'Color', colors(1, :), 'LineWidth', 2);
         xlim([-inf, inf]);
         set(gca, 'XTick', []);
-        set(gca, 'YTick', 0);
+%         set(gca, 'YTick', 0);
         xlabel('Time');
         ylabel('Psychophysical Kernel');
-        legend(h, leg, 'Location', 'best');
+        title(get_stair_var(phases(1)));
         set(gca, 'XAxisLocation', 'origin');
         
-        subplot(1, 2, 2);
-        assert(frames1 == frames2, 'Cannot subtract PKs with different # frames');
-        plot(1:frames1, CombinedKernelsByPhase{1}(1:frames1)-CombinedKernelsByPhase{2}(1:frames2), 'LineWidth', 2);
-        title('combined kernel difference');
+        subplot(1, 3, 2);
+        hold on;
+        for i=1:length(subjectIDs)
+            plot(1:frames2, PerSubjectKernelsByPhase{2, i}(1:frames2), 'Color', colors(2, :));
+        end
+        plot(1:frames2, CombinedKernelsByPhase{2}(1:frames2), 'Color', colors(2, :), 'LineWidth', 2);
         xlim([-inf, inf]);
         set(gca, 'XTick', []);
-        set(gca, 'YTick', 0);
+%         set(gca, 'YTick', 0);
+        xlabel('Time');
+        ylabel('Psychophysical Kernel');
+        title(get_stair_var(phases(2)));
+        set(gca, 'XAxisLocation', 'origin');
+        
+        subplot(1, 3, 3);
+        hold on;
+        assert(frames1 == frames2, 'Cannot subtract PKs with different # frames');
+        for i=1:length(subjectIDs)
+            diff = normalize(PerSubjectKernelsByPhase{1, i}(1:frames1)) - ...
+                normalize(PerSubjectKernelsByPhase{2, i}(1:frames2));
+            plot(1:frames1, diff, 'Color', colors(3, :));
+        end
+        combo_diff = normalize(CombinedKernelsByPhase{1}(1:frames1)) - ...
+            normalize(CombinedKernelsByPhase{2}(1:frames2));
+        plot(1:frames1, combo_diff, 'Color', colors(3, :), 'LineWidth', 2);
+        title('Normalized Kernel Difference');
+        xlim([-inf, inf]);
+        set(gca, 'XTick', []);
+%         set(gca, 'YTick', 0);
         xlabel('Time');
         ylabel('Kernel Differnce');
         set(gca, 'XAxisLocation', 'origin');
@@ -214,4 +240,8 @@ elseif phase == 2
 else
     error('Expected phase 0 for Contrast or 1 for Ratio or 2 for Noise');
 end
+end
+
+function kernel = normalize(kernel)
+kernel = kernel / mean(kernel);
 end
