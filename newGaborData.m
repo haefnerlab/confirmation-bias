@@ -109,15 +109,6 @@ GaborData.current_trial = 0;
 
 GaborData.eye_tracker_points = {};
 
-if ~isempty(varargin)
-    warning('Unkown arguments given to newGaborParams');
-end
-
-% Sanity checks for common "gotchas"
-if ~isempty(GaborData.model_observer) && ~isempty(GaborData.stair_fn)
-    warning('Model observer with a staircase?');
-end
-
 if isequal(GaborData.stair_fn, @Staircase.ratio)
     if GaborData.step_size(1) < 0
         warning('Changing sign of ratio step_size from %d to %d', GaborData.step_size(1), -GaborData.step_size(1));
@@ -154,6 +145,15 @@ end
 
 if streq(GaborData.model_observer, 'bernoulli')
     GaborData.sigmoid_slope = get_arg('sigmoid_slope', 20);
+    default_pk = ones(1, GaborData.number_of_images) / GaborData.number_of_images;
+    GaborData.model_pk = get_arg('model_pk', default_pk);
+    if sum(GaborData.model_pk) ~= 1
+        warning('Recommended that GaborData.model_pk sum to 1');
+    end
+end
+
+if ~isempty(varargin)
+    warning('Unkown arguments given to newGaborParams');
 end
 
 disp(GaborData);

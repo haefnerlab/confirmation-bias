@@ -233,14 +233,11 @@ try
         elseif strcmpi(GaborData.model_observer, 'oracle')
             GaborData.choice(trial) = GaborData.correct_answer(trial);
         elseif strcmpi(GaborData.model_observer, 'bernoulli')
-            bernoulli_p = sigmoid(...
-                abs(sum(GaborData.ideal_frame_signals(trial, :))) / GaborData.sigmoid_slope);
-            % behave like 'ideal' with probability bernoulli_p 
-            if rand < bernoulli_p
-                GaborData.choice(trial) = GaborData.ideal_answer(trial);
-            else
-                GaborData.choice(trial) = -GaborData.ideal_answer(trial);
-            end
+            decision_var = dot(GaborData.ideal_frame_signals(trial, :), GaborData.model_pk);
+            bernoulli_p = sigmoid(decision_var / GaborData.sigmoid_slope);
+            % Choose sign of decision_var with probability related to
+            % magnitude of decision_var.
+            GaborData.choice(trial) = 1 * (rand < bernoulli_p);
         end
         
         %% Accuracy & Feedback
