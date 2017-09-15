@@ -173,6 +173,23 @@ for i=1:nS
                 if isfield(SubjectDataThresh, 'model_pk')
                     plot(1:frames, SubjectDataThresh.model_pk, 'LineWidth', 2);
                 end
+            case {'pk-lin'}
+                SubjectDataThresh = GaborThresholdTrials(...
+                    SubjectData, phase, thresh, floor);
+                memo_name = ['Boot-LinPK-ideal-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
+                [M, L, U, ~] = LoadOrRun(@BootstrapLinearPKFit, ...
+                    {SubjectDataThresh, 500, 0, false}, ...
+                    fullfile(memodir, memo_name));
+                frames = SubjectData.number_of_images;
+                boundedline(1:frames, M(1:frames)', [U(1:frames)-M(1:frames); M(1:frames)-L(1:frames)]');
+                errorbar(frames+1, M(end), M(end)-L(end), U(end)-M(end), 'LineWidth', 2, 'Color', 'r');
+                title(['linear temporal kernel (LR)']);
+                set(gca, 'XAxisLocation', 'origin');
+                set(gca, 'XTick', [1 frames]);
+                axis tight;
+                if isfield(SubjectDataThresh, 'model_pk')
+                    plot(1:frames, SubjectDataThresh.model_pk, 'LineWidth', 2);
+                end
             case {'cta', 'pk-cta'}
                 SubjectDataThresh = GaborThresholdTrials(...
                     SubjectData, phase, thresh, floor);
