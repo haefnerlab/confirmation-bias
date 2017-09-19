@@ -10,9 +10,9 @@ e_values = linspace(-2, 2, n_gridpts);
 gamma_values = linspace(0, 1, n_gridpts);
 [ee, pp, gg] = meshgrid(e_values, log_prior_c, gamma_values);
 
-bias_results = cell(size(sampleses));
+bias2_results = cell(size(sampleses));
 variance_results = cell(size(sampleses));
-marginal_bias = cell(size(sampleses));
+marginal_bias2 = cell(size(sampleses));
 marginal_variance = cell(size(sampleses));
 
 sig_x = .1;
@@ -25,7 +25,7 @@ for si=1:length(sampleses)
     savefile = fullfile(savedir, savename);
     if use_precomputed && exist(savefile, 'file')
         results = load(savefile);
-        bias_results{si} = results.bias;
+        bias2_results{si} = results.bias.^2;
         variance_results{si} = results.variance;
     else
         bias = zeros(size(pp));
@@ -36,7 +36,7 @@ for si=1:length(sampleses)
             bias(i) = mean(sampled_updates) - true_update;
             variance(i) = var(sampled_updates, 1);
         end
-        bias_results{si} = bias;
+        bias2_results{si} = bias.^2;
         variance_results{si} = variance;
         
         save(savefile, 'bias', 'variance');
@@ -50,11 +50,11 @@ for si=1:length(sampleses)
     % Note: meshgrid creates unintuitive slicing. Despite order of
     % arguments to meshgrid as [ee, pp, gg], ee varies over the second
     % dimension: assert(all(ee(1, :, 1) == e_values));
-    marginal_bias{si} = zeros(n_gridpts, n_gridpts);
+    marginal_bias2{si} = zeros(n_gridpts, n_gridpts);
     marginal_variance{si} = zeros(n_gridpts, n_gridpts);
     for i=1:n_gridpts
         for j=1:n_gridpts
-            marginal_bias{si}(i, j) = dot(squeeze(bias_results{si}(i, :, j)), pdf_e);
+            marginal_bias2{si}(i, j) = dot(squeeze(bias2_results{si}(i, :, j)), pdf_e);
             marginal_variance{si}(i, j) = dot(squeeze(variance_results{si}(i, :, j)), pdf_e);
         end
     end
@@ -65,15 +65,15 @@ end
 figure;
 for si=1:length(sampleses)
     subplot(1, 3, 1); hold on;
-    plot(gamma_values, squeeze(mean(marginal_bias{si})));
-    title('Bias');
+    plot(gamma_values, squeeze(mean(marginal_bias2{si})));
+    title('Bias^2');
     
     subplot(1, 3, 2); hold on;
     plot(gamma_values, squeeze(mean(marginal_variance{si})));
     title('Variance');
     
     subplot(1, 3, 3); hold on;
-    plot(gamma_values, squeeze(mean(marginal_bias{si}).^2 + mean(marginal_variance{si})));
+    plot(gamma_values, squeeze(mean(marginal_bias2{si}) + mean(marginal_variance{si})));
     title('Bias^2 + Variance');
 end
 
