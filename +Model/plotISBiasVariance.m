@@ -80,11 +80,16 @@ mfig = figure;
 idx_samples = round([1, length(sampleses)/2, length(sampleses)]);
 idx_gammas = round([1, n_gridpts/2, n_gridpts]);
 
+marg_mse = marg_bias2_results + marg_variance_results;
+bias2_range = [0 max(marg_bias2_results(:))];
+variance_range = [0 max(marg_variance_results(:))];
+mse_range = [0 max(marg_mse(:))];
+
 for i=1:3
     for j=1:3
         figure(bfig);
         subplot(3, 3, sub2ind([3 3], i, j));
-        imagesc(marg_bias2_results(:, :, i, j));
+        imagesc(marg_bias2_results(:, :, i, j), bias2_range);
         colorbar;
         axis image; set(gca, 'YDir', 'normal');
         title(sprintf('Bias^2 (%d samples, %.2f gamma)', sampleses(idx_samples(i)), gamma_values(idx_gammas(j))));
@@ -92,12 +97,12 @@ for i=1:3
         set(gca, 'XTick', 1:2:length(sense_info));
         set(gca, 'XTickLabel', sense_info(1:2:length(sense_info)));
         ylabel('Category Info');
-        set(gca, 'XTick', 1:2:length(cat_info));
+        set(gca, 'YTick', 1:2:length(cat_info));
         set(gca, 'YTickLabel', cat_info(1:2:length(cat_info)));
 
         figure(vfig);
         subplot(3, 3, sub2ind([3 3], i, j));
-        imagesc(marg_variance_results(:, :, i, j));
+        imagesc(marg_variance_results(:, :, i, j), variance_range);
         colorbar;
         axis image; set(gca, 'YDir', 'normal');
         title(sprintf('Variance (%d samples, %.2f gamma)', sampleses(idx_samples(i)), gamma_values(idx_gammas(j))));
@@ -105,12 +110,12 @@ for i=1:3
         set(gca, 'XTick', 1:2:length(sense_info));
         set(gca, 'XTickLabel', sense_info(1:2:length(sense_info)));
         ylabel('Category Info');
-        set(gca, 'XTick', 1:2:length(cat_info));
+        set(gca, 'YTick', 1:2:length(cat_info));
         set(gca, 'YTickLabel', cat_info(1:2:length(cat_info)));
 
         figure(mfig);
         subplot(3, 3, sub2ind([3 3], i, j));
-        imagesc(marg_bias2_results(:, :, i, j) + marg_variance_results(:, :, i, j));
+        imagesc(marg_mse(:, :, i, j), mse_range);
         colorbar;
         axis image; set(gca, 'YDir', 'normal');
         title(sprintf('MSE (%d samples, %.2f gamma)', sampleses(idx_samples(i)), gamma_values(idx_gammas(j))));
@@ -118,7 +123,7 @@ for i=1:3
         set(gca, 'XTick', 1:2:length(sense_info));
         set(gca, 'XTickLabel', sense_info(1:2:length(sense_info)));
         ylabel('Category Info');
-        set(gca, 'XTick', 1:2:length(cat_info));
+        set(gca, 'YTick', 1:2:length(cat_info));
         set(gca, 'YTickLabel', cat_info(1:2:length(cat_info)));
     end
 end
