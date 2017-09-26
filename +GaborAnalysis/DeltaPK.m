@@ -23,11 +23,15 @@ if ~exist(memodir, 'dir'), mkdir(memodir); end
 window_low = 0.5;
 window_high = 0.75;
 
-    function [M, L, U, trials, frames, variance] = getSubjectKernel(subjectId, phase)
+    function [M, L, U, trials, frames, variance, true_pk] = getSubjectKernel(subjectId, phase)
         stair_var = get_stair_var(phase);
         SubjectData = LoadOrRun(@LoadAllSubjectData, ...
             {subjectId, phase, datadir}, fullfile(catdir, [subjectId '-' stair_var '.mat']));
         [floor, thresh] = GaborAnalysis.getThresholdWindow(subjectId, phase, window_low, window_high, datadir);
+        if phase == 1
+            floor = .4;
+            thresh = .6;
+        end
         trials = SubjectData.(stair_var) <= thresh & SubjectData.(stair_var) >= floor;
         SubjectDataThresh = GaborThresholdTrials(SubjectData, phase, thresh, floor);
         switch lower(method)
@@ -62,6 +66,11 @@ window_high = 0.75;
             otherwise
                 error('Unknown PK method: %s', method);
         end
+        if isfield(SubjectData, 'model_pk')
+            true_pk = SubjectData.model_pk;
+        else
+            true_pk = nan;
+        end
     end
 
 % CombinedKernelsByPhase{i} contains a the combined kernel mean (weighted
@@ -76,7 +85,7 @@ for i=1:length(subjectIDs)
     hold on;
     subjectId = subjectIDs{i};
     if length(phases) == 1
-        [M, L, U, trials, frames, variance] = getSubjectKernel(subjectId, phases);
+        [M, L, U, trials, frames, variance, true_pk] = getSubjectKernel(subjectId, phases);
         boundedline(1:frames, M(1:frames)', [U(1:frames)-M(1:frames); M(1:frames)-L(1:frames)]');
         errorbar(frames+1, M(end), M(end)-L(end), U(end)-M(end), 'LineWidth', 2, 'Color', 'r');
         title([strrep(get_stair_var(phases), '_', ' ') 'temporal kernel (' num2str(sum(trials)) '/' num2str(length(trials)) ')']);
@@ -95,14 +104,17 @@ for i=1:length(subjectIDs)
             CombinedNormalizerByPhase{1} = CombinedNormalizerByPhase{1} + 1 ./ variance;
         end
         PerSubjectKernelsByPhase{1, i} = M;
+        if ~isnan(true_pk)
+            plot(1:frames, true_pk, 'Color', 'r', 'LineWidth', 2);
+        end
     else
         % 2 subplots: 2 pks in one and their difference in the other
         subplot(1, 2, 1);
         hold on;
-        [M1, L1, U1, trials1, frames1, v1] = getSubjectKernel(subjectId, phases(1));
+        [M1, L1, U1, trials1, frames1, v1, true_pk1] = getSubjectKernel(subjectId, phases(1));
         leg{1} = [strrep(get_stair_var(phases(1)), '_', ' ') ' (' num2str(sum(trials1)) '/' num2str(length(trials1)) ')'];
         
-        [M2, L2, U2, trials2, frames2, v2] = getSubjectKernel(subjectId, phases(2));
+        [M2, L2, U2, trials2, frames2, v2, true_pk2] = getSubjectKernel(subjectId, phases(2));
         leg{2} = [strrep(get_stair_var(phases(2)), '_', ' ') ' (' num2str(sum(trials2)) '/' num2str(length(trials2)) ')'];
         
         h = boundedline(1:frames1, M1(1:frames1)', [U1(1:frames1)-M1(1:frames1); M1(1:frames1)-L1(1:frames1)]', 'r', ...
@@ -116,6 +128,10 @@ for i=1:length(subjectIDs)
         ylabel('Psychophysical Kernel');
         legend(h, leg, 'Location', 'best');
         set(gca, 'XAxisLocation', 'origin');
+        if ~isnan(true_pk1)
+            plot(1:frames1, true_pk1, 'Color', 'r', 'LineWidth', 2);
+            plot(1:frames2, true_pk2, 'Color', 'b', 'LineWidth', 2);
+        end
         
         subplot(1, 2, 2);
         assert(frames1 == frames2, 'Cannot subtract PKs with different # frames');
