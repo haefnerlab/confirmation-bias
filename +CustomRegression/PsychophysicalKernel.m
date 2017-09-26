@@ -1,5 +1,5 @@
 function [weights, postVal, errors, map_ridge, map_ar1, map_curvature] = ...
-    PsychophysicalKernel(data, responses, hpr_ridge, hpr_ar1, hpr_curvature, split_smoothness, data_mean)
+    PsychophysicalKernel(data, responses, hpr_ridge, hpr_ar1, hpr_curvature, data_mean)
 %PSYCHOPHYSICALKERNEL Regress PK
 %
 % [ weights, postVal, errors ] = PSYCHOPHYSICALKERNEL(data, responses) 
@@ -20,20 +20,13 @@ function [weights, postVal, errors, map_ridge, map_ar1, map_curvature] = ...
 % the ridge/ar1/curvature hyperparameters respectively. Three additional
 % return values contain the MAP estimate of each hyperparameter..
 % [ w, p, e, map_ridge, map_ar1, map_curvature ] = PSYCHOPHYSICALKERNEL(...)
-%
-% PSYCHOPHYSICALKERNEL(..., split_smoothness) when split_smoothness is
-% true, the smoothness constraints are not enforced at the midpoint of the
-% data. This is useful when computing temporal weights for two indpendent
-% 'sensors' with concatenated data, e.g. audio data to the left and right
-% ear separately.
 
-if nargin < 6, split_smoothness = false; end
 if nargin < 5, hpr_curvature = 0; end
 if nargin < 4, hpr_ar1 = 0; end
 if nargin < 3, hpr_ridge = 0; end
 
 % Standardize each regressor.
-if nargin < 7
+if nargin < 6
     data = zscore(data);
 else
     % We can do our own (more precise) z-scoring when we know the true
@@ -54,7 +47,6 @@ responses = 1.0 * responses;
 [~, p] = size(data);
 
 break_points = p-1; % don't smooth onto bias term
-if split_smoothness, break_points = [break_points floor(p/2)]; end
 D1 = derivative_matrix(p, break_points);
 D2 = second_derivative_matrix(p, break_points);
 
