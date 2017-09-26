@@ -1,5 +1,5 @@
 function [weights, postVal, errors, map_ridge, map_ar1, map_curvature] = ...
-    PsychophysicalKernel(data, responses, hpr_ridge, hpr_ar1, hpr_curvature, data_mean)
+    PsychophysicalKernel(data, responses, hpr_ridge, hpr_ar1, hpr_curvature, standardize)
 %PSYCHOPHYSICALKERNEL Regress PK
 %
 % [ weights, postVal, errors ] = PSYCHOPHYSICALKERNEL(data, responses) 
@@ -21,27 +21,21 @@ function [weights, postVal, errors, map_ridge, map_ar1, map_curvature] = ...
 % return values contain the MAP estimate of each hyperparameter..
 % [ w, p, e, map_ridge, map_ar1, map_curvature ] = PSYCHOPHYSICALKERNEL(...)
 
+if nargin < 6, standardize = true; end
 if nargin < 5, hpr_curvature = 0; end
 if nargin < 4, hpr_ar1 = 0; end
 if nargin < 3, hpr_ridge = 0; end
 
 % Standardize each regressor.
-if nargin < 6
-    data = zscore(data);
-else
-    % We can do our own (more precise) z-scoring when we know the true
-    % mean.
-    data_centered = data - data_mean;
-    % Note we can /N rather than /(N-1) for an unbiased variance estimate
-    % here.
-    data_variance = sum(data_centered.^2, 1) / size(data, 1);
-    data = (data - data_mean) ./ sqrt(data_variance);
+if standardize
+    data = data / std(data(:));
 end
 
 % Add a column of ones to data for a bias term.
 data = [data ones(size(data,1),1)];
 
 % convert boolean to float type
+assert(islogical(responses));
 responses = 1.0 * responses;
 
 [~, p] = size(data);
@@ -61,7 +55,7 @@ results = cell(n_gridpts, 1);
 
 compute_error = nargout > 2;
 
-parfor i=1:n_gridpts
+for i=1:n_gridpts
     % Determine which hyperparameters to use this iteration by treating i
     % as a 1d index into the 3d grid of ridge/ar1/curvature values.
     [idx_ridge, idx_ar1, idx_curvature] = ind2sub(grid_size, i);
@@ -84,7 +78,7 @@ parfor i=1:n_gridpts
     postVal = -negPostVal;
     
     % Record all results for this set of hyperparameters.
-    results{i} = {weights, postVal, errors, hpr_ridge(idx_ridge), hpr_ar1(idx_ar1), hpr_curvature(idx_curvature)}
+    results{i} = {weights, postVal, errors, hpr_ridge(idx_ridge), hpr_ar1(idx_ar1), hpr_curvature(idx_curvature)};
 end
 
 % Find and return the MAP result.
@@ -123,10 +117,13 @@ LP = hpr_ridge * ridge + hpr_ar1 * ar1 + hpr_curvature * curvature;
 end
 
 function LL = bernoulli_log_likelihood(data, responses, weights)
-p = sigmoid(data * weights);
-LL = dot(responses, log(p)) + dot(1-responses, log(1-p));
-end
-
-function y = sigmoid(x)
-y = (1 + exp(-x)).^-1;
+logit = data * weights;
+% we want \sum_i responses(i)*log(p(i)) + (1-responses(i))*log(1-p(i))
+% where p(i) = (1+exp(-logit(i)))^-1. However, this can lead to numerical
+% instability due to log(exp(...)). Reparameterizing, note that p^r is 1
+% when r=0 and exp(logit)/(1+exp(logit)) when r=1, and likewise (1-p)^(1-r)
+% is simply 1 when r=1 and 1/(1+exp(logit)) when r=0. Hence p^r (1-p)^(1-r)
+% becomes exp(r*logit)/(1+exp(logit)), and log of this is simply:
+log_bernoulli = responses(:) .* logit(:) - log(1 + exp(logit(:)));
+LL = sum(log_bernoulli);
 end
