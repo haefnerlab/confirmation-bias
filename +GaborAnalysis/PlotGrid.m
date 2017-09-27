@@ -156,16 +156,32 @@ for i=1:nS
                     plot([thresh thresh], ys, '--r');
                 end
                 title('Psychometric curve');
+            case {'pk-glm'}
+                SubjectDataThresh = GaborThresholdTrials(...
+                    SubjectData, phase, thresh, floor);
+                memo_name = ['glmfit-PK-ideal-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
+                [w, ~, stats] = LoadOrRun(@glmfit, ...
+                    {SubjectDataThresh.ideal_frame_signals, [SubjectDataThresh.choice(:) ones(length(SubjectDataThresh.choice), 1)], 'binomial'}, ...
+                    fullfile(memodir, memo_name));
+                frames = SubjectData.number_of_images;
+                errorbar(1:frames, w(2:end), stats.se(2:end));
+                title('temporal kernel (glmfit)');
+                set(gca, 'XAxisLocation', 'origin');
+                set(gca, 'XTick', [1 frames]);
+                axis tight;
+                if isfield(SubjectDataThresh, 'model_pk')
+                    plot(1:frames, SubjectDataThresh.model_pk, 'LineWidth', 2);
+                end
             case {'pk', 'pk-lr'}
                 SubjectDataThresh = GaborThresholdTrials(...
                     SubjectData, phase, thresh, floor);
                 memo_name = ['Boot-PK-ideal-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
-                [M, L, U, ~] = LoadOrRun(@BootstrapWeightsGabor, ...
+                [~, L, U, median, ~] = LoadOrRun(@BootstrapWeightsGabor, ...
                     {SubjectDataThresh, 500, 0, false}, ...
                     fullfile(memodir, memo_name));
                 frames = SubjectData.number_of_images;
-                boundedline(1:frames, M(1:frames)', [U(1:frames)-M(1:frames); M(1:frames)-L(1:frames)]');
-                errorbar(frames+1, M(end), M(end)-L(end), U(end)-M(end), 'LineWidth', 2, 'Color', 'r');
+                boundedline(1:frames, median(1:frames)', [U(1:frames)-median(1:frames); median(1:frames)-L(1:frames)]');
+                errorbar(frames+1, median(end), median(end)-L(end), U(end)-median(end), 'LineWidth', 2, 'Color', 'r');
                 title(['temporal kernel (LR)']);
                 set(gca, 'XAxisLocation', 'origin');
                 set(gca, 'XTick', [1 frames]);
@@ -177,12 +193,12 @@ for i=1:nS
                 SubjectDataThresh = GaborThresholdTrials(...
                     SubjectData, phase, thresh, floor);
                 memo_name = ['Boot-LinPK-ideal-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
-                [M, L, U, ~] = LoadOrRun(@BootstrapLinearPKFit, ...
+                [~, L, U, median, ~] = LoadOrRun(@BootstrapLinearPKFit, ...
                     {SubjectDataThresh, 500, 0, false}, ...
                     fullfile(memodir, memo_name));
                 frames = SubjectData.number_of_images;
-                boundedline(1:frames, M(1:frames)', [U(1:frames)-M(1:frames); M(1:frames)-L(1:frames)]');
-                errorbar(frames+1, M(end), M(end)-L(end), U(end)-M(end), 'LineWidth', 2, 'Color', 'r');
+                boundedline(1:frames, median(1:frames)', [U(1:frames)-median(1:frames); median(1:frames)-L(1:frames)]');
+                errorbar(frames+1, median(end), median(end)-L(end), U(end)-median(end), 'LineWidth', 2, 'Color', 'r');
                 title(['linear temporal kernel (LR)']);
                 set(gca, 'XAxisLocation', 'origin');
                 set(gca, 'XTick', [1 frames]);
@@ -194,12 +210,12 @@ for i=1:nS
                 SubjectDataThresh = GaborThresholdTrials(...
                     SubjectData, phase, thresh, floor);
                 memo_name = ['Boot-CTA-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
-                [M, L, U, ~] = LoadOrRun(@BootstrapCTA, ...
+                [~, L, U, median, ~] = LoadOrRun(@BootstrapCTA, ...
                     {SubjectDataThresh, 500}, ...
                     fullfile(memodir, memo_name));
                 frames = SubjectData.number_of_images;
-                boundedline(1:frames, M(1:frames)', [U(1:frames)-M(1:frames); M(1:frames)-L(1:frames)]');
-                errorbar(frames+1, M(end), M(end)-L(end), U(end)-M(end), 'LineWidth', 2, 'Color', 'r');
+                boundedline(1:frames, median(1:frames)', [U(1:frames)-median(1:frames); median(1:frames)-L(1:frames)]');
+                errorbar(frames+1, median(end), median(end)-L(end), U(end)-median(end), 'LineWidth', 2, 'Color', 'r');
                 title(['temporal kernel (CTA)']);
                 set(gca, 'XAxisLocation', 'origin');
                 set(gca, 'XTick', [1 frames]);

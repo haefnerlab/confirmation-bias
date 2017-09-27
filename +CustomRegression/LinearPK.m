@@ -1,30 +1,34 @@
-function [sob, postVal, errors] = LinearPK(data, responses, data_mean)
+function [sob, postVal, errors] = LinearPK(data, responses, standardize)
 %LinearPK Regress PK as a linear function.
 %
 % sob = LinearPK(data, responses) returns sob = [slope offset bias].
 
+if nargin < 3, standardize = 0; end
+
 % Standardize each regressor.
-if nargin < 3
-    data = zscore(data);
-else
-    % We can do our own (more precise) z-scoring when we know the true
-    % mean.
-    data_centered = data - data_mean;
-    % Note we can /N rather than /(N-1) for an unbiased variance estimate
-    % here.
-    data_variance = sum(data_centered.^2, 1) / size(data, 1);
-    data = (data - data_mean) ./ sqrt(data_variance);
+switch standardize
+    case 0
+        % do nothing
+    case 1
+        % assume 0 mean (nothing to subtact) and iid (std taken over all data)
+        data = data / std(data(:));
+    case 2
+        data = zscore(data);
+    otherwise
+        error('Expected argument ''standardize'' to be one of [0, 1, 2]');
 end
 
 % convert boolean to float type
-responses = 1.0 * responses;
+assert(islogical(responses));
+responses = 1.0 * responses(:);
 
 [~, frames] = size(data);
 
     function NLL = neg_bernoulli_log_likelihood(sob)
         weights = sob(2) + (0:frames-1) * sob(1);
-        p = sigmoid(data * weights' + sob(3))';
-        NLL = -dot(responses, log(p)) - dot(1-responses, log(1-p));
+        logits = data * weights(:) + sob(3);
+        neg_log_bernoulli = -responses .* logits(:) + log(1 + exp(logits(:)));
+        NLL = sum(neg_log_bernoulli);
     end
 
 compute_error = nargout > 2;
@@ -40,8 +44,4 @@ else
     [sob, negPostVal] = fminunc(@neg_bernoulli_log_likelihood, zeros(1, 3));
 end
 postVal = -negPostVal;
-end
-
-function y = sigmoid(x)
-y = (1 + exp(-x)).^-1;
 end

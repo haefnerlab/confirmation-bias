@@ -50,7 +50,7 @@ data = [data ones(size(data,1),1)];
 
 % convert boolean to float type
 assert(islogical(responses));
-responses = 1.0 * responses;
+responses = 1.0 * responses(:);
 
 % Grid search will be done over all combinations (i.e. the cartesian
 % product) of given hyperparameters.
@@ -146,6 +146,6 @@ logits = data * weights;
 % when r=0 and exp(logit)/(1+exp(logit)) when r=1, and likewise (1-p)^(1-r)
 % is simply 1 when r=1 and 1/(1+exp(logit)) when r=0. Hence p^r (1-p)^(1-r)
 % becomes exp(r*logit)/(1+exp(logit)), and negative log of this is simply:
-log_bernoulli = -responses(:) .* logits(:) + log(1 + exp(logits(:)));
+log_bernoulli = -responses .* logits(:) + log(1 + exp(logits(:)));
 LL = sum(log_bernoulli);
 end

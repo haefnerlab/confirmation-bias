@@ -23,7 +23,7 @@ if ~exist(memodir, 'dir'), mkdir(memodir); end
 window_low = 0.5;
 window_high = 0.75;
 
-    function [M, L, U, trials, frames, variance, true_pk] = getSubjectKernel(subjectId, phase)
+    function [median, L, U, trials, frames, variance, true_pk] = getSubjectKernel(subjectId, phase)
         stair_var = get_stair_var(phase);
         SubjectData = LoadOrRun(@LoadAllSubjectData, ...
             {subjectId, phase, datadir}, fullfile(catdir, [subjectId '-' stair_var '.mat']));
@@ -37,21 +37,21 @@ window_high = 0.75;
         switch lower(method)
             case {'regress', 'logistic', 'lr'}
                 memo_name = ['Boot-PK-ideal-' stair_var '-' subjectId '-' num2str(thresh) '-' num2str(floor) '.mat'];
-                [M, L, U, all_weights] = LoadOrRun(@BootstrapWeightsGabor, ...
+                [~, L, U, median, all_weights] = LoadOrRun(@BootstrapWeightsGabor, ...
                     {SubjectDataThresh, 500, 0, false}, ...
                     fullfile(memodir, memo_name));
                 if diffIdeal
                     [ideal_kernel, ~, ~, ~, ~, ~] = LoadOrRun(@CustomRegression.PsychophysicalKernel, ...
-                        {SubjectDataThresh.ideal_frame_signals, SubjectDataThresh.choice == +1, 1, 0, 10, false, zeros(1, SubjectDataThresh.number_of_images)}, ...
+                        {SubjectDataThresh.ideal_frame_signals, SubjectDataThresh.choice == +1, 1, 0, 10, 1}, ...
                         fullfile(memodir, strrep(memo_name, 'Boot-', 'Ideal-')));
                     all_weights = all_weights - repmat(ideal_kernel(:)', 500, 1);
-                    [M, L, U] = meanci(all_weights, .68);
+                    [~, L, U, median] = meanci(all_weights, .68);
                 end
                 frames = SubjectData.number_of_images;
                 variance = var(all_weights);
             case {'cta'}
                 memo_name = ['Boot-CTA-' stair_var '-' subjectId '-' num2str(thresh) '-' num2str(floor) '.mat'];
-                [M, L, U, all_weights] = LoadOrRun(@BootstrapCTA, ...
+                [~, L, U, median, all_weights] = LoadOrRun(@BootstrapCTA, ...
                     {SubjectDataThresh, 500}, ...
                     fullfile(memodir, memo_name));
                 if diffIdeal
@@ -59,7 +59,7 @@ window_high = 0.75;
                     ideal_kernel = mean(frame_signals(SubjectDataThresh.choice == +1, :)) - ...
                         mean(frame_signals(SubjectDataThresh.choice ~= +1, :));
                     all_weights = all_weights - repmat(ideal_kernel(:)', 500, 1);
-                    [M, L, U] = meanci(all_weights, .68);
+                    [~, L, U, median] = meanci(all_weights, .68);
                 end
                 frames = SubjectData.number_of_images;
                 variance = var(all_weights);
