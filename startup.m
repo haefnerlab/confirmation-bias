@@ -9,3 +9,15 @@ if exist('boundedline', 'file')~=2
         end
     end
 end
+
+%% Create useful workspace variables for analysis
+
+ratioSubjects = arrayfun(@(i) sprintf('bpgFinaltest-subject%02d', i), 2:10, 'UniformOutput', false);
+noiseSubjects = arrayfun(@(i) sprintf('bpgFinaltest-subject%02d', i), [1:6 8:10], 'UniformOutput', false);
+
+% informed is the opposite of naive
+informedSubjects = arrayfun(@(i) sprintf('bpgFinaltest-subject%02d', i), [7 8 9], 'UniformOutput', false);
+
+naiveRatioSubjects = setdiff(ratioSubjects, informedSubjects);
+naiveNoiseSubjects = setdiff(noiseSubjects, informedSubjects);
+naiveBothSubjects = intersect(naiveRatioSubjects, naiveNoiseSubjects);
