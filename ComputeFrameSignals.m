@@ -6,6 +6,11 @@ function [frame_signals] = ComputeFrameSignals(GaborData, oriKappa, spFreqCPP, s
 %
 % spFreqCPP and spFreqStdCPP arguments are optional.
 
+if oriKappa == 0
+    frame_signals = GaborData.ideal_frame_signals;
+    return;
+end
+
 trials = length(GaborData.choice);
 
 frame_signals = zeros(trials, GaborData.number_of_images);
@@ -18,15 +23,17 @@ else
     error('Expected 2 or 4 args');
 end
 
-parfor t=1:trials
-    stim_images = GaborStimulus(GaborData, t);
+% WARNING: do not use 'parfor' here - random numbers inside parfor will
+% behave differently, even when the same seed is used!!
+for t=1:trials
+    image_array = GaborStimulus(GaborData, t);
     args_copy = args;
     if oriKappa == 0
         args_copy{1} = max(0.04, GaborData.noise(t));
     end
     frame_signals(t, :) = ...
-        bpg.getSignal(stim_images, GaborData.left_category, args_copy{:}) - ...
-        bpg.getSignal(stim_images, GaborData.right_category, args_copy{:});
+        bpg.getSignal(image_array - 127, GaborData.left_category, args_copy{:}) - ...
+        bpg.getSignal(image_array - 127, GaborData.right_category, args_copy{:});
 end
 
 end
