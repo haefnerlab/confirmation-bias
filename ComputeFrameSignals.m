@@ -23,9 +23,9 @@ else
     error('Expected 2 or 4 args');
 end
 
-% WARNING: do not use 'parfor' here - random numbers inside parfor will
-% behave differently, even when the same seed is used!!
-for t=1:trials
+% NOTE: to use parfor and rng requires rng to set the generator type
+% explicitly!
+parfor t=1:trials
     image_array = GaborStimulus(GaborData, t);
     args_copy = args;
     if oriKappa == 0
