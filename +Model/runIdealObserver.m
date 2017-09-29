@@ -2,9 +2,9 @@ function results = runIdealObserver(params)
 %RUNIDEALOBSERVER run an ideal observer on generative model specified by
 %params.
 %
-% results = RUNIDEALOBSERVER(data, params) gets ideal 'decisions' and
-% running posterior for the given data. Params are the same as the sampling
-% params, but not all are used. The following are used:
+% results = RUNIDEALOBSERVER(params) gets ideal 'decisions' and running
+% posterior for the given data. Params are the same as the sampling params,
+% but not all are used. The following are used:
 %
 %   params.var_e   - variance of gaussian p(e|C)
 %   params.p_match - weight of modes, i.e. p(e|C) =

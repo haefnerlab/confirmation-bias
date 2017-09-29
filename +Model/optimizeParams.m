@@ -30,6 +30,7 @@ parfor vi=1:numel(variables_grid{1})
     values = arrayfun(@(v) variables_grid{v}(vi), 1:length(variables));
     correct_grid(vi) = percent_correct(params, variables, values);
 end
+
 % Smooth and interpolate percent-correct to infer a maximum.
 correct_grid_fine = interpn(smoothn(correct_grid), 3);
 ngrid_fine = length(correct_grid_fine);
@@ -58,16 +59,19 @@ end
 end
 
 function correct = percent_correct(params, variables, values)
-    sample_params = params;
     for i=1:length(variables)
-        sample_params.(variables{i}) = values(i);
+        params.(variables{i}) = values(i);
     end
     % Run sampling model on current setting of variables.
+    % TODO - smarter resetting of seed
+    params.seed = randi(1000000000);
     sampling_result_uid = Model.getModelStringID(params);
     results = LoadOrRun(@Model.runSamplingModel, {params}, ...
-        fullfile(params.save_dir, sampling_result_uid));
-    ideal_results = Model.runIdealObserver(params);
-    correct = sum(results.choices == ideal_results.choices) / trials;
+        fullfile(params.save_dir, sampling_result_uid), '-verbose');
+    ideal_result_uid = Model.getModelStringID(params, true);
+    ideal_results = LoadOrRun(@Model.runIdealObserver, {params}, ...
+        fullfile(params.save_dir, ideal_result_uid), '-verbose');
+    correct = sum(results.choices == ideal_results.choices) / params.trials;
 end
 
 function lb = lower_bound(variable)
