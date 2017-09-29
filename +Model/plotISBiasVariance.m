@@ -160,7 +160,6 @@ end
 end
 
 function [true_update, sampled_updates] = run(lpo, e, gamma, n_samples, n_repeats, sig_x, sig_e, cat_info)
-
 p_positive = exp(lpo) / (1 + exp(lpo));
 prior_x = mog.create([-1, +1], [sig_x, sig_x], [1-p_positive p_positive]);
 likelihood = mog.create(e, sig_e, 1);
@@ -174,7 +173,8 @@ for r=1:n_repeats
     updates_p = mog.pdf(xs, p_x_Cp);
     updates_m = mog.pdf(xs, p_x_Cm);
     % Compute importance-sampling weights: 1/prior.
-    ws = 1 ./ mog.pdf(xs, prior_x, true);
+    ws = 1 ./ mog.pdf(xs, prior_x);
+    ws = ws / sum(ws);
     sampled_updates(r) = log(dot(ws, updates_p)) - log(dot(ws, updates_m));
 end
 sampled_updates = sampled_updates - gamma * lpo;
@@ -183,5 +183,5 @@ sampled_updates = sampled_updates - gamma * lpo;
 sig_e_C = sqrt(sig_x^2 + sig_e^2);
 p_e_Cp = mog.create([-1, +1], [sig_e_C, sig_e_C], [1-cat_info, cat_info]);
 p_e_Cm = mog.create([-1, +1], [sig_e_C, sig_e_C], [cat_info, 1-cat_info]);
-true_update = log(mog.pdf(e, p_e_Cp) / mog.pdf(e, p_e_Cm));
+true_update = mog.logpdf(e, p_e_Cp) - mog.logpdf(e, p_e_Cm);
 end
