@@ -2,15 +2,14 @@ function [optim_params, optim_correct] = optimizeParams(params, variables, ngrid
 %OPTIMIZEPARAMS find the best sampling params (in terms of percent correct)
 %for the given data-generating params.
 %
-% params = OPTIMIZEPARAMS(trials, frames, params, variables) searches using
-% 'trials' trials per evaluation of correctness. 'variables' is a cell
+% params = OPTIMIZEPARAMS(params, variables) use 'variables' as a cell
 % array of params fields that may be searched, and defaults to just
 % {'p_match'}, but may be any subset of {'p_match', 'var_e', 'gamma',
 % 'prior_C'}
 %
-% OPTIMIZEPARAMS(trials, frames, params, variables, ngrid) performs grid
-% search  where each variable is discretized to 'ngrid' values between its
-% lower and upper bound.
+% OPTIMIZEPARAMS(params, variables, ngrid) performs grid search  where each
+% variable is discretized to 'ngrid' values between its lower and upper
+% bound.
 
 if nargin < 2, variables = {'p_match'}; end
 if nargin < 3, ngrid = 21; end
