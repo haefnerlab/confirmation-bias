@@ -3,6 +3,10 @@ function data = genDataWithParams(params)
 %of real numbers), all with correct choice +1, with statistics matching the
 %given sampling params.
 
+if ~isempty(params.seed)
+    rng(params.seed, 'twister');
+end
+
 % generate the 'center' of each frame according to 'p_match'; with
 % probability 'p_match' it is +1 and with probability '1-p_match' it is -1.
 centers = sign(params.category_info - rand(params.trials, params.frames));
