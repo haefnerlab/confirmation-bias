@@ -19,8 +19,8 @@ end
 if any(strcmpi('gamma', variables))
     prefix = [prefix '_G'];
 end
-if any(strcmpi('prior_D', variables))
-    prefix = [prefix '_PD'];
+if any(strcmpi('prior_C', variables))
+    prefix = [prefix '_PC'];
 end
 end
 

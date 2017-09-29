@@ -18,7 +18,7 @@ function results = runSamplingModel(params)
 %                     C=+1/C=-1 (where walk(1) is the prior, hence size 
 %                     frames+1)
 
-if nargin < 2, params = Model.newSamplingParams(); end
+if nargin < 1, params = Model.newModelParams(); end
 
 data = Model.genDataWithParams(params);
 
@@ -32,6 +32,7 @@ p_match = params.p_match;
 prior_C = params.prior_C;
 samples = params.samples;
 batch = params.batch;
+gamma = params.gamma;
 
 results = struct(...
     'params', params, ...

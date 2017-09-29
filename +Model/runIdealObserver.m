@@ -1,4 +1,4 @@
-function results = runIdealObserver(data, params)
+function results = runIdealObserver(params)
 %RUNIDEALOBSERVER run an ideal observer on generative model specified by
 %params.
 %
@@ -6,46 +6,36 @@ function results = runIdealObserver(data, params)
 % running posterior for the given data. Params are the same as the sampling
 % params, but not all are used. The following are used:
 %
-%   params.var_e   - variance of gaussian p(e|D)
-%   params.p_match - weight of modes, i.e. p(e|D) =
-%                    p_match*N(D,var_e)+(1-p_match)*N(-D,var_e)
-%   params.prior_D - prior probability of D=+1
+%   params.var_e   - variance of gaussian p(e|C)
+%   params.p_match - weight of modes, i.e. p(e|C) =
+%                    p_match*N(C,var_e)+(1-p_match)*N(-C,var_e)
+%   params.prior_C - prior probability of C=+1
 %
 % The return value 'results' is a struct with the following fields:
 %
 %   results.params  - a copy of the 'params' argument
 %   results.choices - [trials x 1] array of {-1, +1} values
-%   results.walk    - [trials x frames+1] posterior log odds of D=+1/D=-1
+%   results.walk    - [trials x frames+1] posterior log odds of C=+1/C=-1
 %                     (where walk(1) is the prior, hence size frames+1)
 
+data = Model.genDataWithParams(params);
 results = struct();
 results.params = params;
 
 p_match = params.p_match;
 stdev = sqrt(params.var_e);
 
-% pDp is a mixture of gaussians, the probability that D is +1, and likewise
-% pDm is for D=-1
-pDp = [+1 stdev p_match; -1 stdev 1-p_match];
-pDm = [-1 stdev p_match; +1 stdev 1-p_match];
+% pCp is a mixture of gaussians, the probability that C is +1, and likewise
+% pCm is for C=-1
+pCp = mog.create([+1 -1], [stdev stdev], [p_match 1-p_match]);
+pCm = mog.create([-1 +1], [stdev stdev], [p_match 1-p_match]);
 
 % Compute log likelihood of each data point
-log_odds = log(arrayfun(@(e) mogpdf(e, pDp), data)) ...
-         - log(arrayfun(@(e) mogpdf(e, pDm), data));
+log_odds = mog.logpdf(data, pCp) - mog.logpdf(data, pCm);
 
 % Walk is the log posterior odds. Log posterior is the cumuluative sum of
 % the log prior and log likelihoods.
-log_prior = log(params.prior_D) - log(1 - params.prior_D);
+log_prior = log(params.prior_C) - log(1 - params.prior_C);
 results.walk = cumsum([log_prior*ones(size(data, 1), 1) log_odds], 2);
 results.choices = sign(results.walk(:, end));
-end
-
-function l = mogpdf(x, mog)
-modes = size(mog, 1);
-if all(mog(:,2) == 0)
-    l_each_mode = 1e4 * mog(:,3) .* (x == mog(:, 1));
-else
-    l_each_mode = normpdf(x * ones(modes, 1), mog(:,1), mog(:,2));
-end
-l = dot(l_each_mode, mog(:,3));
 end

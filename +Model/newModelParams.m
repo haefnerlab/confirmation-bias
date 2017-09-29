@@ -8,6 +8,8 @@ function params = newModelParams(varargin)
 % params.samples set to 10.
 %
 % Param keys are
+% GENERAL CONFIGURATION
+%   save_dir      - directory to save/load precomputed results
 % DATA GENERATION
 %   trials        - number of trials
 %   frames        - number of frames per trial
@@ -28,6 +30,7 @@ function params = newModelParams(varargin)
 %             measurements we get of x "per sample" 
 
 params = struct(...
+    'save_dir', fullfile('+Model', 'saved results'), ...
     'trials', 1000, ...
     'frames', 10, ...
     'category_info', .8, ...
