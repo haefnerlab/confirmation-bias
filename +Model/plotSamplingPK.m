@@ -1,47 +1,63 @@
-function [weights, errors, expfit, fig] = plotSamplingPK(trials, frames, params, pk_hprs, ideal_observer, optimize, optim_grid_size)
-%PLOTSAMPLINGPK(trials, frames, params, [recompute]) run (or load) sampling
-%model and plot PK for the given params.
+function [weights, errors, fig] = plotSamplingPK(params, pk_hprs, ideal_observer, optimize, optim_grid_size)
+%PLOTSAMPLINGPK(params) plot PK of sampling model for given params.
+%
+% [weights, errors, fig] = PLOTSAMPLINGPK(params) returns PK and fig handle
+%
+% ... = PLOTSAMPLINGPK(params, pk_hprs, ideal, optimize, optim_grid)
 
 savedir = fullfile('+Model', 'figures');
 if ~exist(savedir, 'dir'), mkdir(savedir); end
 
-if nargin < 5, ideal_observer = false; end
-if nargin < 6, optimize = {}; end
-if nargin < 7, optim_grid_size = 11; end
+if nargin < 3, ideal_observer = false; end
+if nargin < 4, optimize = {}; end
+if nargin < 5, optim_grid_size = 11; end
 
 optim_prefix = Model.getOptimPrefix(optimize, optim_grid_size);
-[data, data_prefix] = Model.genDataWithParams(trials, frames, params);
 
-string_id = Model.getModelStringID([optim_prefix data_prefix], params);
-
+results_uid = Model.getModelStringID(params, ideal_observer);
 if isempty(optimize)
     if ~ideal_observer
-        [results, data] = Model.loadOrRunSamplingModel(data, data_prefix, params);
+        results = LoadOrRun(@Model.runSamplingModel, {params}, ...
+            fullfile(params.save_dir, results_uid), '-verbose');
     else
-        results = Model.runIdealObserver(data, params);
-        string_id = ['ideal_' string_id];
+        results = LoadOrRun(@Model.runIdealObserver, {params}, ...
+            fullfile(params.save_dir, results_uid), '-verbose');
     end
 else
-    optim_params = Model.loadOrRunOptimizeParams(trials, frames, params, optimize, optim_grid_size);
-    [results, data] = Model.loadOrRunSamplingModel(data, [optim_prefix, data_prefix], optim_params);
+    % Find optimal param settings.
+    [optim_params, ~] = LoadOrRun(@Model.optimizeParams, ...
+        {params, optimize, optim_grid_size}, ...
+        fullfile(params.save_dir, [optim_prefix '_' results_uid]), ...
+        '-verbose');
+    % Get model results at the optimal param settings.
+    results_uid = Model.getModelStringID(optim_params);
+    results = LoadOrRun(@Model.runSamplingModel, {optim_params}, ...
+        fullfile(params.save_dir, results_uid), '-verbose');
 end
-[weights, errors, expfit, pk_id] = Model.loadOrRunModelPK(string_id, data, results, pk_hprs);
-weights = weights(1:end-1);
-errors = errors(1:end-1);
 
-xs = linspace(0, length(weights));
-fit = expfit(1) + expfit(2) * exp(-xs / expfit(3));
+assert(~isempty(results.params.seed), ...
+    'Cannot fit PK without data-generating seed!');
 
+data = Model.genDataWithParams(params);
+[data, choices] = flipTrials(data, results.choices);
+[weights, ~, errors] = CustomRegression.PsychophysicalKernel(data, choices, ...
+    pk_hprs(1), pk_hprs(2), pk_hprs(3));
+
+pk_id = ['PK_' results_uid];
 savefile = fullfile(savedir, [pk_id '.fig']);
 
 fig = figure(); hold on;
-plot(xs, fit, '--r', 'LineWidth', 2);
-errorbar(weights, errors);
-legend('fit', 'weights');
+errorbar(1:params.frames, weights(1:end-1), errors(1:end-1));
+errorbar(params.frames+1, weights(end), errors(end), '-r');
 xlabel('time');
 ylabel('weight');
-ylim(1.1*[-abs(max(weights)+max(errors)) abs(max(weights) + max(errors))]);
-title(['PK ' strrep(pk_id, '_', ' ')]);
 saveas(fig, savefile);
 
+end
+
+function [data, choices] = flipTrials(data, choices)
+flip_indexes = rand(length(choices), 1) < 0.5;
+data(flip_indexes, :) = -data(flip_indexes, :);
+choices = choices == +1;
+choices(flip_indexes) = ~choices(flip_indexes);
 end
