@@ -10,6 +10,12 @@ function [image_array, frame_categories] = GaborStimulus(GaborData, trial)
 % Set RNG state to recreate stimulus for this trail.
 rng(GaborData.seed(trial), 'twister');
 
+if hasfield(GaborData, 'flat_use_old_stimulus_code') && GaborData.flag_use_old_stimulus_code
+    stim_fcn = @bpg.genImagesOld;
+else
+    stim_fcn = @bpg.genImages;
+end
+
 if ~isfield(GaborData, 'iid') || GaborData.iid(trial)
     % Randomly set each frame to match (or mismatch) the correct choice
     % for this trail, using the current 'ratio' to decide.
@@ -35,7 +41,7 @@ end
 
 % Set random seed again to keep match_frames independent of pixel noise.
 rng(GaborData.seed(trial));
-image_array = bpg.genImages(GaborData.number_of_images, GaborData.stim_size, ...
+image_array = stim_fcn(GaborData.number_of_images, GaborData.stim_size, ...
     GaborData.stim_sp_freq_cpp, GaborData.stim_std_sp_freq_cpp, ...
     frame_categories, GaborData.noise(trial), GaborData.annulus);
 

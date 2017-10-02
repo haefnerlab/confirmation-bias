@@ -74,6 +74,7 @@ elseif isequal(GaborData.stair_fn, @Staircase.noise)
 end
 
 % Other misc. user-definable parameters relating to stimulus/rig.
+GaborData.flag_use_old_stimulus_code = false;  % Henceforth all stimuli are generated using 'correct' code.
 GaborData.number_of_images = get_arg('number_of_images', 10);
 GaborData.stimulus_fps = get_arg('stimulus_fps', 12);  % frame rate of stimuli
 GaborData.blank_frames = get_arg('blank_frames', 0);  % number of blank screen frames per stimulus frame
