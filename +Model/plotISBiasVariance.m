@@ -174,7 +174,6 @@ for r=1:n_repeats
     updates_m = mog.pdf(xs, p_x_Cm);
     % Compute importance-sampling weights: 1/prior.
     ws = 1 ./ mog.pdf(xs, prior_x);
-    ws = ws / sum(ws);
     sampled_updates(r) = log(dot(ws, updates_p)) - log(dot(ws, updates_m));
 end
 sampled_updates = sampled_updates - gamma * lpo;

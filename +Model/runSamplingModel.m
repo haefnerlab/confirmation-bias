@@ -76,7 +76,7 @@ for i=1:trials
             xs = mog.sample(Q, batch);
             results.x(i, s_idx:s_idx+batch-1) = xs;
             % Update accumulated evidence using importance-sampling weights
-            ws = 1 ./ mog.pdf(xs, prior); ws = ws / sum(ws);
+            ws = 1 ./ mog.pdf(xs, prior);
             results.w(i, s_idx:s_idx+batch-1) = ws;
             update = log(dot(mog.pdf(xs, p_x_Cp), ws)) - ...
                 log(dot(mog.pdf(xs, p_x_Cm), ws));
