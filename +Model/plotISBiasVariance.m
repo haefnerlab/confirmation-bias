@@ -1,7 +1,8 @@
 function [marg_bias2_results, marg_variance_results, e_values, log_prior_c, gamma_values] = ...
-    plotISBiasVariance(cat_info, sense_info, sampleses, n_gridpts, n_repeats, use_precomputed)
+    plotISBiasVariance(cat_info, sense_info, sampleses, n_gridpts, n_repeats, use_precomputed, verbose)
 
 if nargin < 6, use_precomputed = false; end
+if nargin < 7, verbose = false; end
 
 %% Load or compute results
 savedir = fullfile('+Model', 'saved results');
@@ -26,20 +27,26 @@ for cat_idx=1:length(cat_info)
         sig_e_C = sqrt(sig_x^2 + sig_e^2);
         for samp_idx=1:length(sampleses)
             n_samples = sampleses(samp_idx);
-            savename = sprintf('is_bias_%.2f_%.2f_%d_%d.mat', ...
+            savename = sprintf('is_bias_%.03f_%.03f_%d_%d.mat', ...
                 cat, sens, n_samples, n_gridpts);
             savefile = fullfile(savedir, savename);
             if use_precomputed && exist(savefile, 'file')
+                if verbose, disp(['Loading ' savename]); end
                 load(savefile);
             else
-                bias = zeros(size(pp));
-                variance = zeros(size(pp));
-                parfor i=1:numel(pp)
+                if verbose, disp(['Computing ' savename]); end
+                bias = zeros(size(pp(:,:,1)));
+                variance = zeros(size(bias));
+                parfor i=1:numel(ee(:,:,1))
+                    % In parallel get updates for e/lpo combinations. Gamma
+                    % term added later in vectorized form.
                     [true_update, sampled_updates] = ...
-                        run(pp(i), ee(i), gg(i), n_samples, n_repeats, sig_x, sig_e, cat);
+                        run(pp(i), ee(i), n_samples, n_repeats, sig_x, sig_e, cat);
                     bias(i) = mean(sampled_updates) - true_update;
                     variance(i) = var(sampled_updates, 1);
                 end
+                bias = repmat(bias, [1 1 length(gamma_values)]) - pp .* gg;
+                variance = repmat(variance, [1 1 length(gamma_values)]);
                 save(savefile, 'bias', 'variance');
             end
             [marg_bias2_results(cat_idx, sense_idx, samp_idx, :), marg_variance_results(cat_idx, sense_idx, samp_idx, :)] = ...
@@ -47,30 +54,6 @@ for cat_idx=1:length(cat_info)
         end
     end
 end
-
-%% Compute optimal gamma over category/sensory space separately at each value of 'samples'
-% 
-% mse = marg_bias2_results + marg_variance_results;
-% [~, optim_idx] = min(mse, [], 4);
-% optim_gammas = gamma_values(optim_idx);
-
-%% Plot optimal gamma value as image over cat/sense, one plot per 'samples'
-% cat_tick_idxs = round([1, length(cat_info)/4, length(cat_info)/2, 3*length(cat_info)/4, length(cat_info)]);
-% sense_tick_idxs = round([1, length(sense_info)/4, length(sense_info)/2, 3*length(sense_info)/4, length(sense_info)]);
-% 
-% figure;
-% for samp_idx=1:length(sampleses)
-%     subplot(length(sampleses), 1, samp_idx);
-%     imagesc(optim_gammas(:, :, samp_idx), [0, 1]);
-%     axis image; set(gca, 'YDir', 'normal');
-%     colorbar;
-%     title(['Opt. Gamma (' num2str(sampleses(samp_idx)) ' samples)']);
-%     
-%     set(gca, 'XTick', sense_tick_idxs);
-%     set(gca, 'XTickLabel', sense_info(sense_tick_idxs));
-%     set(gca, 'YTick', cat_tick_idxs);
-%     set(gca, 'YTickLabel', cat_info(cat_tick_idxs));
-% end
 
 %% Plot MSE for low/med/high gamma x low/med/high num samples
 bfig = figure;
@@ -145,21 +128,22 @@ pdf_e = mog.pdf(e_values, prior_e, true);
 % Note: meshgrid creates unintuitive slicing. Despite order of
 % arguments to meshgrid as [ee, pp, gg], ee varies over the second
 % dimension: above, we could do `assert(all(ee(1, :, 1) == e_values));`
-for i=1:n_gridpts
+for gam_idx=1:n_gridpts
     bb = zeros(1, n_gridpts);
     vv = zeros(1, n_gridpts);
-    for j=1:n_gridpts
-        bb(j) = dot(squeeze(bias2(i, :, j)), pdf_e);
-        vv(j) = dot(squeeze(variance(i, :, j)), pdf_e);
+    for lpo_idx=1:n_gridpts
+        bb(lpo_idx) = dot(squeeze(bias2(lpo_idx, :, gam_idx)), pdf_e);
+        vv(lpo_idx) = dot(squeeze(variance(lpo_idx, :, gam_idx)), pdf_e);
     end
     % Simple mean over LPO dimension
-    marg_bias2(i) = mean(bb);
-    marg_variance(i) = mean(vv);
+    % TODO - what is the distribution of LPO values here?
+    marg_bias2(gam_idx) = mean(bb);
+    marg_variance(gam_idx) = mean(vv);
 end
 
 end
 
-function [true_update, sampled_updates] = run(lpo, e, gamma, n_samples, n_repeats, sig_x, sig_e, cat_info)
+function [true_update, sampled_updates] = run(lpo, e, n_samples, n_repeats, sig_x, sig_e, cat_info)
 p_positive = exp(lpo) / (1 + exp(lpo));
 prior_x = mog.create([-1, +1], [sig_x, sig_x], [1-p_positive p_positive]);
 likelihood = mog.create(e, sig_e, 1);
@@ -176,7 +160,6 @@ for r=1:n_repeats
     ws = 1 ./ mog.pdf(xs, prior_x);
     sampled_updates(r) = log(dot(ws, updates_p)) - log(dot(ws, updates_m));
 end
-sampled_updates = sampled_updates - gamma * lpo;
 % true update based on p(e|C=+1), which is a mixture of gaussians with
 % variance sig_x^2 + sig_e^2
 sig_e_C = sqrt(sig_x^2 + sig_e^2);
