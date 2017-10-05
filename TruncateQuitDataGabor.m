@@ -11,6 +11,7 @@ GaborData.step_size (point+1:end) = [];
 
 GaborData.iid(point+1:end) = [];
 GaborData.seed(point+1:end) = [];
+GaborData.checksum(point+1:end) = [];
 GaborData.streak (point+1:end) = [];
 GaborData.reversal_counter (point+1:end) = [];
 GaborData.correct_answer(point+1:end) = [];

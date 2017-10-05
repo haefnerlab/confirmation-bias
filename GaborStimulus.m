@@ -1,4 +1,4 @@
-function [image_array, frame_categories] = GaborStimulus(GaborData, trial)
+function [image_array, frame_categories, checksum] = GaborStimulus(GaborData, trial)
 %GABORSTIMULUS(GaborData, trial) create (or recreate) stimulus frames based
 %on parameters in GaborData and the seed, contrast, ratio, and noise on the
 %given trial. If 'GaborData.iid(trial)' is true, each frame's category is
@@ -10,7 +10,7 @@ function [image_array, frame_categories] = GaborStimulus(GaborData, trial)
 % Set RNG state to recreate stimulus for this trail.
 rng(GaborData.seed(trial), 'twister');
 
-if hasfield(GaborData, 'flat_use_old_stimulus_code') && GaborData.flag_use_old_stimulus_code
+if isfield(GaborData, 'flat_use_old_stimulus_code') && GaborData.flag_use_old_stimulus_code
     stim_fcn = @bpg.genImagesOld;
 else
     stim_fcn = @bpg.genImages;
@@ -49,5 +49,11 @@ image_array = uint8(image_array * GaborData.contrast(trial) + 127);
 
 image_array = min(image_array, 255);
 image_array = max(image_array, 0);
+
+checksum = mean(image_array(:));
+
+if isfield(GaborData, 'checksum') && GaborData.checksum(trial) ~= 0 && GaborData.checksum(trial) ~= checksum
+    error('Stimulus reconstruction checksum failed!');
+end
 
 end

@@ -200,8 +200,9 @@ try
         %% Run this trial
         
         % Generate stimulus for this trial.
-        [image_array, frame_categories] = GaborStimulus(GaborData, trial);
+        [image_array, frame_categories, checksum] = GaborStimulus(GaborData, trial);
         GaborData.frame_categories(trial, :) = frame_categories;
+        GaborData.checksum(trial) = checksum;
         
         % Record answer of the ideal observer.
         GaborData.ideal_frame_signals(trial, :) = ...

@@ -12,6 +12,7 @@ GaborData.step_size = [Data1.step_size, Data2.step_size];
 
 GaborData.iid = [Data1.iid, Data2.iid];
 GaborData.seed = [Data1.seed, Data2.seed];
+GaborData.checksum = [Data1.checksum, Data2.checksum];
 GaborData.streak = [Data1.streak, Data2.streak];
 GaborData.reversal_counter = [Data1.reversal_counter, Data2.reversal_counter ];
 GaborData.correct_answer = [Data1.correct_answer, Data2.correct_answer];

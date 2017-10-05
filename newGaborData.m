@@ -104,6 +104,7 @@ GaborData.ideal_frame_signals = zeros(total_trials, GaborData.number_of_images);
 % properties of random number generators. GaborStimulus will read out these
 % preset values.
 GaborData.seed = randi(1000000000, 1, total_trials);
+GaborData.checksum = zeros(1, total_trials);  % For sanity-checks on seeds
 GaborData.correct_answer = rand(1, total_trials) < .5;
 
 GaborData.current_trial = 0;
