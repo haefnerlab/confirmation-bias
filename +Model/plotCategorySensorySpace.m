@@ -81,9 +81,9 @@ xlabel('Sensory Info');
 ylabel('Category Info');
 title('C-S Space: Percent Correct');
 if ~ideal_observer
-    figname = sprintf('CSSpace_%dx%d_%s_vx%.2f_pC%.2f_gam%.2f_ns%d_b%d.fig', ...
+    figname = sprintf('CSSpace_%dx%d_%s_vx%.2f_pC%.2f_gam%.2f_ns%d_b%d_%d.fig', ...
         params.trials, params.frames, optim_prefix, params.var_x, params.prior_C, ...
-        params.gamma, params.samples, params.batch);
+        params.gamma, params.samples, params.batch, params.importance_norm);
 else
     figname = sprintf('CSSpace_%dx%d_vx%.2f_ideal.fig', params.trials, params.frames, params.var_x);
 end
@@ -104,9 +104,9 @@ for i=1:length(optimize)
     xlabel('Sensory Info');
     ylabel('Category Info');
     title(['C-S Space: Optimized value of ' optimize{i}]);
-    figname = sprintf('CSSpace_optim_%s_%dx%d_vx%.2f_pC%.2f_gam%.2f_ns%d_b%d.fig', ...
+    figname = sprintf('CSSpace_optim_%s_%dx%d_vx%.2f_pC%.2f_gam%.2f_ns%d_b%d_%d.fig', ...
         optimize{i}, params.trials, params.frames, params.var_x, params.prior_C, ...
-        params.gamma, params.samples, params.batch);
+        params.gamma, params.samples, params.batch, params.importance_norm);
     saveas(gcf, fullfile(savedir, figname));
 end
 end
