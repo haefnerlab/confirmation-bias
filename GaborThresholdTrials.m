@@ -25,7 +25,7 @@ Data.step_size = Data.step_size(test_trials);
 
 Data.iid = Data.iid(test_trials);
 Data.seed = Data.seed(test_trials);
-Data.checksum = Data.checksum(test_trials);
+if isfield(Data, 'checksum'), Data.checksum = Data.checksum(test_trials); end
 Data.streak = Data.streak(test_trials);
 Data.reversal_counter = Data.reversal_counter(test_trials);
 Data.correct_answer = Data.correct_answer(test_trials);
