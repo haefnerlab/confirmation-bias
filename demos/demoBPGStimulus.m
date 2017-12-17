@@ -24,7 +24,7 @@ f = figure;
         set(ax1, 'YDir', 'reverse');
         colorbar;
         title('Stimulus');
-        
+
         ax2 = subplot(1, 3, 2);
         imagesc(abs(squeeze(imF)));
         colormap gray;
@@ -34,7 +34,7 @@ f = figure;
         set(ax2, 'YDir', 'reverse');
         colorbar;
         title('Fourier Domain');
-        
+
         ax2 = subplot(1, 3, 3);
         imagesc(abs(squeeze(emp_imF)));
         colormap gray;
@@ -46,9 +46,15 @@ f = figure;
         title('Fourier Domain (with aperture)');
     end
 
+    function randomizeSeed(varargin)
+    seed = randseed;
+    genAndPlot();
+    end
+
 genAndPlot();
 
 %% Create ui controls
+figPos = f.Position;
 
 sliders(1) = uicontrol('Parent', f, 'Style', 'slider', 'min', 0, 'max', 180, 'value', oriDEG, ...
     'Callback', @(es, ed) sliderUpdate('oriDEG', es.Value));
@@ -70,7 +76,10 @@ sliders(5) = uicontrol('Parent', f, 'Style', 'slider', 'min', 0, 'max', 20, 'val
     'Callback', @(es, ed) sliderUpdate('annulus', es.Value));
 labels{5} = 'annulus';
 
-figPos = f.Position;
+buttonsize = [50, 20];
+uicontrol('Parent', f, 'Style', 'pushbutton', 'String', 'New Seed', ...
+    'Callback', @randomizeSeed, 'Position', [figPos(3)/2-buttonsize(1)/2, 65, buttonsize(1), buttonsize(2)]);
+
 sliderWidth = figPos(3) / length(sliders);
 for i=1:length(sliders)
     sliders(i).Position = [sliderWidth*(i-1+.05), 20, sliderWidth*.9, 20];
@@ -81,7 +90,7 @@ end
 
 %% Updater function
     function sliderUpdate(param, value)
-        eval([param ' = ' num2str(value) ';']);
-        genAndPlot();
+    eval([param ' = ' num2str(value) ';']);
+    genAndPlot();
     end
 end
