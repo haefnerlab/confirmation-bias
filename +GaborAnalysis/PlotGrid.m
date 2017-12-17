@@ -83,12 +83,12 @@ for i=1:nS
             case 'sd'
                 [pCL, pCR, pWL, pWR] = Serial_Dependencies(SubjectData);
                 bar([pCL, pCR, pWL, pWR]);
+                plot([1 4], [.5 .5], '--k');
                 xlabel('Previous Trial');
                 ylabel('Prob(choose left)');
-                set(ax, 'XTick', 1:4);
-                set(ax, 'XTickLabel', {'Left+Correct', 'Right+Correct', 'Left+Wrong', 'Right+Wrong'});
-                if exist('xtickangle', 'file'), xtickangle(ax, 25); end
+                set(ax, 'XTick', 1:4, 'XTickLabel', {'L/C', 'R/C', 'L/W', 'R/W'});
                 title('serial dependencies');
+                ylim([0 1]);
             case 'pm'
                 % Get PM fit.
                 [fit_result, uniq_vals, yvals, stderrs] = LoadOrRun(@GaborPsychometric, ...
