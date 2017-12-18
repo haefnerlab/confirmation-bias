@@ -51,13 +51,15 @@ else
     % Initialize vars to the generative values.
     vars0 = cellfun(@(v) params.(v), variables);
     
+    pcwrapper = @(vals) percent_correct(params, variables, vals);
+    
     % Run BADS with lower and upper bounds on variables.
     opts = bads('defaults');
     opts.UncertaintyHandling = 1;
     % bernoulli trials with p=.5 have variance .25. Divide variance by # indpendent trials, then
     % take sqrt for noise 'sigma'
-    opts.NoiseSize = sqrt(.25 / trials);
-    [optim_vars, optim_correct] = bads(@percent_correct, vars0, ...
+    opts.NoiseSize = sqrt(.25 / params.trials);
+    [optim_vars, optim_correct] = bads(pcwrapper, vars0, ...
         cellfun(@lower_bound, variables), cellfun(@upper_bound, variables), [], [], [], opts);
 end
 

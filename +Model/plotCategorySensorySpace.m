@@ -93,7 +93,7 @@ saveas(gcf, fullfile(savedir, figname));
 % Plot value of optimized parameters.
 for i=1:length(optimize)
     figure();
-    imagesc(optim_results{i}); axis image; colorbar;
+    imagesc(optim_results); axis image; colorbar;
     category_tick_indices = round(linspace(1, length(category_infos), min(length(category_infos), 5)));
     sensory_tick_indices = round(linspace(1, length(sensory_infos), min(length(sensory_infos), 5)));
     set(gca, 'YTick', category_tick_indices);
