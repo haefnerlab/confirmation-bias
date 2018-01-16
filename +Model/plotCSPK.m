@@ -21,8 +21,8 @@ if ~exist(fullfile(savedir, figname), 'file')
     close all;
 end
 
-pl_fig = openfig(fullfile(savedir, figname));
-img_ax = findobj(pl_fig, 'Type', 'axes');
+cs_fig = openfig(fullfile(savedir, figname));
+img_ax = findobj(cs_fig, 'Type', 'axes');
 hold(img_ax, 'on');
 
 [x, y] = getpts(img_ax);

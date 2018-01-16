@@ -8,6 +8,7 @@ function [weights, errors, fig] = plotSamplingPK(params, pk_hprs, ideal_observer
 savedir = fullfile('+Model', 'figures');
 if ~exist(savedir, 'dir'), mkdir(savedir); end
 
+if nargin < 2, pk_hprs = [1 0 10]; end
 if nargin < 3, ideal_observer = false; end
 if nargin < 4, optimize = {}; end
 if nargin < 5, optim_grid_size = 11; end
@@ -35,10 +36,7 @@ else
         fullfile(params.save_dir, results_uid), '-verbose');
 end
 
-assert(~isempty(results.params.seed), ...
-    'Cannot fit PK without data-generating seed!');
-
-data = Model.genDataWithParams(params);
+data = Model.genDataWithParams(results.params);
 [data, choices] = flipTrials(data, results.choices);
 [weights, ~, errors] = CustomRegression.PsychophysicalKernel(data, choices, ...
     pk_hprs(1), pk_hprs(2), pk_hprs(3));

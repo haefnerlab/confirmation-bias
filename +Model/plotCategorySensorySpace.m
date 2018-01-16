@@ -28,8 +28,8 @@ parfor i=1:numel(ss)
     % Set data-generating parameters.
     params_copy.sensory_info = ss(i);
     params_copy.category_info = cc(i);
-    % Set variances for this pair of category- & sensory-info values. (That
-    % is, assume that the model 'knows' the environment statistics)
+    % Set variances for this pair of category- & sensory-info values. (That is, assume that the
+    % model 'knows' the environment statistics)
     params_copy.var_e = Model.getEvidenceVariance(ss(i));
     params_copy.p_match = cc(i);
     
