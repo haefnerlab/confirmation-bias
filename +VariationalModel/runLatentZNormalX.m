@@ -37,7 +37,7 @@ for t=1:frames
         mu_x = mu_pos .* pz + mu_neg .* (1 - pz);
         
         % Infer updated p(c|s)
-        log_odds_C = 2 * (2 * pz - 1) .* mu_x / var_x + log_prior_odds_C * (1 - gamma / updates);
+        log_odds_C = 2 * (2 * pz - 1) .* mu_x / var_x + log_prior_odds_C * (1 - gamma);
         
         % Add multiplicative noise to accumulated log probability
         if noise > 0
