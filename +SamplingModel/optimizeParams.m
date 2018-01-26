@@ -1,13 +1,13 @@
 function [optim_params, optim_correct] = optimizeParams(params, variables, ngrid)
-%OPTIMIZEPARAMS find the best sampling params (in terms of percent correct) for the given
-%data-generating params.
+%SAMPLINGMODEL.OPTIMIZEPARAMS find the best sampling params (in terms of percent correct) for the
+%given data-generating params.
 %
-% params = OPTIMIZEPARAMS(params, variables) use 'variables' as a cell array of params fields that
-% may be searched, and defaults to just {'p_match'}, but may be any subset of {'p_match', 'var_e',
-% 'gamma', 'prior_C'}
+% params = SAMPLINGMODEL.OPTIMIZEPARAMS(params, variables) use 'variables' as a cell array of params
+% fields that may be searched, and defaults to just {'p_match'}, but may be any subset of
+% {'p_match', 'var_e', 'gamma', 'prior_C'}
 %
-% OPTIMIZEPARAMS(params, variables, ngrid) performs grid search  where each variable is discretized
-% to 'ngrid' values between its lower and upper bound.
+% SAMPLINGMODEL.OPTIMIZEPARAMS(params, variables, ngrid) performs grid search  where each variable
+% is discretized to 'ngrid' values between its lower and upper bound.
 
 if nargin < 2, variables = {'p_match'}; end
 if nargin < 3, ngrid = 21; end
@@ -78,8 +78,8 @@ function correct = percent_correct(params, variables, values)
     end
     % TODO - smarter resetting of seed
     params.seed = randi(1000000000);
-    results = Model.runSamplingModel(params);
-    ideal_results = Model.runIdealObserver(params);
+    results = SamplingModel.runSamplingModel(params);
+    ideal_results = SamplingModel.runIdealObserver(params);
     correct = sum(results.choices == ideal_results.choices) / params.trials;
 end
 

@@ -1,8 +1,5 @@
-function [ fig ] = plotGammaPK(trials, frames, params, gammas)
+function [ fig ] = plotGammaPK(params, gammas)
 %PLOTGAMMAPK Plot a PK for each of the given gamma values.
-
-% All model versions can use the exact same data.
-[data, data_prefix] = Model.genDataWithParams(trials, frames, params);
 
 weights = cell(size(gammas));
 errors = cell(size(gammas));
@@ -11,11 +8,8 @@ parfor i=1:length(gammas)
     params_copy = params;
     params_copy.gamma = gammas(i);
     
-    results = Model.loadOrRunSamplingModel(data, data_prefix, params_copy);
-
-    [weights{i}, errors{i}] = Model.loadOrRunModelPK(...
-        Model.getModelStringID(data_prefix, params_copy), ...
-        data, results, [1 0 10]);
+    [weights{i}, errors{i}, fig] = SamplingModel.plotSamplingPK(params_copy);
+    close(fig);
 end
 
 %% Plot

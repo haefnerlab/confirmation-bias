@@ -5,7 +5,7 @@ if ~exist(savedir, 'dir'), mkdir(savedir); end
 if nargin < 6, optimize = {}; end
 if nargin < 7, optim_grid_size = 11; end
 
-optim_prefix = Model.getOptimPrefix(optimize, optim_grid_size);
+optim_prefix = SamplingModel.getOptimPrefix(optimize, optim_grid_size);
 
 % Keep in sync with plotCSSpace
 if ~ideal_observer
@@ -17,7 +17,7 @@ else
 end
 
 if ~exist(fullfile(savedir, figname), 'file')
-    Model.plotCategorySensorySpace(category_infos, sensory_infos, params, ideal_observer, optimize, optim_grid_size);
+    SamplingModel.plotCategorySensorySpace(category_infos, sensory_infos, params, ideal_observer, optimize, optim_grid_size);
     close all;
 end
 
@@ -56,8 +56,8 @@ for i=1:length(sens_pts)
     params.category_info = c;
     params.sensory_info = s;
     params.p_match = c;
-    params.var_e = Model.getEvidenceVariance(s);
-    [weights, errors, tmp_fig] = Model.plotSamplingPK(params, pk_hprs, ideal_observer, optimize, optim_grid_size);
+    params.var_e = SamplingModel.getEvidenceVariance(s);
+    [weights, errors, tmp_fig] = SamplingModel.plotSamplingPK(params, pk_hprs, ideal_observer, optimize, optim_grid_size);
     close(tmp_fig);
     hold(pk_ax, 'on');
     errorbar(1:params.frames, weights(1:end-1), errors(1:end-1), 'Color', colors(i,:), 'LineWidth', 2);

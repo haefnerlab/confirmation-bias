@@ -1,5 +1,5 @@
 function plotISWeight(params)
-%MODEL.PLOTISWEIGHT Plot importance-sampling weight as a function of the
+%SAMPLINGMODEL.PLOTISWEIGHT Plot importance-sampling weight as a function of the
 %sampled x value and different running log-posterior values.
 
 sig_x = sqrt(params.var_x);

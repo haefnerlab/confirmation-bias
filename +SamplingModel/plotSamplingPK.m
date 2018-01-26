@@ -13,30 +13,30 @@ if nargin < 3, ideal_observer = false; end
 if nargin < 4, optimize = {}; end
 if nargin < 5, optim_grid_size = 11; end
 
-optim_prefix = Model.getOptimPrefix(optimize, optim_grid_size);
+optim_prefix = SamplingModel.getOptimPrefix(optimize, optim_grid_size);
 
-results_uid = Model.getModelStringID(params, ideal_observer);
+results_uid = SamplingModel.getModelStringID(params, ideal_observer);
 if isempty(optimize)
     if ~ideal_observer
-        results = LoadOrRun(@Model.runSamplingModel, {params}, ...
+        results = LoadOrRun(@SamplingModel.runSamplingModel, {params}, ...
             fullfile(params.save_dir, results_uid), '-verbose');
     else
-        results = LoadOrRun(@Model.runIdealObserver, {params}, ...
+        results = LoadOrRun(@SamplingModel.runIdealObserver, {params}, ...
             fullfile(params.save_dir, results_uid), '-verbose');
     end
 else
     % Find optimal param settings.
-    [optim_params, ~] = LoadOrRun(@Model.optimizeParams, ...
+    [optim_params, ~] = LoadOrRun(@SamplingModel.optimizeParams, ...
         {params, optimize, optim_grid_size}, ...
         fullfile(params.save_dir, [optim_prefix '_' results_uid]), ...
         '-verbose');
     % Get model results at the optimal param settings.
-    results_uid = Model.getModelStringID(optim_params);
-    results = LoadOrRun(@Model.runSamplingModel, {optim_params}, ...
+    results_uid = SamplingModel.getModelStringID(optim_params);
+    results = LoadOrRun(@SamplingModel.runSamplingModel, {optim_params}, ...
         fullfile(params.save_dir, results_uid), '-verbose');
 end
 
-data = Model.genDataWithParams(results.params);
+data = SamplingModel.genDataWithParams(results.params);
 [data, choices] = flipTrials(data, results.choices);
 [weights, ~, errors] = CustomRegression.PsychophysicalKernel(data, choices, ...
     pk_hprs(1), pk_hprs(2), pk_hprs(3));

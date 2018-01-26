@@ -18,7 +18,7 @@ function results = runIdealObserver(params)
 %   results.walk    - [trials x frames+1] posterior log odds of C=+1/C=-1
 %                     (where walk(1) is the prior, hence size frames+1)
 
-data = Model.genDataWithParams(params);
+data = SamplingModel.genDataWithParams(params);
 results = struct();
 results.params = params;
 
