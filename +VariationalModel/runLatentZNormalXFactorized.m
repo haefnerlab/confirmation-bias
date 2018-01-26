@@ -1,4 +1,4 @@
-function [pC, data, choice] = runLatentZNormalX(params)
+function results = runLatentZNormalXFactorized(params)
 % Variational Bayes inference in a model where C=+/-1, p(x|C) is a gaussian centered on +/-C with
 % some probability, and p(s|x) is also gaussian. This version assumes a posterior that factorizes
 % x,z and c, i.e.
@@ -11,17 +11,16 @@ var_x = params.var_x;
 noise = params.noise;
 gamma = params.gamma;
 updates = params.updates;
+pz0 = params.p_match;
 
 pC = zeros(trials, frames + 1);
-pC(1:trials, 1) = params.prior_C;
+pC(:, 1) = params.prior_C;
 
 % Generate the stimulus, all with C=+1 'correct'
 data = SamplingModel.genDataWithParams(params);
 
-pz0 = params.p_match;
-
 for t=1:frames
-    % implement VB to get t+1 probabilities
+    % Implement VB to get t+1 probabilities
     prior_C = pC(:, t); % Use last posterior as new prior
     log_prior_odds_C = log(prior_C) - log(1 - prior_C);
     pz = repmat(pz0, trials, 1);
@@ -33,17 +32,11 @@ for t=1:frames
         % Note: updated var_x is constant: (1/var_x + 1/var_s)^-1
 
         % Infer p(z|x,c)
-        % JEFF
-        % log_odds_z = (2 * priorC - 1) .* mu_x / var_x + log(pz0) - log(1-pz0);
-        % RICHARD
         log_odds_z = 2 * (2 * prior_C - 1) .* mu_x / var_x + log(pz0) - log(1-pz0);
         pz = 1 ./ (1 + exp(-log_odds_z));
         
         % Infer updated p(c|s)
-        % JEFF
-        % log_odds_C = (2 * pz - 1) .* mu_x / var_x + log_prior_odds_C;
-        % RICHARD
-        log_odds_C = 2 * (2 * pz - 1) .* mu_x / var_x + log_prior_odds_C * (1 - gamma);
+        log_odds_C = 2 * (2 * pz - 1) .* mu_x / var_x + log_prior_odds_C * (1 - gamma / updates);
         
         % Add multiplicative noise to accumulated log probability
         if noise > 0
@@ -54,5 +47,10 @@ for t=1:frames
 end
 
 % compute decision variable
-choice = pC(:, frames+1) > .5;
+choices = pC(:, frames+1) > .5;
+
+% Store results in the 'results' struct
+results.log_odds = pC;
+results.params = params;
+results.choices = choices;
 end

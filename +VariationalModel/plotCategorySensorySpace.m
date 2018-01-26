@@ -24,9 +24,9 @@ parfor i=1:numel(ss)
     
     % Run the model
     results_uid = VariationalModel.getModelStringID(params_copy);    
-    [~, ~, choices] = LoadOrRun(@VariationalModel.runLatentZNormalX, {params_copy}, ...
+    results = LoadOrRun(@VariationalModel.runLatentZNormalX, {params_copy}, ...
         fullfile(params.save_dir, results_uid));
-    correct(i) = mean(choices == +1);
+    correct(i) = mean(results.choices == +1);
 end
 
 % Plot percent correct

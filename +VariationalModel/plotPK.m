@@ -9,11 +9,14 @@ if ~exist(savedir, 'dir'), mkdir(savedir); end
 if nargin < 2, pk_hprs = [1 0 10]; end
 
 results_uid = VariationalModel.getModelStringID(params);    
-[~, data, choices] = LoadOrRun(@VariationalModel.runLatentZNormalX, {params}, ...
+results = LoadOrRun(@VariationalModel.runLatentZNormalX, {params}, ...
     fullfile(params.save_dir, results_uid));
 
+% Re-generate data (use 'params' stored in 'results' to match seed properly)
+data = SamplingModel.genDataWithParams(results.params);
+
 % Randomly flip trial signs
-[data, choices] = flipTrials(data, choices);
+[data, choices] = flipTrials(data, results.choices);
 
 % Do regression
 [weights, ~, errors] = CustomRegression.PsychophysicalKernel(data, choices, ...
