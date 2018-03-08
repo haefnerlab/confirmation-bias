@@ -6,8 +6,15 @@ if ~exist(savedir, 'dir'), mkdir(savedir); end
 if nargin < 4, pk_hprs = [1 0 10]; end
 
 % Keep in sync with plotCSSpace
-figname = sprintf('CSSpace_%dx%d_vx%.2f_pC%.2f_u%d_gam%.2f.fig', params.trials, params.frames, ...
-    params.var_x, params.prior_C, params.updates, params.gamma);
+
+if params.noise > 0
+    noise_str = ['_' num2str(params.noise, 2)];
+else
+    noise_str = '';
+end
+
+figname = sprintf('CSSpace_%dx%d_vx%.2f_pC%.2f_u%d_gam%.2f%s.fig', params.trials, params.frames, ...
+    params.var_x, params.prior_C, params.updates, params.gamma, noise_str);
 
 if ~exist(fullfile(savedir, figname), 'file')
     VariationalModel.plotCategorySensorySpace(category_infos, sensory_infos, params);
@@ -49,7 +56,7 @@ for i=1:length(sens_pts)
     params.category_info = c;
     params.sensory_info = s;
     params.p_match = c;
-    params.var_e = SamplingModel.getEvidenceVariance(s);
+    params.var_s = SamplingModel.getEvidenceVariance(s);
     [weights, errors, tmp_fig] = VariationalModel.plotPK(params, pk_hprs);
     close(tmp_fig);
     hold(pk_ax, 'on');

@@ -46,8 +46,14 @@ xlabel('Sensory Info');
 ylabel('Category Info');
 title('C-S Space: Percent Correct');
 
-figname = sprintf('CSSpace_%dx%d_vx%.2f_pC%.2f_u%d_gam%.2f.fig', params.trials, params.frames, ...
-    params.var_x, params.prior_C, params.updates, params.gamma);
+if params.noise > 0
+    noise_str = ['_' num2str(params.noise, 2)];
+else
+    noise_str = '';
+end
+
+figname = sprintf('CSSpace_%dx%d_vx%.2f_pC%.2f_u%d_gam%.2f%s.fig', params.trials, params.frames, ...
+    params.var_x, params.prior_C, params.updates, params.gamma, noise_str);
 saveas(gcf, fullfile(savedir, figname));
 end
 

@@ -50,7 +50,7 @@ end
 choices = pC(:, frames+1) > .5;
 
 % Store results in the 'results' struct
-results.log_odds = pC;
+results.walk = pC;
 results.params = params;
 results.choices = choices;
 end

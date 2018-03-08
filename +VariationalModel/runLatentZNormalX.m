@@ -41,7 +41,7 @@ for t=1:frames
         
         % Add multiplicative noise to accumulated log probability
         if noise > 0
-            log_odds_C = log_odds_C .* exp(noise * randn(trials,1));
+            log_odds_C = log_odds_C .* exp(noise * randn(trials,1) - noise^2/2);
         end
         pC(:, t+1) = 1 ./ (1 + exp(-log_odds_C)); 
     end
@@ -51,7 +51,7 @@ end
 choices = pC(:, frames+1) > .5;
 
 % Store results in the 'results' struct
-results.log_odds = pC;
+results.walk = pC;
 results.params = params;
 results.choices = choices;
 end
