@@ -18,7 +18,7 @@ optim_prefix = SamplingModel.getOptimPrefix(optimize, optim_grid_size);
 results_uid = SamplingModel.getModelStringID(params, ideal_observer);
 if isempty(optimize)
     if ~ideal_observer
-        results = LoadOrRun(@SamplingModel.runSamplingModel, {params}, ...
+        results = LoadOrRun(@SamplingModel.runSamplingModelFast, {params}, ...
             fullfile(params.save_dir, results_uid), '-verbose');
     else
         results = LoadOrRun(@SamplingModel.runIdealObserver, {params}, ...
@@ -32,7 +32,7 @@ else
         '-verbose');
     % Get model results at the optimal param settings.
     results_uid = SamplingModel.getModelStringID(optim_params);
-    results = LoadOrRun(@SamplingModel.runSamplingModel, {optim_params}, ...
+    results = LoadOrRun(@SamplingModel.runSamplingModelFast, {optim_params}, ...
         fullfile(params.save_dir, results_uid), '-verbose');
 end
 

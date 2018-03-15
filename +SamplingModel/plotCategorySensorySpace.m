@@ -40,7 +40,7 @@ parfor i=1:numel(ss)
     results_uid = SamplingModel.getModelStringID(params_copy);
     if isempty(optimize)
         if ~ideal_observer
-            results = LoadOrRun(@SamplingModel.runSamplingModel, {params_copy}, ...
+            results = LoadOrRun(@SamplingModel.runSamplingModelFast, {params_copy}, ...
                 fullfile(params.save_dir, results_uid));
         else
             results = SamplingModel.runIdealObserver(data, params_copy);
@@ -54,7 +54,7 @@ parfor i=1:numel(ss)
         optim_results{i} = cellfun(@(v) optim_params.(v), optimize);
         % Get model results at the optimal param settings.
         best_results_uid = SamplingModel.getModelStringID(optim_params);
-        results = LoadOrRun(@SamplingModel.runSamplingModel, {optim_params}, ...
+        results = LoadOrRun(@SamplingModel.runSamplingModelFast, {optim_params}, ...
             fullfile(params.save_dir, best_results_uid));
     end
     correct(i) = sum(results.choices == +1) / params.trials;

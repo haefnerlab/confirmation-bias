@@ -84,7 +84,7 @@ for i=1:length(variables)
 end
 % TODO - smarter resetting of seed
 params.seed = randi(1000000000);
-results = LoadOrRun(@SamplingModel.runSamplingModel, {params}, ...
+results = LoadOrRun(@SamplingModel.runSamplingModelFast, {params}, ...
     fullfile(params.save_dir, SamplingModel.getModelStringID(params)), '-verbose');
 ideal_results = SamplingModel.runIdealObserver(results.params);
 correct = mean(results.choices == ideal_results.choices);
