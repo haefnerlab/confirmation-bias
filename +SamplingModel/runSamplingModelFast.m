@@ -1,5 +1,5 @@
-function results = runSamplingModel(params)
-%RUNSAMPLINGMODEL run the C->x->e sampling SamplingModel.
+function results = runSamplingModelFast(params)
+%RUNSAMPLINGMODEL run the C->x->e sampling SamplingModel, vectorized over trials for speed.
 %
 % results = RUNSAMPLINGMODEL(params) gets model 'decisions' for an
 % experiment with the given parameters. 'params' controls the behavior of
@@ -47,7 +47,7 @@ prior_x = mog.create([+1 -1], [sig_x sig_x], [p 1-p]);
 p_x_Cp = mog.create([+1 -1], [sig_x sig_x], [p_match 1-p_match]); % 'p' for plus
 p_x_Cm = mog.create([-1 +1], [sig_x sig_x], [p_match 1-p_match]); % 'm' for minus
 
-%% Run sampler vectorized over trials as much as possible
+%% Run sampler vectorized over trials
 
 log_post_odds = repmat(log(prior_C) - log(1-prior_C), trials, 1);
 results.walk(:, 1) = log_post_odds;
@@ -70,11 +70,11 @@ for j=1:frames
             prior = mog.create([+1 -1], [sig_x sig_x], [post_C(t) 1-post_C(t)]);
             Q = mog.prod(likelihood, prior);
             % sample x from Q 'batch' times and record result
-            xs = mog.sample(Q, batch);
-            results.x(t, s_idx:s_idx+batch-1) = xs;
+            xs(t, :) = mog.sample(Q, batch);
+            results.x(t, s_idx:s_idx+batch-1) = xs(t, :);
 
             % Update accumulated evidence using importance-sampling weights
-            ws(t, :) = 1 ./ mog.pdf(xs, prior);
+            ws(t, :) = 1 ./ mog.pdf(xs(t, :), prior);
         end
         if params.importance_norm
             ws = ws ./ sum(ws, 2);
