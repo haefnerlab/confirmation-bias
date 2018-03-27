@@ -17,6 +17,7 @@ function GaborData = ratio(GaborData)
 % GaborData.ratio(trial)
 % GaborData.noise(trial)
 % GaborData.step_size(trial)
+% GaborData.iid(trial)
 
 trial = GaborData.current_trial;
 
@@ -42,20 +43,27 @@ if GaborData.step_size(trial) < GaborData.min_step_size
 end
 
 %% Apply staircase logic
-if GaborData.streak(trial) == 0
-    % Got it wrong - make things easier
-    GaborData.ratio(trial) = ...
-        GaborData.ratio(trial-1) + GaborData.step_size(trial);
-elseif mod(GaborData.streak(trial), 2) == 0
-    % Got 2 right in a row - make things harder
-    GaborData.ratio(trial) = ...
-        GaborData.ratio(trial-1) - GaborData.step_size(trial);
+if trial<=GaborData.trials_per_block * 4
+    if GaborData.streak(trial) == 0
+        % Got it wrong - make things easier
+        GaborData.ratio(trial) = ...
+            GaborData.ratio(trial-1) + GaborData.step_size(trial);
+    elseif mod(GaborData.streak(trial), 2) == 0
+        % Got 2 right in a row - make things harder
+        GaborData.ratio(trial) = ...
+            GaborData.ratio(trial-1) - GaborData.step_size(trial);
+    end
+else
+    GaborData.ratio(trial) = 0.5;
 end
-
 % Apply bounds
 GaborData.ratio(trial) = ...
     max(GaborData.ratio(trial), GaborData.stair_bounds(1));
 GaborData.ratio(trial) = ...
     min(GaborData.ratio(trial), GaborData.stair_bounds(2));
+
+%% In ratio condition, trials always have iid frames.
+
+GaborData.iid(trial) = true;
 
 end

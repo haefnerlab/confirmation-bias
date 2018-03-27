@@ -1,15 +1,14 @@
-function [frame_odds, decision_odds] = GaborLogOdds(frames, left_template, right_template, contrast, noise, p_match)
+function [frame_odds, decision_odds] = GaborLogOdds(frames, left_category, right_category, contrast, noise, p_match)
 %GABORLOGODDS comutes log odds that each frame is from the left or the
 %right template, and the log odds that each frame is drawn from the left or
 %right full-trial choice.
 [n_imgs, h, w] = size(frames);
 flat_frames = reshape(frames, [n_imgs, h*w]);
 
-left_template = 127 + contrast * left_template;
-right_template = 127 + contrast * right_template;
+% TODO - rewrite for fourier domain signal.
 
-diff_left = flat_frames - repmat(left_template(:)', n_imgs, 1);
-diff_right = flat_frames - repmat(right_template(:)', n_imgs, 1);
+diff_left = flat_frames - repmat(left_category(:)', n_imgs, 1);
+diff_right = flat_frames - repmat(right_category(:)', n_imgs, 1);
 
 log_left = -0.5 * sum(diff_left .* diff_left, 2) / noise;
 log_right = -0.5 * sum(diff_right .* diff_right, 2)  / noise;

@@ -9,7 +9,9 @@ GaborData.ratio(point+1:end) = [];
 GaborData.noise(point+1:end) = [];
 GaborData.step_size (point+1:end) = [];
 
+GaborData.iid(point+1:end) = [];
 GaborData.seed(point+1:end) = [];
+if isfield(GaborData, 'checksum'), GaborData.checksum(point+1:end) = []; end
 GaborData.streak (point+1:end) = [];
 GaborData.reversal_counter (point+1:end) = [];
 GaborData.correct_answer(point+1:end) = [];
@@ -18,8 +20,7 @@ GaborData.reaction_time(point+1:end) = [];
 GaborData.choice(point+1:end) = [];
 GaborData.accuracy(point+1:end) = [];
 GaborData.frame_categories(point+1:end,:) = [];
-GaborData.log_frame_odds(point+1:end,:) = [];
-GaborData.log_decision_odds(point+1:end,:) = [];
+GaborData.ideal_frame_signals(point+1:end,:) = [];
 
 GaborData.eye_tracker_points(point+1:end) = [];
 end

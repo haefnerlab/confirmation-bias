@@ -7,8 +7,10 @@ if phase == 0
     expt_type = 'Contrast';
 elseif phase == 1
     expt_type = 'Ratio';
+elseif phase == 2
+    expt_type = 'Noise';
 else
-    error('Expected phase 0 for Contrast or 1 for Ratio');
+    error('Expected phase 0 for Contrast or 1 for Ratio or 2 for Noise');
 end
 
 loaded_one = false;
@@ -38,12 +40,15 @@ for i=1:length(files)
     end
 end
 
-% Add a 'true_ratio' field if phase is 1
-if phase == 1
-    GaborData.true_ratio = sum(GaborData.frame_categories == +1, 2) / 10;
-end
-
 if ~loaded_one
     error('No data found for %s in %s experiment.', subjectID, expt_type);
 end
+
+% Add a 'true_ratio' field for analysis.
+GaborData.true_ratio = sum(GaborData.frame_categories' > 0, 1) / GaborData.number_of_images;
+
+% Add a 'signed noise' and 'signed contrast' field.
+trial_sign = sign(GaborData.true_ratio - 0.5);
+GaborData.sign_noise = trial_sign .* GaborData.noise;
+GaborData.sign_contrast = trial_sign .* GaborData.contrast;
 end

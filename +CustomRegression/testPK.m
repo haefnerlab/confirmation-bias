@@ -1,49 +1,42 @@
-function testPK(trials, ridge, ar1, curvature)
+function testPK(trials, frames, ridge, ar1, curvature)
 
 results_dir = fullfile('+CustomRegression', 'TestResults');
 if ~exist(results_dir, 'dir'), mkdir(results_dir); end
 
-left = 0.1 * round(rand(trials, 120));
-right = 0.1 * round(rand(trials, 120));
+regressors = randn(trials, frames);
 
-regressors = [left right];
-
-    function compare(true_left, true_right, responses, name)
-        [regression_weights, ~, errors, map_ridge, map_ar1, map_curvature] = CustomRegression.PsychophysicalKernel(regressors, responses, ridge, ar1, curvature, true);
+    function compare(true_kernel, responses, name)
+        [regression_weights, ~, errors, map_ridge, map_ar1, map_curvature] = CustomRegression.PsychophysicalKernel(regressors, responses, ridge, ar1, curvature);
         
         fig = figure(); hold on;
-        est_left = regression_weights(1:120);
-        est_right = regression_weights(121:end-1);
-        plot(true_left);
-        plot(-true_right);
-        errorbar(est_left, errors(1:120));
-        errorbar(est_right, errors(121:240));
+        plot(true_kernel, 'Color', 'k', 'LineWidth', 2);
+        errorbar(regression_weights(1:end-1), errors(1:end-1));
+        errorbar(frames+1, regression_weights(end), errors(end), 'Color', 'r', 'LineWidth', 2);
         title(name);
         saveas(fig, fullfile(results_dir, sprintf('%.2f %.2f %.2f %s.fig', map_ridge, map_ar1, map_curvature, name)));
     end
 
-%% First test: flat both
+%% First test: flat kernel
 
-kernel = ones(120, 1);
-responses = left * kernel - right * kernel > 0;
-compare(kernel, kernel, responses, 'ideal');
+kernel = ones(frames, 1);
+responses = get_responses(kernel, regressors);
+compare(kernel, responses, 'ideal');
 
-%% Second test: flat one side, other unused, but a bias
+%% Second test: decreasing PK
 
-kernel = ones(120, 1);
-responses = left * kernel > 6; % 120 / 2 * 0.1
-compare(kernel, zeros(size(kernel)), responses, 'left only');
+kernel = linspace(1, 0, frames)';
+responses = get_responses(kernel, regressors);
+compare(kernel, responses, 'linear decreasing');
 
-%% Third test: decreasing PK
+%% Third test: uses only center values
 
-kernel = linspace(1, 0, 120)';
-responses = left * kernel - right * kernel > 0;
-compare(kernel, kernel, responses, 'linear decreasing');
+kernel = zeros(frames, 1); kernel(end/2-1:end/2+1) = 1;
+responses = get_responses(kernel, regressors);
+compare(kernel, responses, 'middle three');
 
-%% Fourth test: uses only center values
+end
 
-kernel = zeros(120, 1); kernel(end/2-1:end/2+1) = 1;
-responses = left * kernel - right * kernel > 0;
-compare(kernel, kernel, responses, 'middle three');
-
+function responses = get_responses(kernel, regressors)
+p = 1 ./ (1 + exp(-regressors * kernel));
+responses = rand(size(p)) < p;
 end

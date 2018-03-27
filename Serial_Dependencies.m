@@ -1,61 +1,19 @@
-function [prob_correct_left, prob_correct_right, prob_wrong_left, prob_wrong_right, correct_left_trials, correct_right_trials, wrong_left_trials, wrong_right_trials] = Serial_Dependencies(Data)
+function [leftAfterCorrectLeft, leftAfterCorrectRight, leftAfterWrongLeft, leftAfterWrongRight] = Serial_Dependencies(Data)
+choseLeft = Data.choice(1:end-1) == +1;
+choseRight = ~choseLeft;
 
-% Example Input:
-%[LcL, LcR, RcL, RcR, LaL, LaR, RaL, RaR] = Serial_Dependencies(Data)
+wasCorrect = Data.accuracy(1:end-1);
+wasWrong = ~wasCorrect;
 
-trials = length(Data.choice);
+correctLeft = wasCorrect & choseLeft;
+correctRight = wasCorrect & choseRight;
+wrongLeft = wasWrong & choseLeft;
+wrongRight = wasWrong & choseRight;
 
+followedLeft = Data.choice(2:end) == +1;
 
-prob_correct_left = 0;    % Subject chose left correctly on the prev trial
-prob_correct_right = 0;   % Subject chose right correctly on the prev trial
-prob_wrong_left = 0;      % Subject chose left incorrectly on the prev trial
-prob_wrong_right = 0;     % Subject chose right incorrectly on the prev trial
-
-correct_left_trials = 0;
-correct_right_trials = 0;
-wrong_left_trials = 0;
-wrong_right_trials = 0;
-
-
-for t = 2:trials
-    if Data.choice(t-1) == 1 && Data.accuracy(t-1) == 1
-        % Previous trial choice = left and was accurate
-        correct_left_trials = correct_left_trials + 1;
-        if Data.choice(t) == 1
-            % Does the subject chose left this time?
-            prob_correct_left = prob_correct_left + 1;
-        end
-        
-    elseif Data.choice(t-1) == 0 && Data.accuracy(t-1) == 1
-        % Previous trial choice = right and was accurate
-        correct_right_trials = correct_right_trials + 1;
-        if Data.choice(t) == 1
-            % Does the subject chose left this time?
-            prob_correct_right = prob_correct_right + 1;
-        end
-        
-    elseif Data.choice(t-1) == 1 && Data.accuracy(t-1) == 0
-        % Previous trial choice = left and was inaccurate
-        wrong_left_trials = wrong_left_trials + 1;
-        if Data.choice(t) == 1
-            % Does the subject chose left this time?
-            prob_wrong_left = prob_wrong_left + 1;
-        end
-        
-    elseif Data.choice(t-1) == 0 && Data.accuracy(t-1) == 0
-        % Previous trial choice = right and was inaccurate
-        wrong_right_trials = wrong_right_trials + 1;
-        if Data.choice(t) == 1
-            % Does the subject chose left this time?
-            prob_wrong_right = prob_wrong_right + 1;
-        end
-        
-    end
-end
-
-net = sum([prob_correct_left, prob_correct_right, prob_wrong_left, prob_wrong_right]);
-prob_correct_left = prob_correct_left / net;
-prob_correct_right = prob_correct_right / net;
-prob_wrong_left = prob_wrong_left / net;
-prob_wrong_right = prob_wrong_right / net;
+leftAfterCorrectLeft  = sum(correctLeft  & followedLeft) / sum(correctLeft);
+leftAfterCorrectRight = sum(correctRight & followedLeft) / sum(correctRight);
+leftAfterWrongLeft    = sum(wrongLeft    & followedLeft) / sum(wrongLeft);
+leftAfterWrongRight   = sum(wrongRight   & followedLeft) / sum(wrongRight);
 end

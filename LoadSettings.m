@@ -26,6 +26,12 @@ if settings.monitorFPS == 0
     warning('Getting frame rate failed. Assuming exactly 60.0 FPS');
     settings.monitorFPS = 60.0;
 end
+if ~isfield(settings, 'monitorDistInches'), settings.monitorDistInches = 36; end
+if ~isfield(settings, 'monitorSizeInches'), settings.monitorSizeInches = [20.889 11.75]; end
+% calculate pixels per degree.
+settings.monitorPixelsPerInch = settings.screenSize(3) / settings.monitorDistInches(1);
+settings.monitorPixelsPerDegree = tan(deg2rad(1)) * settings.monitorDistInches ...
+    * settings.monitorPixelsPerInch;
 % Interface settings - which keys do what
 if ~isfield(settings, 'keyGo'), settings.keyGo = 'space'; end
 if ~isfield(settings, 'keyGoName'), settings.keyGoName = 'the space bar'; end
