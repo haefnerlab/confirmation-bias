@@ -13,45 +13,54 @@ gamma = params.gamma;
 updates = params.updates;
 pz0 = params.p_match;
 
-pC = zeros(trials, frames + 1);
-pC(:, 1) = params.prior_C;
+log_prior_odds_z = log(pz0) - log(1 - pz0);
+var_xs = var_x + var_s;
+
+log_pC = zeros(trials, frames + 1);
+log_pC(:, 1) = log(params.prior_C) - log(1 - params.prior_C);
 
 % Generate the stimulus, all with C=+1 'correct'
 data = SamplingModel.genDataWithParams(params);
 
 for t=1:frames
     % Implement VB to get t+1 probabilities
-    prior_C = pC(:,t); % Use last posterior as new prior
-    log_prior_odds_C = log(prior_C) - log(1 - prior_C);
+    log_odds_C = log_pC(:,t); % Use last posterior as new prior
     
     for i=1:updates
+        pC = 1 ./ (1 + exp(-log_odds_C));
+        mu_C = 2 * pC - 1; % C is bernoulli but with values {-1, +1}
+        
         % The form of q(x,z) is a mixture of two gaussians corresponding to z = +/-1
-        mu_pos = (data(:,t) * var_x + (2 * prior_C - 1) * var_s) / (var_s + var_x); % z = +1
-        mu_neg = (data(:,t) * var_x - (2 * prior_C - 1) * var_s) / (var_s + var_x); % z = -1
+        mu_x_pos = (data(:,t) * var_x + mu_C * var_s) / var_xs; % z = +1
+        mu_x_neg = (data(:,t) * var_x - mu_C * var_s) / var_xs; % z = -1
 
         % pz is the mass in each mode of the MOG
-        log_odds_z = log(pz0) - log(1-pz0) + 2 * data(:, t) .* (2 * prior_C - 1);
+        log_odds_z = log_prior_odds_z + 2 * data(:, t) .* mu_C / var_xs;
         pz = 1 ./ (1 + exp(-log_odds_z));
         
         % Mean of x is weighted sum of means from each mode
-        mu_x = mu_pos .* pz + mu_neg .* (1 - pz);
+        mu_x = mu_x_pos .* pz + mu_x_neg .* (1 - pz);
         
-        % Infer updated p(c|s)
-        log_odds_C = 2 * (2 * pz - 1) .* mu_x / var_x + log_prior_odds_C * (1 - gamma);
-        
-        % Add multiplicative noise to accumulated log probability
-        if noise > 0
-            log_odds_C = log_odds_C .* exp(noise * randn(trials,1) - noise^2/2);
-        end
-        pC(:, t+1) = 1 ./ (1 + exp(-log_odds_C)); 
+        % Infer updated p(c|s) and loop to next update for x,z now using log_odds_C for q(C)
+        % TODO - for better consistency with sampling model, should we change this update to
+        % log_odds_C on the RHS with gamma? Is 'updates' more like 'batch' or like 'samples'?
+        log_odds_C = 2 * mu_x / var_x + log_pC(:,t);
+    end
+    
+    % Result is 'new' log odds optionally with 'old' log odds subtracted out
+    log_pC(:, t+1) = log_odds_C - gamma * log_pC(:,t);
+    
+    % Add multiplicative noise to accumulated log probability
+    if noise > 0
+        log_pC(:, t+1) = log_pC(:, t+1) .* exp(noise * randn(trials,1) - noise^2/2);
     end
 end
 
 % compute decision variable
-choices = pC(:, frames+1) > .5;
+choices = log_pC(:, frames+1) > 0;
 
 % Store results in the 'results' struct
-results.walk = pC;
+results.walk = log_pC;
 results.params = params;
 results.choices = choices;
 end
