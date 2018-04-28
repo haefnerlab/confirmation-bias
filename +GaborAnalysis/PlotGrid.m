@@ -24,10 +24,13 @@ if ~exist(memodir, 'dir'), mkdir(memodir); end
 
 if phase == 0
     stair_var = 'contrast';
+    stair_var_name = 'contrast';
 elseif phase == 1
     stair_var = 'true_ratio';
+    stair_var_name = 'ratio';
 elseif phase == 2
     stair_var = 'noise';
+    stair_var_name = 'noise';
 else
     error('Expected phase 0 for Contrast or 1 for Ratio or 2 for Noise');
 end
@@ -75,8 +78,9 @@ for i=1:nS
                 if floor > 0
                     line([1 length(trials)], [floor floor], 'LineStyle', '--', 'Color', 'r');
                 end
-                ylabel(stair_var);
+                ylabel(stair_var_name);
                 title([num2str(sum(trials)) '/' num2str(length(trials)) ' trials']);
+                xlim([1 4000]);
             case 'rt'
                 plot(SubjectData.reaction_time);
                 title('reaction time');
@@ -197,7 +201,7 @@ for i=1:nS
                     {SubjectDataThresh, 500, 0, false}, ...
                     fullfile(memodir, memo_name));
                 frames = SubjectData.number_of_images;
-                boundedline(1:frames, median(1:frames)', [U(1:frames)-median(1:frames); median(1:frames)-L(1:frames)]');
+                boundedline(1:frames, median(1:frames)', [U(1:frames)-median(1:frames); median(1:frames)-L(1:frames)]', 'r');
                 errorbar(frames+1, median(end), median(end)-L(end), U(end)-median(end), 'LineWidth', 2, 'Color', 'r');
                 title(['linear temporal kernel (LR)']);
                 set(gca, 'XAxisLocation', 'origin');
@@ -283,7 +287,7 @@ for i=1:nS
                     ksdensity(frame_signals(:));
                 end
                 xlabel('Per Frame Signal');
-                legend(arrayfun(@(s) [stair_var '=' num2str(s)], unq_signals, 'UniformOutput', false));
+                legend(arrayfun(@(s) [stair_var_name '=' num2str(s)], unq_signals, 'UniformOutput', false));
                 axis tight;
         end
         drawnow;
