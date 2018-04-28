@@ -1,4 +1,4 @@
-function [M, L, U, median, weight_matrix] = BootstrapLinearPKFit(Test_Data, bootstrapsteps, signalKappa, binarize)
+function [M, L, U, median, weight_matrix, fits] = BootstrapLinearPKFit(Test_Data, bootstrapsteps, signalKappa, binarize)
 
 if nargin < 3, signalKappa = 0; end
 if nargin < 4, binarize = false; end 
@@ -11,6 +11,7 @@ end
 [trials, frames] = size(frame_signals);
 weight_matrix = zeros(bootstrapsteps, frames);
 biases = zeros(bootstrapsteps, 1);
+fits = zeros(bootstrapsteps, 3);
 
 parfor i=1:bootstrapsteps
     % Randomly resample trials with replacement
@@ -20,6 +21,7 @@ parfor i=1:bootstrapsteps
    
     % Temporal PK regression
     sob = CustomRegression.LinearPK(boot_signals, boot_choices, 1);
+    fits(i, :) = sob;
     weight_matrix(i, :) = sob(2) + (0:frames-1) * sob(1); 
     biases(i) = sob(3);
 end
