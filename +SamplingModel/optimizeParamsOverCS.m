@@ -33,7 +33,7 @@ parfor idx=1:numel(variables_grid{1}) * numel(ss)
     params_copy.category_info = cc(cs_i);
     % Set variances for this pair of category- & sensory-info values. (That is, assume that the
     % model 'knows' the environment statistics)
-    params_copy.var_e = SamplingModel.getEvidenceVariance(ss(cs_i));
+    params_copy.var_s = SamplingModel.getEvidenceVariance(ss(cs_i));
     params_copy.p_match = cc(cs_i);
     
     % Look up value for each grid-search variable based on vg_i.
@@ -93,7 +93,7 @@ end
 function lb = lower_bound(variable)
 if strcmpi(variable, 'p_match')
     lb = 0.5;
-elseif strcmpi(variable, 'var_e')
+elseif strcmpi(variable, 'var_s')
     lb = 0;
 elseif strcmpi(variable, 'gamma')
     lb = 0;
@@ -105,7 +105,7 @@ end
 function ub = upper_bound(variable)
 if strcmpi(variable, 'p_match')
     ub = 1;
-elseif strcmpi(variable, 'var_e')
+elseif strcmpi(variable, 'var_s')
     ub = inf;
 elseif strcmpi(variable, 'gamma')
     ub = 1;

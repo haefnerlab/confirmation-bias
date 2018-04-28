@@ -56,7 +56,7 @@ for i=1:length(sens_pts)
     params.category_info = c;
     params.sensory_info = s;
     params.p_match = c;
-    params.var_e = SamplingModel.getEvidenceVariance(s);
+    params.var_s = SamplingModel.getEvidenceVariance(s);
     [weights, errors, tmp_fig] = SamplingModel.plotSamplingPK(params, pk_hprs, ideal_observer, optimize, optim_grid_size);
     close(tmp_fig);
     hold(pk_ax, 'on');

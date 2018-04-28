@@ -1,4 +1,4 @@
-function [marg_bias2_results, marg_variance_results, e_values, log_prior_c, gamma_values] = ...
+function [marg_bias2_results, marg_variance_results, s_values, log_prior_c, gamma_values] = ...
     plotISBiasVariance(cat_info, sense_info, sampleses, n_gridpts, n_repeats, use_precomputed, verbose)
 
 if nargin < 6, use_precomputed = false; end
@@ -8,9 +8,9 @@ if nargin < 7, verbose = false; end
 savedir = fullfile('+Model', 'saved results');
 
 log_prior_c = linspace(-2, 2, n_gridpts);
-e_values = linspace(-2, 2, n_gridpts);
+s_values = linspace(-2, 2, n_gridpts);
 gamma_values = linspace(0, 1, n_gridpts);
-[ee, pp, gg] = meshgrid(e_values, log_prior_c, gamma_values);
+[ss, pp, gg] = meshgrid(s_values, log_prior_c, gamma_values);
 
 % Results will be cat points x sense points x samples x gammas
 res_size = [length(cat_info) length(sense_info) length(sampleses) n_gridpts];
@@ -23,8 +23,8 @@ for cat_idx=1:length(cat_info)
     cat = cat_info(cat_idx);
     for sense_idx=1:length(sense_info)
         sens = sense_info(sense_idx);
-        sig_e = sqrt(SamplingModel.getEvidenceVariance(sens));
-        sig_e_C = sqrt(sig_x^2 + sig_e^2);
+        sig_s = sqrt(SamplingModel.getEvidenceVariance(sens));
+        sig_s_C = sqrt(sig_x^2 + sig_s^2);
         for samp_idx=1:length(sampleses)
             n_samples = sampleses(samp_idx);
             savename = sprintf('is_bias_%.03f_%.03f_%d_%d.mat', ...
@@ -37,11 +37,11 @@ for cat_idx=1:length(cat_info)
                 if verbose, disp(['Computing ' savename]); end
                 bias = zeros(size(pp(:,:,1)));
                 variance = zeros(size(bias));
-                parfor i=1:numel(ee(:,:,1))
-                    % In parallel get updates for e/lpo combinations. Gamma
+                parfor i=1:numel(ss(:,:,1))
+                    % In parallel get updates for s/lpo combinations. Gamma
                     % term added later in vectorized form.
                     [true_update, sampled_updates] = ...
-                        run(pp(i), ee(i), n_samples, n_repeats, sig_x, sig_e, cat);
+                        run(pp(i), ss(i), n_samples, n_repeats, sig_x, sig_s, cat);
                     bias(i) = mean(sampled_updates) - true_update;
                     variance(i) = var(sampled_updates, 1);
                 end
@@ -50,7 +50,7 @@ for cat_idx=1:length(cat_info)
                 save(savefile, 'bias', 'variance');
             end
             [marg_bias2_results(cat_idx, sense_idx, samp_idx, :), marg_variance_results(cat_idx, sense_idx, samp_idx, :)] = ...
-                get_marginal_results(bias.^2, variance, sig_e_C);
+                get_marginal_results(bias.^2, variance, sig_s_C);
         end
     end
 end
@@ -113,27 +113,27 @@ end
 
 end
 
-function [marg_bias2, marg_variance] = get_marginal_results(bias2, variance, sig_e_C)
-% Marginalize results over cat/sense distribution of e, and take mean over
+function [marg_bias2, marg_variance] = get_marginal_results(bias2, variance, sig_s_C)
+% Marginalize results over cat/sense distribution of s, and take mean over
 % possible values of LPO. Returns one result per 'gamma' value.
 
 n_gridpts = size(bias2, 1);
 marg_bias2 = zeros(1, n_gridpts);
 marg_variance = zeros(1, n_gridpts);
 
-e_values = linspace(-2, 2, n_gridpts);
-prior_e = mog.create([+1, -1], [sig_e_C, sig_e_C], [.5 .5]);
-pdf_e = mog.pdf(e_values, prior_e, true);
+s_values = linspace(-2, 2, n_gridpts);
+prior_s = mog.create([+1, -1], [sig_s_C, sig_s_C], [.5 .5]);
+pdf_s = mog.pdf(s_values, prior_s, true);
 
 % Note: meshgrid creates unintuitive slicing. Despite order of
-% arguments to meshgrid as [ee, pp, gg], ee varies over the second
-% dimension: above, we could do `assert(all(ee(1, :, 1) == e_values));`
+% arguments to meshgrid as [ss, pp, gg], ss varies over the second
+% dimension: above, we could do `assert(all(ss(1, :, 1) == s_values));`
 for gam_idx=1:n_gridpts
     bb = zeros(1, n_gridpts);
     vv = zeros(1, n_gridpts);
     for lpo_idx=1:n_gridpts
-        bb(lpo_idx) = dot(squeeze(bias2(lpo_idx, :, gam_idx)), pdf_e);
-        vv(lpo_idx) = dot(squeeze(variance(lpo_idx, :, gam_idx)), pdf_e);
+        bb(lpo_idx) = dot(squeeze(bias2(lpo_idx, :, gam_idx)), pdf_s);
+        vv(lpo_idx) = dot(squeeze(variance(lpo_idx, :, gam_idx)), pdf_s);
     end
     % Simple mean over LPO dimension
     % TODO - what is the distribution of LPO values here?
@@ -143,10 +143,10 @@ end
 
 end
 
-function [true_update, sampled_updates] = run(lpo, e, n_samples, n_repeats, sig_x, sig_e, cat_info)
+function [true_update, sampled_updates] = run(lpo, s, n_samples, n_repeats, sig_x, sig_s, cat_info)
 p_positive = exp(lpo) / (1 + exp(lpo));
 prior_x = mog.create([-1, +1], [sig_x, sig_x], [1-p_positive p_positive]);
-likelihood = mog.create(e, sig_e, 1);
+likelihood = mog.create(s, sig_s, 1);
 Q = mog.prod(likelihood, prior_x);
 sampled_updates = zeros(1, n_repeats);
 p_x_Cp = mog.create([-1, +1], [sig_x, sig_x], [1-cat_info, cat_info]);
@@ -160,10 +160,10 @@ for r=1:n_repeats
     ws = 1 ./ mog.pdf(xs, prior_x);
     sampled_updates(r) = log(dot(ws, updates_p)) - log(dot(ws, updates_m));
 end
-% true update based on p(e|C=+1), which is a mixture of gaussians with
-% variance sig_x^2 + sig_e^2
-sig_e_C = sqrt(sig_x^2 + sig_e^2);
-p_e_Cp = mog.create([-1, +1], [sig_e_C, sig_e_C], [1-cat_info, cat_info]);
-p_e_Cm = mog.create([-1, +1], [sig_e_C, sig_e_C], [cat_info, 1-cat_info]);
-true_update = mog.logpdf(e, p_e_Cp) - mog.logpdf(e, p_e_Cm);
+% true update based on p(s|C=+1), which is a mixture of gaussians with
+% variance sig_x^2 + sig_s^2
+sig_s_C = sqrt(sig_x^2 + sig_s^2);
+p_s_Cp = mog.create([-1, +1], [sig_s_C, sig_s_C], [1-cat_info, cat_info]);
+p_s_Cm = mog.create([-1, +1], [sig_s_C, sig_s_C], [cat_info, 1-cat_info]);
+true_update = mog.logpdf(s, p_s_Cp) - mog.logpdf(s, p_s_Cm);
 end

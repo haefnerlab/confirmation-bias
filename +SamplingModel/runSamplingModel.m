@@ -1,5 +1,5 @@
 function results = runSamplingModel(params)
-%RUNSAMPLINGMODEL run the C->x->e sampling SamplingModel.
+%RUNSAMPLINGMODEL run the C->x->s sampling SamplingModel.
 %
 % results = RUNSAMPLINGMODEL(params) gets model 'decisions' for an
 % experiment with the given parameters. 'params' controls the behavior of
@@ -26,7 +26,7 @@ data = SamplingModel.genDataWithParams(params);
 
 [trials, frames] = size(data);
 
-sig_e = sqrt(params.var_e);
+sig_s = sqrt(params.var_s);
 sig_x = sqrt(params.var_x);
 p_match = params.p_match;
 prior_C = params.prior_C;
@@ -64,12 +64,12 @@ for i=1:trials
     s_idx = 2;
     w_idx = 2;
     for j=1:frames
-        e = data(i, j);
+        s = data(i, j);
         for s=1:samples
-            % post_C is current estimate of p(C=+1|e_1,...,e_j-1)
+            % post_C is current estimate of p(C=+1|s_1,...,s_j-1)
             post_C = exp(log_post_odds) / (1 + exp(log_post_odds));
             % Construct Q distribution to draw samples from
-            likelihood = mog.create(e, sig_e, 1);
+            likelihood = mog.create(s, sig_s, 1);
             prior = mog.create([+1 -1], [sig_x sig_x], [post_C 1-post_C]);
             Q = mog.prod(likelihood, prior);
             % sample x from Q 'batch' times and record result

@@ -12,7 +12,7 @@ function params = newModelParams(varargin)
 %   trials        - number of trials
 %   frames        - number of frames per trial
 %   category_info - probability that x matches c (or AROC of C from x in the gaussian model, determining var_x)
-%   sensory_info  - probability of recovering x from e (see SamplingModel.getEvidenceVariance)
+%   sensory_info  - probability of recovering x from s (see SamplingModel.getEvidenceVariance)
 %   seed          - seed for generating data
 % VARIATIONAL MODEL
 %   model_fun - either @VariationalModel.runLatentZNormalX or ...Factorized

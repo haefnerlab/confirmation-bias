@@ -6,9 +6,9 @@ function results = runIdealObserver(params)
 % posterior for the given data. Params are the same as the sampling params,
 % but not all are used. The following are used:
 %
-%   params.var_e   - variance of gaussian p(e|C)
-%   params.p_match - weight of modes, i.e. p(e|C) =
-%                    p_match*N(C,var_e)+(1-p_match)*N(-C,var_e)
+%   params.var_s   - variance of gaussian p(s|C)
+%   params.p_match - weight of modes, i.e. p(s|C) =
+%                    p_match*N(C,var_s)+(1-p_match)*N(-C,var_s)
 %   params.prior_C - prior probability of C=+1
 %
 % The return value 'results' is a struct with the following fields:
@@ -23,7 +23,7 @@ results = struct();
 results.params = params;
 
 p_match = params.p_match;
-stdev = sqrt(params.var_e);
+stdev = sqrt(params.var_s);
 
 % pCp is a mixture of gaussians, the probability that C is +1, and likewise
 % pCm is for C=-1

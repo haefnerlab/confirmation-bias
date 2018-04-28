@@ -13,7 +13,7 @@ end
 if any(strcmpi('p_match', variables))
     prefix = [prefix '_PM'];
 end
-if any(strcmpi('var_e', variables))
+if any(strcmpi('var_s', variables))
     prefix = [prefix '_VE'];
 end
 if any(strcmpi('gamma', variables))

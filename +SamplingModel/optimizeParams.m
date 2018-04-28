@@ -4,7 +4,7 @@ function [optim_params, optim_correct] = optimizeParams(params, variables, ngrid
 %
 % params = SAMPLINGMODEL.OPTIMIZEPARAMS(params, variables) use 'variables' as a cell array of params
 % fields that may be searched, and defaults to just {'p_match'}, but may be any subset of
-% {'p_match', 'var_e', 'gamma', 'prior_C'}
+% {'p_match', 'var_s', 'gamma', 'prior_C'}
 %
 % SAMPLINGMODEL.OPTIMIZEPARAMS(params, variables, ngrid) performs grid search  where each variable
 % is discretized to 'ngrid' values between its lower and upper bound.
@@ -86,7 +86,7 @@ end
 function lb = lower_bound(variable)
 if strcmpi(variable, 'p_match')
     lb = 0.5;
-elseif strcmpi(variable, 'var_e')
+elseif strcmpi(variable, 'var_s')
     lb = 0;
 elseif strcmpi(variable, 'gamma')
     lb = 0;
@@ -98,7 +98,7 @@ end
 function ub = upper_bound(variable)
 if strcmpi(variable, 'p_match')
     ub = 1;
-elseif strcmpi(variable, 'var_e')
+elseif strcmpi(variable, 'var_s')
     ub = inf;
 elseif strcmpi(variable, 'gamma')
     ub = 1;
