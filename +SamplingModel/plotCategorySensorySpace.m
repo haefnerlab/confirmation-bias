@@ -43,7 +43,7 @@ parfor i=1:numel(ss)
             results = LoadOrRun(@SamplingModel.runSamplingModelFast, {params_copy}, ...
                 fullfile(params.save_dir, results_uid));
         else
-            results = SamplingModel.runIdealObserver(data, params_copy);
+            results = SamplingModel.runIdealObserver(params_copy);
         end
     else
         % Find optimal param settings.
