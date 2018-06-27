@@ -84,6 +84,10 @@ for i=1:trials
             update = log(dot(mog.pdf(xs, p_x_Cp), ws)) - ...
                 log(dot(mog.pdf(xs, p_x_Cm), ws));
             log_post_odds = (1 - gamma / samples) * log_post_odds + update / samples;
+            % Add multiplicative noise to accumulated log probability
+            if noise > 0
+                log_post_odds = log_post_odds * exp(noise * randn - noise^2/2);
+            end
             % record the posterior log odds in results.walk
             results.walk(i, w_idx) = log_post_odds;
             % increment walk and sample index

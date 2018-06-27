@@ -1,4 +1,4 @@
-function results = runSamplingModelFast(params)
+function results = runSamplingModelFast(params, data)
 %RUNSAMPLINGMODEL run the C->x->s sampling SamplingModel, vectorized over trials for speed.
 %
 % results = RUNSAMPLINGMODEL(params) gets model 'decisions' for an
@@ -20,7 +20,9 @@ function results = runSamplingModelFast(params)
 
 if nargin < 1, params = SamplingModel.newModelParams(); end
 
-data = SamplingModel.genDataWithParams(params);
+if ~exist('data', 'var')
+    data = SamplingModel.genDataWithParams(params);
+end
 
 %% Initialize return values
 
@@ -33,6 +35,7 @@ prior_C = params.prior_C;
 samples = params.samples;
 batch = params.batch;
 gamma = params.gamma;
+noise = params.noise;
 
 results = struct(...
     'params', params, ...
@@ -82,6 +85,10 @@ for j=1:frames
         results.w(:, s_idx:s_idx+batch-1) = ws;
         update = log(sum(mog.pdf(xs, p_x_Cp) .* ws, 2)) - log(sum(mog.pdf(xs, p_x_Cm) .* ws, 2));
         log_post_odds = (1 - gamma / samples) * log_post_odds + update / samples;
+        % Add multiplicative noise to accumulated log probability
+        if noise > 0
+            log_post_odds = log_post_odds .* exp(noise * randn(trials,1) - noise^2/2);
+        end
         % record the posterior log odds in results.walk
         results.walk(:, w_idx) = log_post_odds;
         % increment walk and sample index
