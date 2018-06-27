@@ -186,6 +186,9 @@ for i=1:nS
                 frames = SubjectData.number_of_images;
                 boundedline(1:frames, median(1:frames)', [U(1:frames)-median(1:frames); median(1:frames)-L(1:frames)]');
                 errorbar(frames+1, median(end), median(end)-L(end), U(end)-median(end), 'LineWidth', 2, 'Color', 'r');
+                expfit = CustomRegression.expFit(median(1:frames), (U(1:frames)-L(1:frames))/2);
+                modelFit = expfit(1)*exp((0:frames-1)*expfit(2));
+                plot(1:frames, modelFit, 'Color', 'k');
                 title(['temporal kernel (LR)']);
                 set(gca, 'XAxisLocation', 'origin');
                 set(gca, 'XTick', [1 frames]);
