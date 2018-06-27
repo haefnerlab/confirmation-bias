@@ -145,7 +145,7 @@ if ~isempty(GaborData.model_observer) && ~any(strcmpi(GaborData.model_observer, 
     warning('%s is not a known model observer', GaborData.model_observer);
 end
 
-if streq(GaborData.model_observer, 'bernoulli')
+if strcmp(GaborData.model_observer, 'bernoulli')
     GaborData.sigmoid_slope = get_arg('sigmoid_slope', 20);
     default_pk = ones(1, GaborData.number_of_images) / GaborData.number_of_images;
     GaborData.model_pk = get_arg('model_pk', default_pk);

@@ -40,7 +40,7 @@ else
 end
 
 % Set random seed again to keep match_frames independent of pixel noise.
-rng(GaborData.seed(trial));
+rng(GaborData.seed(trial), 'twister');
 image_array = stim_fcn(GaborData.number_of_images, GaborData.stim_size, ...
     GaborData.stim_sp_freq_cpp, GaborData.stim_std_sp_freq_cpp, ...
     frame_categories, GaborData.noise(trial), GaborData.annulus);
