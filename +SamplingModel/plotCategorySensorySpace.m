@@ -1,8 +1,8 @@
-function [correct, pk_ab, pk_tau] = plotCategorySensorySpace(category_infos, sensory_infos, params, ideal_observer, optimize, optim_grid_size)
+function [correct] = plotCategorySensorySpace(category_infos, sensory_infos, params, ideal_observer, optimize, optim_grid_size)
 %PLOTCATEGORYSENSORYSPACE make category_info vs sensory_info plots for the
 %given params.
 
-savedir = fullfile('+Model', 'figures');
+savedir = fullfile('+SamplingModel', 'figures');
 if ~exist(savedir, 'dir'), mkdir(savedir); end
 
 if nargin < 4, ideal_observer = false; end
@@ -17,8 +17,6 @@ end
 
 % Preallocate return values.
 correct = nan(size(ss));
-pk_ab = nan(size(ss));
-pk_tau = nan(size(ss));
 optim_results = cell(numel(ss), 1);
 
 optim_prefix = SamplingModel.getOptimPrefix(optimize, optim_grid_size);
@@ -81,9 +79,9 @@ xlabel('Sensory Info');
 ylabel('Category Info');
 title('C-S Space: Percent Correct');
 if ~ideal_observer
-    figname = sprintf('CSSpace_%dx%d_%s_vx%.2f_pC%.2f_gam%.2f_ns%d_b%d_%d.fig', ...
+    figname = sprintf('CSSpace_%dx%d_%s_vx%.2f_pC%.2f_gam%.2f_ns%d_nb%d_%d_%.2e.fig', ...
         params.trials, params.frames, optim_prefix, params.var_x, params.prior_C, ...
-        params.gamma, params.samples, params.batch, params.importance_norm);
+        params.gamma, params.samples, params.batch, params.importance_norm, params.noise);
 else
     figname = sprintf('CSSpace_%dx%d_vx%.2f_ideal.fig', params.trials, params.frames, params.var_x);
 end
@@ -104,9 +102,9 @@ for i=1:length(optimize)
     xlabel('Sensory Info');
     ylabel('Category Info');
     title(['C-S Space: Optimized value of ' optimize{i}]);
-    figname = sprintf('CSSpace_optim_%s_%dx%d_vx%.2f_pC%.2f_gam%.2f_ns%d_b%d_%d.fig', ...
+    figname = sprintf('CSSpace_optim_%s_%dx%d_vx%.2f_pC%.2f_gam%.2f_ns%d_nb%d_%d_%.2e.fig', ...
         optimize{i}, params.trials, params.frames, params.var_x, params.prior_C, ...
-        params.gamma, params.samples, params.batch, params.importance_norm);
+        params.gamma, params.samples, params.batch, params.importance_norm, params.noise);
     saveas(gcf, fullfile(savedir, figname));
 end
 end
