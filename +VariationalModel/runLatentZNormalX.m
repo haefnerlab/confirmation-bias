@@ -1,8 +1,12 @@
-function results = runLatentZNormalX(params)
+function results = runLatentZNormalX(params, data)
 % Variational Bayes inference in a model where C=+/-1, p(x|C) is a gaussian centered on +/-C with
 % some probability, and p(s|x) is also gaussian. This version assumes a posterior that factorizes 
 % x,z from c, i.e.
 %    q(x,z,c)=q(x,z)*q(c)
+
+if ~exist('data', 'var')
+    data = SamplingModel.genDataWithParams(params);
+end
 
 trials = params.trials;
 frames = params.frames;
@@ -19,8 +23,13 @@ var_xs = var_x + var_s;
 log_pC = zeros(trials, frames + 1);
 log_pC(:, 1) = log(params.prior_C) - log(1 - params.prior_C);
 
-% Generate the stimulus, all with C=+1 'correct'
-data = SamplingModel.genDataWithParams(params);
+mu_x_trace = zeros(trials, frames + 1, 2);
+log_odds_z_trace = zeros(trials, frames + 1);
+
+pC = 1 ./ (1 + exp(-log_pC(:, 1)));
+mu_x_trace(:, 1, 1) = 2 * pC - 1;
+mu_x_trace(:, 1, 2) = 1 - 2 * pC;
+log_odds_z_trace(:, 1) = log_prior_odds_z;
 
 for t=1:frames
     % Implement VB to get t+1 probabilities
@@ -49,6 +58,10 @@ for t=1:frames
     
     % Result is 'new' log odds optionally with 'old' log odds subtracted out
     log_pC(:, t+1) = log_odds_C - gamma * log_pC(:,t);
+
+    % Store 'trace' of x and z
+    mu_x_trace(:, t+1, :) = [mu_x_pos(:) mu_x_neg(:)];
+    log_odds_z_trace(:, t+1) = log_odds_z;
     
     % Add multiplicative noise to accumulated log probability
     if noise > 0

@@ -21,7 +21,7 @@ function params = newModelParams(varargin)
 %   prior_C - prior probability of C=+1
 %   gamma   - value in [0,1]; how much the bias is 'subtracted out'.
 %   updates - number of 'updates' per frame
-%   noise   - amount of noise added to accumulated log probabilities so far
+%   noise   - amount of noise added, each frame, to accumulated log probabilities so far
 
 params = struct(...
     'save_dir', fullfile('+VariationalModel', 'saved results'), ...
