@@ -46,7 +46,7 @@ elseif isequal(pk_colormap, 'beta')
     range = [-1 1];
     cmap = AdvancedColormap('rwb');
     colors = zeros(npts, 3);
-    set(pk_ax, 'Color', .4 * ones(1,3))
+    set(pk_ax, 'Color', .4*ones(1,3))
 else
     colors = pk_colormap(npts);
 end
@@ -80,5 +80,19 @@ yl = ylim;
 if yl(1) > 0
     ylim(pk_ax, [0 inf]);
 end
+
+%% Plot formatting
+
+xlabel(img_ax, []);
+ylabel(img_ax, []);
+title(img_ax, []);
+set(cs_fig, 'PaperSize', [4 4], 'PaperPosition', [0 0 4 4]);
+saveas(cs_fig, 'tmp_cspk_pts.fig');
+saveas(cs_fig, 'tmp_cspk_pts.pdf');
+
+set(pk_ax, 'XTick', [], 'YTick', [0 1], 'XAxisLocation', 'origin');
+set(pk_fig, 'PaperSize', [6 4], 'PaperPosition', [0 0 6 4]);
+saveas(pk_fig, 'tmp_cspk_lines.fig');
+saveas(pk_fig, 'tmp_cspk_lines.pdf');
 
 end
