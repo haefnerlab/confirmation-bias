@@ -42,6 +42,11 @@ if nargin < 8
     % create pk_colormap that is dark blue -> dark red
     fade = linspace(0, 1, npts)';
     colors = [fade*170/255, zeros(size(fade)), (1-fade)*170/255];
+elseif isequal(pk_colormap, 'beta')
+    range = [-1 1];
+    cmap = AdvancedColormap('rwb');
+    colors = zeros(npts, 3);
+    set(pk_ax, 'Color', .4 * ones(1,3))
 else
     colors = pk_colormap(npts);
 end
@@ -51,16 +56,22 @@ for i=1:length(sens_pts)
     c = cat_pts(i);
     [~, il] = min(abs(sensory_infos - s));
     [~, ip] = min(abs(category_infos - c));
-    scatter(img_ax, il, ip, 50, colors(i,:), 'filled');
     
     params.category_info = c;
     params.sensory_info = s;
     params.p_match = c;
     params.var_s = SamplingModel.getEvidenceVariance(s);
     [weights, errors, tmp_fig] = SamplingModel.plotSamplingPK(params, pk_hprs, ideal_observer, optimize, optim_grid_size);
-%     errors = errors / max(weights);
-%     weights = weights / max(weights);
     close(tmp_fig);
+    
+    if isequal(pk_colormap, 'beta')
+        expfit = CustomRegression.expFit(weights, errors);
+        iBeta = round(interp1(range, [1 size(cmap,1)], expfit(2), 'linear', 'extrap'));
+        iBeta = min(max(iBeta, 1), size(cmap,1));
+        colors(i, :) = cmap(iBeta, :);
+    end
+    
+    scatter(img_ax, il, ip, 50, colors(i,:), 'filled');
     hold(pk_ax, 'on');
     errorbar(1:params.frames, weights(1:end-1), errors(1:end-1), 'Color', colors(i,:), 'LineWidth', 2);
 end
