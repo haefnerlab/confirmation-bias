@@ -13,8 +13,8 @@ end
 
 %% Create useful workspace variables for analysis
 
-ratioSubjects = arrayfun(@(i) sprintf('bpgFinaltest-subject%02d', i), 2:11, 'UniformOutput', false);
-noiseSubjects = arrayfun(@(i) sprintf('bpgFinaltest-subject%02d', i), [2:6 8:14], 'UniformOutput', false);
+ratioSubjects = arrayfun(@(i) sprintf('bpgFinaltest-subject%02d', i), setdiff(1:15, [1 12]), 'UniformOutput', false);
+noiseSubjects = arrayfun(@(i) sprintf('bpgFinaltest-subject%02d', i), setdiff(1:15, [1]), 'UniformOutput', false);
 
 % informed is the opposite of naive
 informedSubjects = arrayfun(@(i) sprintf('bpgFinaltest-subject%02d', i), [7 8 9], 'UniformOutput', false);
@@ -22,3 +22,8 @@ informedSubjects = arrayfun(@(i) sprintf('bpgFinaltest-subject%02d', i), [7 8 9]
 naiveRatioSubjects = setdiff(ratioSubjects, informedSubjects);
 naiveNoiseSubjects = setdiff(noiseSubjects, informedSubjects);
 naiveBothSubjects = intersect(naiveRatioSubjects, naiveNoiseSubjects);
+
+% Re-order so that informed subjects are at the end
+ratioSubjects = [naiveRatioSubjects informedSubjects];
+noiseSubjects = [naiveNoiseSubjects informedSubjects];
+bothSubjects = intersect(ratioSubjects, noiseSubjects);
