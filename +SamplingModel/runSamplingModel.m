@@ -33,6 +33,7 @@ prior_C = params.prior_C;
 samples = params.samples;
 batch = params.batch;
 gamma = params.gamma;
+noise = params.noise;
 
 results = struct(...
     'params', params, ...
