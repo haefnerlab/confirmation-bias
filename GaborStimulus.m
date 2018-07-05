@@ -10,7 +10,7 @@ function [image_array, frame_categories, checksum] = GaborStimulus(GaborData, tr
 % Set RNG state to recreate stimulus for this trail.
 rng(GaborData.seed(trial), 'twister');
 
-if isfield(GaborData, 'flat_use_old_stimulus_code') && GaborData.flag_use_old_stimulus_code
+if isfield(GaborData, 'flag_use_old_stimulus_code') && GaborData.flag_use_old_stimulus_code
     stim_fcn = @bpg.genImagesOld;
 else
     stim_fcn = @bpg.genImages;
