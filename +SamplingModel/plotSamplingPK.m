@@ -5,7 +5,7 @@ function [weights, errors, fig] = plotSamplingPK(params, pk_hprs, ideal_observer
 %
 % ... = PLOTSAMPLINGPK(params, pk_hprs, ideal, optimize, optim_grid)
 
-savedir = fullfile('+Model', 'figures');
+savedir = fullfile('+SamplingModel', 'figures');
 if ~exist(savedir, 'dir'), mkdir(savedir); end
 
 if nargin < 2, pk_hprs = [1 0 10]; end

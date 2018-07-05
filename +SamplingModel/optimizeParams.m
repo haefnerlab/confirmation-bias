@@ -78,7 +78,7 @@ function correct = percent_correct(params, variables, values)
     end
     % TODO - smarter resetting of seed
     params.seed = randi(1000000000);
-    results = SamplingModel.runSamplingModel(params);
+    results = SamplingModel.runSamplingModelFast(params);
     ideal_results = SamplingModel.runIdealObserver(params);
     correct = sum(results.choices == ideal_results.choices) / params.trials;
 end

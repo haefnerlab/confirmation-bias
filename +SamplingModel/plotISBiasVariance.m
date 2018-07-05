@@ -5,7 +5,7 @@ if nargin < 6, use_precomputed = false; end
 if nargin < 7, verbose = false; end
 
 %% Load or compute results
-savedir = fullfile('+Model', 'saved results');
+savedir = fullfile('+SamplingModel', 'saved results');
 
 log_prior_c = linspace(-2, 2, n_gridpts);
 s_values = linspace(-2, 2, n_gridpts);
