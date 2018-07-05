@@ -34,6 +34,7 @@ samples = params.samples;
 batch = params.batch;
 gamma = params.gamma;
 noise = params.noise;
+lapse = params.lapse;
 
 results = struct(...
     'params', params, ...
@@ -99,5 +100,8 @@ for i=1:trials
     
     results.choices(i) = sign(results.walk(i, end));
 end
+
+lapse_trials = rand(trials, 1) < lapse;
+results.choices(lapse_trials) = rand(sum(lapse_trials), 1) < 0.5;
 
 end
