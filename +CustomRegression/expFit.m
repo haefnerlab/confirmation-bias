@@ -19,21 +19,15 @@ end
 function [err, grad] = errfn(p, w, v)
 scale = p(1);
 beta = p(2);
-betaPriorVar = 100;
+betaPriorVar = inf; % no prior, for now..
 frames = (0:length(w)-1)';
-expvals = scale*exp(frames*beta);
-err = sum((w - expvals).^2 ./ v) + beta^2 / betaPriorVar;
+w_hat = scale*exp(frames*beta);
+diffs = w_hat - w;
+err = 1/2 * sum(diffs.^2 ./ v) + 1/2 * beta^2 / betaPriorVar;
 
 if nargout >= 2
-    gradScale = 2 * sum((scale*exp(2*frames*beta) - w.*exp(frames*beta)) ./ v);
-    gradBeta = 2 * sum(frames .* (expvals .* (expvals - w)) ./ v) + 2 * beta / betaPriorVar;
+    gradScale = sum((scale*exp(2*frames*beta) - w.*exp(frames*beta)) ./ v);
+    gradBeta = sum(frames .* (w_hat .* diffs) ./ v) + beta / betaPriorVar;
     grad = [gradScale gradBeta];
-    
-    % if nargout >= 3
-    %     hessScale = 2 * sum(exp(2*frames*beta) ./ v);
-    %     hessScaleBeta = 2 * sum((2*scale*exp(2*frames*beta) - w.*exp(frames*beta)) .* frames ./ v);
-    %     hessBeta = 2 * sum((frames.^2 .* expvals .* (w + 2)) ./ v);
-    %     hess = [hessScale hessScaleBeta; hessScaleBeta hessBeta];
-    % end
 end
 end
