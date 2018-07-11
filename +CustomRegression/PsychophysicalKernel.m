@@ -113,14 +113,15 @@ prior_matrix = hpr_ridge * eye(p) + hpr_ar1 * (D1'*D1) + hpr_curvature * (D2'*D2
 
 % Fit weights using 'fminunc'
 options = optimoptions('fminunc', ...
+    'Display', 'none', ...
     'Algorithm', 'trust-region', ...
     'SpecifyObjectiveGradient', true, ...
     'HessianFcn', 'objective');
 [optim_weights, negPostVal, ~, ~, ~, hessian] = fminunc(@neg_log_posterior, zeros(p, 1), options);
 postVal = -negPostVal;
-% attempt to invert the hessian for standard error estimate - this
-% sometimes fails silently, returning NaN.
-errors = sqrt(diag(abs(inv(-hessian))));
+% attempt to invert the hessian for standard error estimate - this sometimes fails silently,
+% returning NaN.
+errors = sqrt(diag(inv(hessian)));
 end
 
 function D = derivative_matrix(n, break_at)
