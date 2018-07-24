@@ -9,17 +9,17 @@ end
 % primacy, positive is recency.
 p0 = [mean(weights) 0];
 
-options = optimoptions(@fmincon, 'SpecifyObjectiveGradient', true);
+options = optimoptions(@fmincon, 'SpecifyObjectiveGradient', true, 'Display', 'none');
 [expfit, ~, ~, ~, ~, ~, hessian] = fmincon(@(p) errfn(p, weights(:), variances(:)), ...
     p0, [], [], [], [], [0 -10], [inf 10], [], options);
-errors = sqrt(diag(abs(inv(-hessian))));
+errors = sqrt(diag(inv(hessian)));
 
 end
 
 function [err, grad] = errfn(p, w, v)
 scale = p(1);
 beta = p(2);
-betaPriorVar = inf; % no prior, for now..
+betaPriorVar = inf;
 frames = (0:length(w)-1)';
 w_hat = scale*exp(frames*beta);
 diffs = w_hat - w;
