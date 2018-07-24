@@ -36,9 +36,17 @@ window_high = 0.75;
         SubjectDataThresh = GaborThresholdTrials(SubjectData, phase, thresh, floor);
         switch lower(method)
             case {'regress', 'logistic', 'lr'}
+                if phase == 1
+                    hprs = [1 0 100];
+                elseif phase == 2
+                    hprs = [10 0 10000];
+                else
+                    warning('Cross-validation has not been run for phase %d - unknown ''best'' hyperparameters', phase);
+                    hprs = [1 0 10];
+                end
                 memo_name = ['Boot-PK-ideal-' stair_var '-' subjectId '-' num2str(thresh) '-' num2str(floor) '.mat'];
                 [~, L, U, median, all_weights] = LoadOrRun(@BootstrapWeightsGabor, ...
-                    {SubjectDataThresh, 500, 0, false}, ...
+                    {SubjectDataThresh, 500, hprs, 0, false}, ...
                     fullfile(memodir, memo_name));
                 if diffIdeal
                     [ideal_kernel, ~, ~, ~, ~, ~] = LoadOrRun(@CustomRegression.PsychophysicalKernel, ...
@@ -89,12 +97,12 @@ for i=1:length(subjectIDs)
         boundedline(1:frames, M(1:frames)', [U(1:frames)-M(1:frames); M(1:frames)-L(1:frames)]');
         errorbar(frames+1, M(end), M(end)-L(end), U(end)-M(end), 'LineWidth', 2, 'Color', 'r');
         title([strrep(get_stair_var(phases), '_', ' ') 'temporal kernel (' num2str(sum(trials)) '/' num2str(length(trials)) ')']);
-        xlim([-inf, inf]);
-        set(gca, 'XTick', []);
-        set(gca, 'YTick', 0);
-        xlabel('Time');
+        xlim([-inf, inf]); ylim([-.2 1.5]);
+        set(gca, 'XTick', [1 frames], 'XTickLabel', [0 1]);
+        set(gca, 'YTick', [0 1]);
+        xlabel('Time (s)');
         ylabel('Psychophysical Kernel');
-        set(gca, 'XAxisLocation', 'origin');
+%         set(gca, 'XAxisLocation', 'origin');
         axis tight;
         if i == 1
             CombinedKernelsByPhase{1} = M ./ variance;
@@ -121,13 +129,13 @@ for i=1:length(subjectIDs)
             1:frames2, M2(1:frames2)', [U2(1:frames2)-M2(1:frames2); M2(1:frames2)-L2(1:frames2)]', 'b', ...
             'alpha');
         title([subjectId ' temporal kernels']);
-        xlim([-inf, inf]);
-        set(gca, 'XTick', []);
-        set(gca, 'YTick', 0);
-        xlabel('Time');
+        xlim([-inf, inf]); ylim([-.2 1.5]);
+        set(gca, 'XTick', [1 frames1], 'XTickLabel', [0 1]);
+        set(gca, 'YTick', [0 1]);
+        xlabel('Time (s)');
         ylabel('Psychophysical Kernel');
         legend(h, leg, 'Location', 'best');
-        set(gca, 'XAxisLocation', 'origin');
+%         set(gca, 'XAxisLocation', 'origin');
         if ~isnan(true_pk1)
             plot(1:frames1, true_pk1, 'Color', 'r', 'LineWidth', 2);
             plot(1:frames2, true_pk2, 'Color', 'b', 'LineWidth', 2);
@@ -140,12 +148,12 @@ for i=1:length(subjectIDs)
         Ud = U1 - L2;
         boundedline(1:frames1, Md(1:frames1)', [Ud(1:frames1)-Md(1:frames1); Md(1:frames1)-Ld(1:frames1)]');
         title([subjectId ' kernel difference']);
-        xlim([-inf, inf]);
-        set(gca, 'XTick', []);
-        set(gca, 'YTick', 0);
-        xlabel('Time');
+        xlim([-inf, inf]); ylim([-.2 1.5]);
+        set(gca, 'XTick', [1 frames1], 'XTickLabel', [0 1]);
+        set(gca, 'YTick', [0 1]);
+        xlabel('Time (s)');
         ylabel('Kernel Difference');
-        set(gca, 'XAxisLocation', 'origin');
+%         set(gca, 'XAxisLocation', 'origin');
         
         if i == 1
             CombinedKernelsByPhase{1} = M1 ./ v1;
@@ -179,14 +187,14 @@ if length(subjectIDs) > 1
         % Plot
         plot(1:frames, CombinedKernelsByPhase{1}(1:frames));
         title([strrep(get_stair_var(phases), '_', ' ') ' combined kernel']);
-        xlim([-inf, inf]);
-        set(gca, 'XTick', []);
-        set(gca, 'YTick', 0);
-        xlabel('Time');
+        xlim([-inf, inf]); ylim([-.2 1.5]);
+        set(gca, 'XTick', [1 frames], 'XTickLabel', [0 1]);
+        set(gca, 'YTick', [0 1]);
+        xlabel('Time (s)');
         ylabel('Psychophysical Kernel');
-        set(gca, 'XAxisLocation', 'origin');
+%         set(gca, 'XAxisLocation', 'origin');
     else
-        colors = lines(3);
+        colors = [1 0 0; 0 0 1; 0 0 0];
         % Normalization
         CombinedKernelsByPhase{1} = CombinedKernelsByPhase{1} ./ CombinedNormalizerByPhase{1};
         CombinedKernelsByPhase{2} = CombinedKernelsByPhase{2} ./ CombinedNormalizerByPhase{2};
@@ -197,13 +205,13 @@ if length(subjectIDs) > 1
             plot(1:frames1, PerSubjectKernelsByPhase{1, i}(1:frames1), 'Color', colors(1, :));
         end
         plot(1:frames1, CombinedKernelsByPhase{1}(1:frames1), 'Color', colors(1, :), 'LineWidth', 2);
-        xlim([-inf, inf]);
-        set(gca, 'XTick', []);
-%         set(gca, 'YTick', 0);
-        xlabel('Time');
+        xlim([-inf, inf]); ylim([-.2 1.5]);
+        set(gca, 'XTick', [1 frames1], 'XTickLabel', [0 1]);
+        set(gca, 'YTick', [0 1]);
+        xlabel('Time (s)');
         ylabel('Psychophysical Kernel');
         title(get_stair_var(phases(1)));
-        set(gca, 'XAxisLocation', 'origin');
+%         set(gca, 'XAxisLocation', 'origin');
         
         subplot(1, 3, 2);
         hold on;
@@ -211,13 +219,13 @@ if length(subjectIDs) > 1
             plot(1:frames2, PerSubjectKernelsByPhase{2, i}(1:frames2), 'Color', colors(2, :));
         end
         plot(1:frames2, CombinedKernelsByPhase{2}(1:frames2), 'Color', colors(2, :), 'LineWidth', 2);
-        xlim([-inf, inf]);
-        set(gca, 'XTick', []);
-%         set(gca, 'YTick', 0);
-        xlabel('Time');
+        xlim([-inf, inf]); ylim([-.2 1.5]);
+        set(gca, 'XTick', [1 frames1], 'XTickLabel', [0 1]);
+        set(gca, 'YTick', [0 1]);
+        xlabel('Time (s)');
         ylabel('Psychophysical Kernel');
         title(get_stair_var(phases(2)));
-        set(gca, 'XAxisLocation', 'origin');
+%         set(gca, 'XAxisLocation', 'origin');
         
         subplot(1, 3, 3);
         hold on;
@@ -232,11 +240,11 @@ if length(subjectIDs) > 1
         plot(1:frames1, combo_diff, 'Color', colors(3, :), 'LineWidth', 2);
         title('Normalized Kernel Difference');
         xlim([-inf, inf]);
-        set(gca, 'XTick', []);
-%         set(gca, 'YTick', 0);
-        xlabel('Time');
+        set(gca, 'XTick', [1 frames1], 'XTickLabel', [0 1]);
+        set(gca, 'YTick', [-1 0 1]);
+        xlabel('Time (s)');
         ylabel('Kernel Differnce');
-        set(gca, 'XAxisLocation', 'origin');
+%         set(gca, 'XAxisLocation', 'origin');
     end
     
     combinedfig.PaperUnits = 'inches';

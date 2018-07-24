@@ -177,12 +177,18 @@ for i=1:nS
                     plot(1:frames, SubjectDataThresh.model_pk, 'LineWidth', 2);
                 end
             case {'pk', 'pk-lr'}
-                SubjectDataThresh = GaborThresholdTrials(...
-                    SubjectData, phase, thresh, floor);
+                if phase == 1
+                    hprs = [1 0 100];
+                elseif phase == 2
+                    hprs = [10 0 10000];
+                else
+                    warning('Cross-validation has not been run for phase %d - unknown ''best'' hyperparameters', phase);
+                    hprs = [1 0 10];
+                end
+                SubjectDataThresh = GaborThresholdTrials(SubjectData, phase, thresh, floor);
                 memo_name = ['Boot-PK-ideal-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
                 [~, L, U, median, ~] = LoadOrRun(@BootstrapWeightsGabor, ...
-                    {SubjectDataThresh, 500, 0, false}, ...
-                    fullfile(memodir, memo_name));
+                    {SubjectDataThresh, 500, hprs, 0, false}, fullfile(memodir, memo_name));
                 frames = SubjectData.number_of_images;
                 boundedline(1:frames, median(1:frames)', [U(1:frames)-median(1:frames); median(1:frames)-L(1:frames)]');
                 errorbar(frames+1, median(end), median(end)-L(end), U(end)-median(end), 'LineWidth', 2, 'Color', 'r');
@@ -197,12 +203,10 @@ for i=1:nS
                     plot(1:frames, SubjectDataThresh.model_pk, 'LineWidth', 2);
                 end
             case {'pk-lin'}
-                SubjectDataThresh = GaborThresholdTrials(...
-                    SubjectData, phase, thresh, floor);
+                SubjectDataThresh = GaborThresholdTrials(SubjectData, phase, thresh, floor);
                 memo_name = ['Boot-LinPK-ideal-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
                 [~, L, U, median, ~] = LoadOrRun(@BootstrapLinearPKFit, ...
-                    {SubjectDataThresh, 500, 0, false}, ...
-                    fullfile(memodir, memo_name));
+                    {SubjectDataThresh, 500, 0, false}, fullfile(memodir, memo_name));
                 frames = SubjectData.number_of_images;
                 boundedline(1:frames, median(1:frames)', [U(1:frames)-median(1:frames); median(1:frames)-L(1:frames)]', 'r');
                 errorbar(frames+1, median(end), median(end)-L(end), U(end)-median(end), 'LineWidth', 2, 'Color', 'r');
@@ -213,9 +217,28 @@ for i=1:nS
                 if isfield(SubjectDataThresh, 'model_pk')
                     plot(1:frames, SubjectDataThresh.model_pk, 'LineWidth', 2);
                 end
+            case 'pk-xv'
+                % PK cross-validation
+                nFold = 10;
+                hprs = [0 logspace(-3, 5, 9)];
+                SubjectDataThresh = GaborThresholdTrials(SubjectData, phase, thresh, floor);
+                sigs = SubjectDataThresh.ideal_frame_signals;
+                resps = SubjectDataThresh.choice == +1;
+                memo_name = ['PK-xValid-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
+                [best_hprs, log_likelihoods] = LoadOrRun(@CustomRegression.xValidatePK, ...
+                    {sigs, resps, hprs, 0, hprs, 1, nFold}, fullfile(memodir, memo_name));
+                disp(best_hprs);
+                avg_ll = squeeze(mean(log_likelihoods(:, 1, :, :), 4));
+                imagesc(avg_ll);
+                colorbar;
+                axis image; set(gca, 'YDir', 'normal');
+                labels = arrayfun(@num2str, hprs, 'UniformOutput', false);
+                set(gca, 'XTickLabel', labels, 'YTickLabel', labels);
+                xlabel('AR2');
+                ylabel('ridge');
+                title('Cross-Validation LL');
             case {'cta', 'pk-cta'}
-                SubjectDataThresh = GaborThresholdTrials(...
-                    SubjectData, phase, thresh, floor);
+                SubjectDataThresh = GaborThresholdTrials(SubjectData, phase, thresh, floor);
                 memo_name = ['Boot-CTA-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
                 [~, L, U, median, ~] = LoadOrRun(@BootstrapCTA, ...
                     {SubjectDataThresh, 500}, ...
