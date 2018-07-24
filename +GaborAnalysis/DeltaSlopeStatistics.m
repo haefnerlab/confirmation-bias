@@ -151,4 +151,23 @@ end
 xlabel(['\Delta PK Slope (' xlab ')']);
 xlim(range);
 
+%% Violin plots
+
+% Take mean over bootstrap samples
+subj_mean_slopes = mean(slopes, 3);
+
+figure;
+violins = violinplot(subj_mean_slopes, {label1, label2}, 'ShowData', false, 'ShowMean', false, 'ShowNotches', false, 'ViolinAlpha', 1);
+violins(1).ViolinColor = SamplingModel.betacolor(1, -1, 1);
+delete(violins(1).BoxPlot);
+delete(violins(1).MedianPlot);
+violins(2).ViolinColor = SamplingModel.betacolor(-1, -1, 1);
+delete(violins(2).BoxPlot);
+delete(violins(2).MedianPlot);
+
+hold on;
+for iSubject=1:length(subjectIds)
+    plot([1 2], subj_mean_slopes(iSubject, :), '-ok', 'MarkerFaceColor', 'k');
+end
+
 end
