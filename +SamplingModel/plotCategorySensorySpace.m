@@ -75,9 +75,9 @@ set(gca, 'XTick', sensory_tick_indices);
 set(gca, 'YTickLabel', arrayfun(@num2str, category_infos(category_tick_indices), 'UniformOutput', false));
 set(gca, 'XTickLabel', arrayfun(@num2str, sensory_infos(sensory_tick_indices), 'UniformOutput', false));
 set(gca, 'YDir', 'Normal');
-xlabel('Sensory Info');
-ylabel('Category Info');
-title('C-S Space: Percent Correct');
+xlabel('SI');
+ylabel('CI');
+title('Percent Correct');
 if ~ideal_observer
     figname = sprintf('CSSpace_%dx%d_%s_vx%.2f_pC%.2f_gam%.2f_ns%d_nb%d_%d_%.2e.fig', ...
         params.trials, params.frames, optim_prefix, params.var_x, params.prior_C, ...
@@ -99,9 +99,9 @@ for i=1:length(optimize)
     set(gca, 'YTickLabel', arrayfun(@num2str, category_infos(category_tick_indices), 'UniformOutput', false));
     set(gca, 'XTickLabel', arrayfun(@num2str, sensory_infos(sensory_tick_indices), 'UniformOutput', false));
     set(gca, 'YDir', 'Normal');
-    xlabel('Sensory Info');
-    ylabel('Category Info');
-    title(['C-S Space: Optimized value of ' optimize{i}]);
+    xlabel('SI');
+    ylabel('CI');
+    title(['Optimized value of ' optimize{i}]);
     figname = sprintf('CSSpace_optim_%s_%dx%d_vx%.2f_pC%.2f_gam%.2f_ns%d_nb%d_%d_%.2e.fig', ...
         optimize{i}, params.trials, params.frames, params.var_x, params.prior_C, ...
         params.gamma, params.samples, params.batch, params.importance_norm, params.noise);

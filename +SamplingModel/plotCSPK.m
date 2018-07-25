@@ -43,10 +43,7 @@ if nargin < 8
     fade = linspace(0, 1, npts)';
     colors = [fade*170/255, zeros(size(fade)), (1-fade)*170/255];
 elseif isequal(pk_colormap, 'beta')
-    range = [-1 1];
-    cmap = AdvancedColormap('rwb');
     colors = zeros(npts, 3);
-    set(pk_ax, 'Color', .4*ones(1,3))
 else
     colors = pk_colormap(npts);
 end
@@ -64,12 +61,16 @@ for i=1:length(sens_pts)
     [weights, errors, tmp_fig] = SamplingModel.plotSamplingPK(params, pk_hprs, ideal_observer, optimize, optim_grid_size);
     close(tmp_fig);
     
-    if isequal(pk_colormap, 'beta')
-        expfit = CustomRegression.expFit(weights, errors);
-        iBeta = round(interp1(range, [1 size(cmap,1)], expfit(2), 'linear', 'extrap'));
-        iBeta = min(max(iBeta, 1), size(cmap,1));
-        colors(i, :) = cmap(iBeta, :);
+    if nargin >= 8 && isequal(pk_colormap, 'beta')
+        expfit = CustomRegression.expFit(weights(1:end-1), errors(1:end-1));
+        disp(expfit);
+        colors(i, :) = SamplingModel.betacolor(expfit(2), -.25, .25);
+        weights(1:end-1) = expfit(1) * exp((0:9) * expfit(2));
+        errors(1:end-1) = nan;
     end
+    
+    errors = errors / mean(weights(1:end-1));
+    weights = weights / mean(weights(1:end-1));
     
     scatter(img_ax, il, ip, 50, colors(i,:), 'filled');
     hold(pk_ax, 'on');

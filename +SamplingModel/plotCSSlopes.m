@@ -1,4 +1,4 @@
-function plotCSSlopes(category_infos, sensory_infos, params, optimize, optim_grid_size)
+function [slopes, slopeErrors, corrects] = plotCSSlopes(category_infos, sensory_infos, params, optimize, optim_grid_size, rb_range)
 
 savedir = fullfile('+SamplingModel', 'figures');
 if ~exist(savedir, 'dir'), mkdir(savedir); end
@@ -27,8 +27,9 @@ parfor i=1:numel(ss)
     % TODO - smarter setting of seed?
     params_copy.seed = randi(1000000000);
     
-    % Run the model
+    % Run the model if needed
     results_uid = SamplingModel.getModelStringID(params_copy);
+    
     if isempty(optimize)
         results = LoadOrRun(@SamplingModel.runSamplingModelFast, {params_copy}, ...
             fullfile(params.save_dir, results_uid));
@@ -52,19 +53,24 @@ parfor i=1:numel(ss)
     slopeErrors(i) = expErrors(2);
 end
 
-range = [-1 1];
-cmap = AdvancedColormap('rwb');
+colors = arrayfun(@(b) SamplingModel.betacolor(b, rb_range(1), rb_range(2)), linspace(rb_range(1), rb_range(2)), ...
+    'UniformOutput', false);
+cmap = vertcat(colors{:});
 
 % gray_alphas = 1 - exp(-slopeErrors.^2/6);
-gray_alphas = 1 - (1 + exp(-(corrects-.6)*20)).^-1;
-gray_lum = .4;
+gray_alphas = 1 - (1 + exp(-(corrects-.55)*100)).^-1;
+gray_lum = 1;
 gray_rgbs = gray_lum * ones([size(ss) 3]);
 
 % Plot slope
 fig = figure(); hold on;
-imagesc(slopes, range); axis image; colormap(cmap); colorbar;
-h = image(gray_rgbs);
-set(h, 'AlphaData', gray_alphas);
+[c,h] = contourf(smoothn(slopes), linspace(rb_range(1), rb_range(2), 11));
+axis image;
+colormap(cmap);
+clabel(c,h);
+% imagesc(slopes, range); axis image; colormap(cmap); colorbar;
+% h = image(gray_rgbs);
+% set(h, 'AlphaData', gray_alphas);
 category_tick_indices = round(linspace(1, length(category_infos), min(length(category_infos), 5)));
 sensory_tick_indices = round(linspace(1, length(sensory_infos), min(length(sensory_infos), 5)));
 set(gca, 'YTick', category_tick_indices);

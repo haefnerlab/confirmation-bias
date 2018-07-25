@@ -38,7 +38,8 @@ end
 
 data = SamplingModel.genDataWithParams(results.params);
 [data, choices] = flipTrials(data, results.choices);
-[weights, ~, errors] = CustomRegression.PsychophysicalKernel(data, choices, ...
+regressors = SamplingModel.logLikelihoodOdds(params, data);
+[weights, ~, errors] = CustomRegression.PsychophysicalKernel(regressors, choices, ...
     pk_hprs(1), pk_hprs(2), pk_hprs(3));
 
 pk_id = ['PK_' results_uid];
