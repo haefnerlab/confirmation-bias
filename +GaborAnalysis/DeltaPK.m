@@ -125,8 +125,8 @@ for i=1:length(subjectIDs)
         [M2, L2, U2, trials2, frames2, v2, true_pk2] = getSubjectKernel(subjectId, phases(2));
         leg{2} = [strrep(get_stair_var(phases(2)), '_', ' ') ' (' num2str(sum(trials2)) '/' num2str(length(trials2)) ')'];
         
-        h = boundedline(1:frames1, M1(1:frames1)', [U1(1:frames1)-M1(1:frames1); M1(1:frames1)-L1(1:frames1)]', 'r', ...
-            1:frames2, M2(1:frames2)', [U2(1:frames2)-M2(1:frames2); M2(1:frames2)-L2(1:frames2)]', 'b', ...
+        h = boundedline(1:frames1, M1(1:frames1)', [U1(1:frames1)-M1(1:frames1); M1(1:frames1)-L1(1:frames1)]', 'b', ...
+            1:frames2, M2(1:frames2)', [U2(1:frames2)-M2(1:frames2); M2(1:frames2)-L2(1:frames2)]', 'r', ...
             'alpha');
         title([subjectId ' temporal kernels']);
         xlim([-inf, inf]); ylim([-.2 1.5]);
@@ -137,8 +137,8 @@ for i=1:length(subjectIDs)
         legend(h, leg, 'Location', 'best');
 %         set(gca, 'XAxisLocation', 'origin');
         if ~isnan(true_pk1)
-            plot(1:frames1, true_pk1, 'Color', 'r', 'LineWidth', 2);
-            plot(1:frames2, true_pk2, 'Color', 'b', 'LineWidth', 2);
+            plot(1:frames1, true_pk1, 'Color', 'b', 'LineWidth', 2);
+            plot(1:frames2, true_pk2, 'Color', 'r', 'LineWidth', 2);
         end
         
         subplot(1, 2, 2);
@@ -146,7 +146,7 @@ for i=1:length(subjectIDs)
         Md = M1 - M2;
         Ld = L1 - U2;
         Ud = U1 - L2;
-        boundedline(1:frames1, Md(1:frames1)', [Ud(1:frames1)-Md(1:frames1); Md(1:frames1)-Ld(1:frames1)]');
+        boundedline(1:frames1, Md(1:frames1)', [Ud(1:frames1)-Md(1:frames1); Md(1:frames1)-Ld(1:frames1)]', 'k');
         title([subjectId ' kernel difference']);
         xlim([-inf, inf]); ylim([-.2 1.5]);
         set(gca, 'XTick', [1 frames1], 'XTickLabel', [0 1]);
@@ -194,7 +194,7 @@ if length(subjectIDs) > 1
         ylabel('Psychophysical Kernel');
 %         set(gca, 'XAxisLocation', 'origin');
     else
-        colors = [1 0 0; 0 0 1; 0 0 0];
+        colors = [0 0 1; 1 0 0; 0 0 0];
         % Normalization
         CombinedKernelsByPhase{1} = CombinedKernelsByPhase{1} ./ CombinedNormalizerByPhase{1};
         CombinedKernelsByPhase{2} = CombinedKernelsByPhase{2} ./ CombinedNormalizerByPhase{2};
