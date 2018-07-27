@@ -35,7 +35,7 @@ parfor i=1:numel(ss)
     params_copy.seed = randi(1000000000);
     
     % Run the model
-    results_uid = SamplingModel.getModelStringID(params_copy);
+    results_uid = SamplingModel.getModelStringID(params_copy, ideal_observer);
     if isempty(optimize)
         if ~ideal_observer
             results = LoadOrRun(@SamplingModel.runSamplingModelFast, {params_copy}, ...
