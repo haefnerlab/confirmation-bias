@@ -1,9 +1,7 @@
-function [slopes, slopeErrors, corrects] = plotCSSlopes(category_infos, sensory_infos, params, optimize, optim_grid_size, rb_range)
+function plotCSSlopes(category_infos, sensory_infos, params, beta_range)
 
-savedir = fullfile('+SamplingModel', 'figures');
+savedir = fullfile('+VariationalModel', 'figures');
 if ~exist(savedir, 'dir'), mkdir(savedir); end
-if nargin < 4, optimize = {}; end
-if nargin < 5, optim_grid_size = 11; end
 
 [ss, cc] = meshgrid(sensory_infos, category_infos);
 
@@ -11,8 +9,6 @@ if nargin < 5, optim_grid_size = 11; end
 corrects = nan(size(ss));
 slopes = nan(size(ss));
 slopeErrors = nan(size(ss));
-
-optim_prefix = SamplingModel.getOptimPrefix(optimize, optim_grid_size);
 
 parfor i=1:numel(ss)
     params_copy = params;
@@ -27,22 +23,9 @@ parfor i=1:numel(ss)
     % TODO - smarter setting of seed?
     params_copy.seed = randi(1000000000);
     
-    % Run the model if needed
-    results_uid = SamplingModel.getModelStringID(params_copy);
-    
-    if isempty(optimize)
-        results = LoadOrRun(@SamplingModel.runSamplingModelFast, {params_copy}, ...
-            fullfile(params.save_dir, results_uid));
-    else
-        % Find optimal param settings.
-        [optim_params, ~] = LoadOrRun(@SamplingModel.optimizeParams, ...
-            {params_copy, optimize, optim_grid_size}, ...
-            fullfile(params.save_dir, [optim_prefix '_' results_uid]));
-        % Get model results at the optimal param settings.
-        best_results_uid = SamplingModel.getModelStringID(optim_params);
-        results = LoadOrRun(@SamplingModel.runSamplingModelFast, {optim_params}, ...
-            fullfile(params.save_dir, best_results_uid));
-    end
+    % Run the model
+    results_uid = VariationalModel.getModelStringID(params_copy);
+    results = LoadOrRun(params.model_fun, {params_copy}, fullfile(params.save_dir, results_uid));
     
     data = SamplingModel.genDataWithParams(results.params);
     [data, choices] = flipTrials(data, results.choices);
@@ -53,7 +36,7 @@ parfor i=1:numel(ss)
     slopeErrors(i) = expErrors(2);
 end
 
-colors = arrayfun(@(b) SamplingModel.betacolor(b, rb_range(1), rb_range(2)), linspace(rb_range(1), rb_range(2)), ...
+colors = arrayfun(@(b) SamplingModel.betacolor(b, beta_range(1), beta_range(2)), linspace(beta_range(1), beta_range(2)), ...
     'UniformOutput', false);
 cmap = vertcat(colors{:});
 
@@ -65,13 +48,13 @@ gray_rgbs = gray_lum * ones([size(ss) 3]);
 % Plot slope
 fig = figure(); hold on;
 % Slopes contourf
-[c,h] = contourf(smoothn(slopes), linspace(rb_range(1), rb_range(2), 11));
+[c,h] = contourf(smoothn(slopes), linspace(beta_range(1), beta_range(2), 11));
 axis image;
 colormap(cmap);
 clabel(c,h);
 % Gray overlay
-% h = image(gray_rgbs);
-% set(h, 'AlphaData', gray_alphas);
+h = image(gray_rgbs);
+set(h, 'AlphaData', gray_alphas);
 % Labels n such
 category_tick_indices = round(linspace(1, length(category_infos), min(length(category_infos), 5)));
 sensory_tick_indices = round(linspace(1, length(sensory_infos), min(length(sensory_infos), 5)));
@@ -83,9 +66,8 @@ set(gca, 'YDir', 'Normal');
 xlabel('Sensory Info');
 ylabel('Category Info');
 title('C-S Space: PK Slope (\beta)');
-figname = sprintf('CSSpace_slope_%dx%d_%s_vx%.2f_pC%.2f_gam%.2f_ns%d_b%d_%d_%.2e.fig', ...
-    params.trials, params.frames, optim_prefix, params.var_x, params.prior_C, ...
-    params.gamma, params.samples, params.batch, params.importance_norm, params.noise);
+fullname = [VariationalModel.getModelStringID(params) '.fig'];
+figname = regexprep(fullname, '_cinfo[\d.]+_sinfo[\d.]+', '');
 saveas(fig, fullfile(savedir, figname));
 end
 
