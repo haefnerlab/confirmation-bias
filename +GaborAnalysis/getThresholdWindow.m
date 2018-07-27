@@ -1,4 +1,4 @@
-function [floor, thresh] = getThresholdWindow(subjectID, phase, perf_lo, perf_hi, datadir)
+function [floor, thresh, fit_result] = getThresholdWindow(subjectID, phase, perf_lo, perf_hi, datadir)
 %GABORANALYSIS.GETTHRESHOLDWINDOW return [low_signal, high_signal] range of
 %signal values corresponding to the given performance levels. (Think of
 %this function as inverting the psychometric curve).
