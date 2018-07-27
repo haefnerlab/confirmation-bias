@@ -23,6 +23,8 @@ if ~exist(memodir, 'dir'), mkdir(memodir); end
 window_low = 0.5;
 window_high = 0.75;
 
+REGULARIZE_PKS = false;
+
     function [median, L, U, trials, frames, variance, true_pk] = getSubjectKernel(subjectId, phase)
         stair_var = get_stair_var(phase);
         SubjectData = LoadOrRun(@LoadAllSubjectData, ...
@@ -36,15 +38,19 @@ window_high = 0.75;
         SubjectDataThresh = GaborThresholdTrials(SubjectData, phase, thresh, floor);
         switch lower(method)
             case {'regress', 'logistic', 'lr'}
-                if phase == 1
-                    hprs = [1 0 100];
-                elseif phase == 2
-                    hprs = [10 0 10000];
+                if REGULARIZE_PKS
+                    regstring = '-reg';
+                    memo_name = ['PK-xValid-' stair_var '-' subjectId '-' num2str(thresh) '-' num2str(floor) '.mat'];
+                    nFold = 10;
+                    hprs = [0 logspace(-3, 5, 9)];
+                    [hprs, ~] = LoadOrRun(@CustomRegression.xValidatePK, ...
+                        {SubjectDataThresh.ideal_frame_signals, SubjectDataThresh.choice == +1, hprs, 0, hprs, 1, nFold}, ...
+                        fullfile(memodir, memo_name));
                 else
-                    warning('Cross-validation has not been run for phase %d - unknown ''best'' hyperparameters', phase);
-                    hprs = [1 0 10];
+                    regstring = '';
+                    hprs = [0 0 0];
                 end
-                memo_name = ['Boot-PK-ideal-' stair_var '-' subjectId '-' num2str(thresh) '-' num2str(floor) '.mat'];
+                memo_name = ['Boot-PK-ideal-' stair_var '-' subjectId '-' num2str(thresh) '-' num2str(floor) regstring '.mat'];
                 [~, L, U, median, all_weights] = LoadOrRun(@BootstrapWeightsGabor, ...
                     {SubjectDataThresh, 500, hprs, 0, false}, ...
                     fullfile(memodir, memo_name));
