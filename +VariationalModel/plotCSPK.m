@@ -1,4 +1,4 @@
-function plotCSPK(category_infos, sensory_infos, params, pk_hprs, pk_colormap)
+function plotCSPK(category_infos, sensory_infos, params, pk_hprs, pk_colormap, clickpts)
 
 savedir = fullfile('+VariationalModel', 'figures');
 if ~exist(savedir, 'dir'), mkdir(savedir); end
@@ -25,15 +25,21 @@ cs_fig = openfig(fullfile(savedir, figname));
 img_ax = findobj(cs_fig, 'Type', 'axes');
 hold(img_ax, 'on');
 
-[x, y] = getpts(img_ax);
-npts = length(x);
-
-sens_pts = round(100*interp1(1:length(sensory_infos), sensory_infos, x, 'linear', 'extrap'))/100;
-cat_pts = round(100*interp1(1:length(category_infos), category_infos, y, 'linear', 'extrap'))/100;
-
-% 'snap' selected points to the given 'category_info' and 'sensory_info' grids.
-sens_pts = arrayfun(@(l) closest(sensory_infos, l), sens_pts);
-cat_pts = arrayfun(@(l) closest(category_infos, l), cat_pts);
+if ~exist('clickpts', 'var')
+    [x, y] = getpts(img_ax);
+    npts = length(x);
+    
+    sens_pts = round(100*interp1(1:length(sensory_infos), sensory_infos, x, 'linear', 'extrap'))/100;
+    cat_pts = round(100*interp1(1:length(category_infos), category_infos, y, 'linear', 'extrap'))/100;
+    
+    % 'snap' selected points to the given 'category_info' and 'sensory_info' grids.
+    sens_pts = arrayfun(@(l) closest(sensory_infos, l), sens_pts);
+    cat_pts = arrayfun(@(l) closest(category_infos, l), cat_pts);
+else
+    sens_pts = clickpts(:, 1);
+    cat_pts = clickpts(:, 2);
+    npts = length(sens_pts);
+end
 
 pk_fig = figure;
 pk_ax = axes(pk_fig);
