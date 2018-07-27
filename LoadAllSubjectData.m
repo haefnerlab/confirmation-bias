@@ -51,4 +51,30 @@ GaborData.true_ratio = sum(GaborData.frame_categories' > 0, 1) / GaborData.numbe
 trial_sign = sign(GaborData.true_ratio - 0.5);
 GaborData.sign_noise = trial_sign .* GaborData.noise;
 GaborData.sign_contrast = trial_sign .* GaborData.contrast;
+
+% Add a blank 'checksum' field if it wasn't there already
+if ~isfield(GaborData, 'checksum')
+    GaborData.checksum = zeros(size(GaborData.noise));
+end
+
+% Add 'flag_use_old_stimulus_code' field if not already present
+if ~isfield(GaborData, 'flag_use_old_stimulus_code')
+    GaborData.flag_use_old_stimulus_code = false;
+end
+
+%% Compute +/- 1 category means for each signal level and normalize per-frame signals accordingly
+
+% [uKappas, ~, idxKappas] = unique(GaborData.noise);
+% for iKappa=1:length(uKappas)
+%     kappa = max(uKappas(iKappa), 0.04);
+%     savename = sprintf('true_sig_sz%d_sp%.3f_spstd%.3f_kap%.3f_ann%.3f.mat', GaborData.stim_size, ...
+%         GaborData.stim_sp_freq_cpp, GaborData.stim_std_sp_freq_cpp, kappa, GaborData.annulus);
+%     [~,~,sigs] = LoadOrRun(@bpg.getTrueSignal, {1000, GaborData.stim_size, GaborData.stim_sp_freq_cpp, ...
+%         GaborData.stim_std_sp_freq_cpp, 0, kappa, GaborData.annulus, kappa}, ...
+%         fullfile('..', 'Precomputed', savename));
+%     scale = mean(sigs);
+%     trials = idxKappas == iKappa;
+%     GaborData.norm_frame_signals(trials, :) = GaborData.ideal_frame_signals(trials, :) / scale;
+% end
+
 end
