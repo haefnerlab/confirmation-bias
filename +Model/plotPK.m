@@ -1,9 +1,9 @@
-function [weights, errors, fig] = plotSamplingPK(params, pk_hprs, ideal_observer, optimize, optim_grid_size)
-%PLOTSAMPLINGPK(params) plot PK of sampling model for given params.
+function [weights, errors, fig] = plotPK(params, pk_hprs, ideal_observer, optimize, optim_grid_size)
+%PLOTPK(params) plot PK of sampling model for given params.
 %
-% [weights, errors, fig] = PLOTSAMPLINGPK(params) returns PK and fig handle
+% [weights, errors, fig] = PLOTPK(params) returns PK and fig handle
 %
-% ... = PLOTSAMPLINGPK(params, pk_hprs, ideal, optimize, optim_grid)
+% ... = PLOTPK(params, pk_hprs, ideal, optimize, optim_grid)
 
 savedir = fullfile('+Model', 'figures');
 if ~exist(savedir, 'dir'), mkdir(savedir); end
