@@ -14,6 +14,10 @@ if ~exist('data', 'var')
     data = Model.genDataWithParams(params);
 end
 
+if strcmp(params.model, 'ideal') && params.updates > 1
+    params.updates = 1;
+end
+
 prior_C = params.prior_C;
 updates = params.updates;
 noise = params.noise;
@@ -38,7 +42,6 @@ switch lower(params.model)
     case 'vb'
         logLikeFun = @Model.vbLogLikelihood;
     case 'ideal'
-        assert(updates == 1, 'Ideal observer must have updates = 1');
         logLikeOdds = Model.logLikelihoodOdds(params, data);
         results.lpo(:, 2:end) = results.lpo(:, 1) + cumsum(logLikeOdds, 2);
         results.choices = sign(results.lpo(:, end));
