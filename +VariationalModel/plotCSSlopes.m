@@ -51,7 +51,7 @@ fig = figure(); hold on;
 [c,h] = contourf(smoothn(slopes), linspace(beta_range(1), beta_range(2), 11));
 axis image;
 colormap(cmap);
-clabel(c,h);
+clabel(c,h,'Color',[1 1 1]);
 % Gray overlay
 h = image(gray_rgbs);
 set(h, 'AlphaData', gray_alphas);

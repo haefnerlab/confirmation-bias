@@ -1,4 +1,4 @@
-function plotCSPK(category_infos, sensory_infos, params, pk_hprs, pk_colormap, clickpts)
+function [cs_fig, pk_fig] = plotCSPK(category_infos, sensory_infos, params, pk_hprs, pk_colormap, betarange, clickpts)
 
 savedir = fullfile('+VariationalModel', 'figures');
 if ~exist(savedir, 'dir'), mkdir(savedir); end
@@ -69,7 +69,7 @@ for i=1:length(sens_pts)
     
     if nargin >= 5 && isequal(pk_colormap, 'beta')
         expfit = CustomRegression.expFit(weights(1:end-1), errors(1:end-1));
-        colors(i, :) = SamplingModel.betacolor(expfit(2), -.25, .25);
+        colors(i, :) = SamplingModel.betacolor(expfit(2), betarange(1), betarange(2));
         weights(1:end-1) = expfit(1) * exp((0:9) * expfit(2));
         errors(1:end-1) = nan;
     end
