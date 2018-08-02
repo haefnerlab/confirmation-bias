@@ -158,10 +158,10 @@ subj_mean_slopes = mean(slopes, 3);
 
 figure;
 violins = violinplot(subj_mean_slopes, {label1, label2}, 'ShowData', false, 'ShowMean', false, 'ShowNotches', false, 'ViolinAlpha', 1);
-violins(1).ViolinColor = SamplingModel.betacolor(1, -1, 1);
+violins(1).ViolinColor = Model.betacolor(1, -1, 1);
 delete(violins(1).BoxPlot);
 delete(violins(1).MedianPlot);
-violins(2).ViolinColor = SamplingModel.betacolor(-1, -1, 1);
+violins(2).ViolinColor = Model.betacolor(-1, -1, 1);
 delete(violins(2).BoxPlot);
 delete(violins(2).MedianPlot);
 

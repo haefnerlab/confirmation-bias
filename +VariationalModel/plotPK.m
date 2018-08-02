@@ -13,7 +13,7 @@ results = LoadOrRun(@VariationalModel.runLatentZNormalX, {params}, ...
     fullfile(params.save_dir, results_uid));
 
 % Re-generate data (use 'params' stored in 'results' to match seed properly)
-data = SamplingModel.genDataWithParams(results.params);
+data = Model.genDataWithParams(results.params);
 
 % Randomly flip trial signs
 [data, choices] = flipTrials(data, results.choices);

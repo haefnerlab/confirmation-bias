@@ -1,9 +1,9 @@
-function results = runSamplingModelFast(params, data)
-%RUNSAMPLINGMODEL run the C->x->s sampling SamplingModel, vectorized over trials for speed.
+function results = runModelFast(params, data)
+%RUNModel run the C->x->s sampling Model, vectorized over trials for speed.
 %
-% results = RUNSAMPLINGMODEL(params) gets model 'decisions' for an
+% results = RUNModel(params) gets model 'decisions' for an
 % experiment with the given parameters. 'params' controls the behavior of
-% the model and statistics of the data. See SamplingModel.newSamplingParams for a
+% the model and statistics of the data. See Model.newSamplingParams for a
 % descriptions of parameter options.
 %
 % The return value 'results' is a struct with the following fields:
@@ -18,10 +18,10 @@ function results = runSamplingModelFast(params, data)
 %                     C=+1/C=-1 (where walk(1) is the prior, hence size 
 %                     frames+1)
 
-if nargin < 1, params = SamplingModel.newModelParams(); end
+if nargin < 1, params = Model.newModelParams(); end
 
 if ~exist('data', 'var')
-    data = SamplingModel.genDataWithParams(params);
+    data = Model.genDataWithParams(params);
 end
 
 %% Initialize return values

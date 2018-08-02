@@ -17,7 +17,7 @@ pC = zeros(trials, frames + 1);
 pC(:, 1) = params.prior_C;
 
 % Generate the stimulus, all with C=+1 'correct'
-data = SamplingModel.genDataWithParams(params);
+data = Model.genDataWithParams(params);
 
 for t=1:frames
     % Implement VB to get t+1 probabilities

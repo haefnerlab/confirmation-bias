@@ -17,7 +17,7 @@ parfor i=1:numel(ss)
     params_copy.category_info = cc(i);
     % Set variances for this pair of category- & sensory-info values. (That is, assume that the
     % model 'knows' the environment statistics)
-    params_copy.var_s = SamplingModel.getEvidenceVariance(ss(i));
+    params_copy.var_s = Model.getEvidenceVariance(ss(i));
     params_copy.p_match = cc(i);
     
     % TODO - smarter setting of seed?
@@ -27,7 +27,7 @@ parfor i=1:numel(ss)
     results_uid = VariationalModel.getModelStringID(params_copy);
     results = LoadOrRun(params.model_fun, {params_copy}, fullfile(params.save_dir, results_uid));
     
-    data = SamplingModel.genDataWithParams(results.params);
+    data = Model.genDataWithParams(results.params);
     [data, choices] = flipTrials(data, results.choices);
     weights = CustomRegression.PsychophysicalKernel(data, choices, 0, 0, 0);
     [expfit, expErrors] = CustomRegression.expFit(weights);
@@ -36,7 +36,7 @@ parfor i=1:numel(ss)
     slopeErrors(i) = expErrors(2);
 end
 
-colors = arrayfun(@(b) SamplingModel.betacolor(b, beta_range(1), beta_range(2)), linspace(beta_range(1), beta_range(2)), ...
+colors = arrayfun(@(b) Model.betacolor(b, beta_range(1), beta_range(2)), linspace(beta_range(1), beta_range(2)), ...
     'UniformOutput', false);
 cmap = vertcat(colors{:});
 

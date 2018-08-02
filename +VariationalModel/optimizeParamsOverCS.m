@@ -1,5 +1,5 @@
 function [optim_params, optim_correct] = optimizeParamsOverCS(category_infos, sensory_infos, params, variables, ngrid)
-%OPTIMIZEPARAMSOVERCS the variational equivalent of SamplingModel.optimizeParamsOverCS
+%OPTIMIZEPARAMSOVERCS the variational equivalent of Model.optimizeParamsOverCS
 
 if nargin < 5, ngrid = 21; end
 
@@ -8,7 +8,7 @@ for v=1:length(variables)
         ['params.' variables{v} ' does not exist!']);
 end
 
-assert(ngrid > 0, 'BADS over CS space not implemented (yet); use SamplingModel.optimizeParams');
+assert(ngrid > 0, 'BADS over CS space not implemented (yet); use Model.optimizeParams');
 
 % Create grid of 'sensory_infos' and 'category_infos'
 [ss, cc] = meshgrid(sensory_infos, category_infos);
@@ -33,7 +33,7 @@ parfor idx=1:numel(variables_grid{1}) * numel(ss)
     params_copy.category_info = cc(cs_i);
     % Set variances for this pair of category- & sensory-info values. (That is, assume that the
     % model 'knows' the environment statistics)
-    params_copy.var_s = SamplingModel.getEvidenceVariance(ss(cs_i));
+    params_copy.var_s = Model.getEvidenceVariance(ss(cs_i));
     params_copy.p_match = cc(cs_i);
     
     % Look up value for each grid-search variable based on vg_i.
@@ -86,7 +86,7 @@ end
 params.seed = randi(1000000000);
 results = LoadOrRun(params.model_fun, {params}, ...
     fullfile(params.save_dir, VariationalModel.getModelStringID(params)), '-verbose');
-ideal_results = SamplingModel.runIdealObserver(results.params);
+ideal_results = Model.runIdealObserver(results.params);
 correct = mean(results.choices == ideal_results.choices);
 end
 

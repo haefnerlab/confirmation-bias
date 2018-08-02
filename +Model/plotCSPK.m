@@ -1,11 +1,11 @@
 function [cs_fig, pk_fig] = plotCSPK(category_infos, sensory_infos, params, ideal_observer, pk_hprs, optimize, optim_grid_size, pk_colormap, betarange, clickpts)
 
-savedir = fullfile('+SamplingModel', 'figures');
+savedir = fullfile('+Model', 'figures');
 if ~exist(savedir, 'dir'), mkdir(savedir); end
 if nargin < 6, optimize = {}; end
 if nargin < 7, optim_grid_size = 11; end
 
-optim_prefix = SamplingModel.getOptimPrefix(optimize, optim_grid_size);
+optim_prefix = Model.getOptimPrefix(optimize, optim_grid_size);
 
 % Keep in sync with plotCSSpace
 if ~ideal_observer
@@ -17,7 +17,7 @@ else
 end
 
 if ~exist(fullfile(savedir, figname), 'file')
-    SamplingModel.plotCategorySensorySpace(category_infos, sensory_infos, params, ideal_observer, optimize, optim_grid_size);
+    Model.plotCategorySensorySpace(category_infos, sensory_infos, params, ideal_observer, optimize, optim_grid_size);
     close all;
 end
 
@@ -63,14 +63,14 @@ for i=1:length(sens_pts)
     params.category_info = c;
     params.sensory_info = s;
     params.p_match = c;
-    params.var_s = SamplingModel.getEvidenceVariance(s);
-    [weights, errors, tmp_fig] = SamplingModel.plotSamplingPK(params, pk_hprs, ideal_observer, optimize, optim_grid_size);
+    params.var_s = Model.getEvidenceVariance(s);
+    [weights, errors, tmp_fig] = Model.plotSamplingPK(params, pk_hprs, ideal_observer, optimize, optim_grid_size);
     close(tmp_fig);
     
     if nargin >= 8 && isequal(pk_colormap, 'beta')
         expfit = CustomRegression.expFit(weights(1:end-1), errors(1:end-1));
         disp(expfit);
-        colors(i, :) = SamplingModel.betacolor(expfit(2), betarange(1) ,betarange(2));
+        colors(i, :) = Model.betacolor(expfit(2), betarange(1) ,betarange(2));
         weights(1:end-1) = expfit(1) * exp((0:9) * expfit(2));
         errors(1:end-1) = nan;
     end

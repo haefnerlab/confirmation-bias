@@ -1,9 +1,9 @@
 function params = newModelParams(varargin)
-%SAMPLINGMODEL.NEWMODELPARAMS construct params struct for the sampling model.
+%Model.NEWMODELPARAMS construct params struct for the sampling model.
 %
-% params = SAMPLINGMODEL.NEWMODELPARAMS('key1', val1, 'key2', val2, ...) create params
+% params = Model.NEWMODELPARAMS('key1', val1, 'key2', val2, ...) create params
 % with defaults and override any specified 'key' with the given value. For
-% example, 'params = SAMPLINGMODEL.NEWMODELPARAMS('samples', 10)' creates a struct
+% example, 'params = Model.NEWMODELPARAMS('samples', 10)' creates a struct
 % with all default params (e.g. params.var_x is 0.5), but with
 % params.samples set to 10.
 %
@@ -14,7 +14,7 @@ function params = newModelParams(varargin)
 %   trials        - number of trials
 %   frames        - number of frames per trial
 %   category_info - probability that x matches c
-%   sensory_info  - probability of recovering x from e (see SamplingModel.getEvidenceVariance)
+%   sensory_info  - probability of recovering x from e (see Model.getEvidenceVariance)
 %   seed          - seed for generating data
 % SAMPLING MODEL
 %   var_s   - variance of gaussian p(s|x)
@@ -31,7 +31,7 @@ function params = newModelParams(varargin)
 %   noise   - amount of noise added, each frame, to accumulated log probabilities so far
 
 params = struct(...
-    'save_dir', fullfile('+SamplingModel', 'saved results'), ...
+    'save_dir', fullfile('+Model', 'saved results'), ...
     'trials', 1000, ...
     'frames', 10, ...
     'category_info', .8, ...

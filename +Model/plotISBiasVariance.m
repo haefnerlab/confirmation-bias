@@ -5,7 +5,7 @@ if nargin < 6, use_precomputed = false; end
 if nargin < 7, verbose = false; end
 
 %% Load or compute results
-savedir = fullfile('+SamplingModel', 'saved results');
+savedir = fullfile('+Model', 'saved results');
 
 log_prior_c = linspace(-2, 2, n_gridpts);
 s_values = linspace(-2, 2, n_gridpts);
@@ -23,7 +23,7 @@ for cat_idx=1:length(cat_info)
     cat = cat_info(cat_idx);
     for sense_idx=1:length(sense_info)
         sens = sense_info(sense_idx);
-        sig_s = sqrt(SamplingModel.getEvidenceVariance(sens));
+        sig_s = sqrt(Model.getEvidenceVariance(sens));
         sig_s_C = sqrt(sig_x^2 + sig_s^2);
         for samp_idx=1:length(sampleses)
             n_samples = sampleses(samp_idx);

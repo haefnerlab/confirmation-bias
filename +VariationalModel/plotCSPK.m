@@ -63,13 +63,13 @@ for i=1:length(sens_pts)
     params.category_info = c;
     params.sensory_info = s;
     params.p_match = c;
-    params.var_s = SamplingModel.getEvidenceVariance(s);
+    params.var_s = Model.getEvidenceVariance(s);
     [weights, errors, tmp_fig] = VariationalModel.plotPK(params, pk_hprs);
     close(tmp_fig);
     
     if nargin >= 5 && isequal(pk_colormap, 'beta')
         expfit = CustomRegression.expFit(weights(1:end-1), errors(1:end-1));
-        colors(i, :) = SamplingModel.betacolor(expfit(2), betarange(1), betarange(2));
+        colors(i, :) = Model.betacolor(expfit(2), betarange(1), betarange(2));
         weights(1:end-1) = expfit(1) * exp((0:9) * expfit(2));
         errors(1:end-1) = nan;
     end

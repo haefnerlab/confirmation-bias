@@ -2,7 +2,7 @@ function [correct] = plotCategorySensorySpace(category_infos, sensory_infos, par
 %PLOTCATEGORYSENSORYSPACE make category_info vs sensory_info plots for the
 %given params.
 
-savedir = fullfile('+SamplingModel', 'figures');
+savedir = fullfile('+Model', 'figures');
 if ~exist(savedir, 'dir'), mkdir(savedir); end
 
 if nargin < 4, ideal_observer = false; end
@@ -19,7 +19,7 @@ end
 correct = nan(size(ss));
 optim_results = cell(numel(ss), 1);
 
-optim_prefix = SamplingModel.getOptimPrefix(optimize, optim_grid_size);
+optim_prefix = Model.getOptimPrefix(optimize, optim_grid_size);
 
 parfor i=1:numel(ss)
     params_copy = params;
@@ -28,31 +28,31 @@ parfor i=1:numel(ss)
     params_copy.category_info = cc(i);
     % Set variances for this pair of category- & sensory-info values. (That is, assume that the
     % model 'knows' the environment statistics)
-    params_copy.var_s = SamplingModel.getEvidenceVariance(ss(i));
+    params_copy.var_s = Model.getEvidenceVariance(ss(i));
     params_copy.p_match = cc(i);
     
     % TODO - smarter setting of seed?
     params_copy.seed = randi(1000000000);
     
     % Run the model
-    results_uid = SamplingModel.getModelStringID(params_copy, ideal_observer);
+    results_uid = Model.getModelStringID(params_copy, ideal_observer);
     if isempty(optimize)
         if ~ideal_observer
-            results = LoadOrRun(@SamplingModel.runSamplingModelFast, {params_copy}, ...
+            results = LoadOrRun(@Model.runModelFast, {params_copy}, ...
                 fullfile(params.save_dir, results_uid));
         else
-            results = SamplingModel.runIdealObserver(params_copy);
+            results = Model.runIdealObserver(params_copy);
         end
     else
         % Find optimal param settings.
-        [optim_params, ~] = LoadOrRun(@SamplingModel.optimizeParams, ...
+        [optim_params, ~] = LoadOrRun(@Model.optimizeParams, ...
             {params_copy, optimize, optim_grid_size}, ...
             fullfile(params.save_dir, [optim_prefix '_' results_uid]));
         % Record optimal value of each optimized parameter.
         optim_results{i} = cellfun(@(v) optim_params.(v), optimize);
         % Get model results at the optimal param settings.
-        best_results_uid = SamplingModel.getModelStringID(optim_params);
-        results = LoadOrRun(@SamplingModel.runSamplingModelFast, {optim_params}, ...
+        best_results_uid = Model.getModelStringID(optim_params);
+        results = LoadOrRun(@Model.runModelFast, {optim_params}, ...
             fullfile(params.save_dir, best_results_uid));
     end
     correct(i) = sum(results.choices == +1) / params.trials;

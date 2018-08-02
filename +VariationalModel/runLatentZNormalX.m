@@ -7,7 +7,7 @@ function results = runLatentZNormalX(params, data)
 % future as would be required for exact inference of q(x_t,z_t|data)
 
 if ~exist('data', 'var')
-    data = SamplingModel.genDataWithParams(params);
+    data = Model.genDataWithParams(params);
 end
 
 trials = params.trials;
