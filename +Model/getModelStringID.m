@@ -1,18 +1,24 @@
-function name = getModelStringID(params, ideal_observer)
-if nargin < 2, ideal_observer = false; end
-if ~ideal_observer
-    if params.importance_norm
-        norm_str = '_norm';
-    else
-        norm_str = '_unnorm';
-    end
-    name = sprintf('%dx%d_cinfo%.3f_sinfo%.3f_vs%.2f_pm%.2f_pC%.2f_vx%.2f_gam%.2f_ns%d_nb%d_noise%.2e%s', ...
-        params.trials, params.frames, params.category_info, params.sensory_info, params.var_s, ...
-        params.p_match, params.prior_C, params.var_x, params.gamma, params.samples, params.batch, ...
-        params.noise, norm_str);
-else
-    name = sprintf('%dx%d_cinfo%.3f_sinfo%.3f_vs%.2f_pm%.2f_pC%.2f', ...
-        params.trials, params.frames, params.category_info, params.sensory_info, params.var_s, ...
-        params.p_match, params.prior_C);
+function name = getModelStringID(params, drop_cs_terms)
+switch lower(params.model)
+    case 'is'
+        name = sprintf('is_%dx%d_cinfo%.3f_sinfo%.3f_vs%.2f_pm%.2f_pC%.2f_vx%.2f_gam%.2f_nu%d_ns%d_noise%.2e_lapse%.2e', ...
+            params.trials, params.frames, params.category_info, params.sensory_info, params.var_s, ...
+            params.p_match, params.prior_C, params.var_x, params.gamma, params.updates, params.samples, ...
+            params.noise, params.lapse);
+    case 'vb'
+        name = sprintf('vb_%dx%d_cinfo%.3f_sinfo%.3f_vs%.2f_pm%.2f_pC%.2f_vx%.2f_gam%.2f_nu%d_noise%.2e_lapse%.2e', ...
+            params.trials, params.frames, params.category_info, params.sensory_info, params.var_s, ...
+            params.p_match, params.prior_C, params.var_x, params.gamma, params.updates, ...
+            params.noise, params.lapse);
+    case 'ideal'
+        name = sprintf('ideal_%dx%d_cinfo%.3f_sinfo%.3f_vs%.2f_pm%.2f_pC%.2f', params.trials, params.frames, ...
+            params.category_info, params.sensory_info, params.var_s, params.p_match, params.prior_C);
+    otherwise
+        error('Unrecognized model type: %s', params.model);
 end
+
+if nargin >= 2 && drop_cs_terms
+    name = regexprep(name, '_cinfo[0-9.]+_sinfo[0-9.]+_vs[0-9.]+_pm[0-9.]+', '');
+end
+
 end
