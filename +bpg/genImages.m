@@ -1,4 +1,4 @@
-function [im, imF] = genImages(frames, width, spFreqCPP, spFreqStdCPP, oriDEG, oriKappa, annulusPix)
+function [im, imF, filterF, aperture] = genImages(frames, width, spFreqCPP, spFreqStdCPP, oriDEG, oriKappa, annulusPix)
 %BPG.GENIMAGES Create a sequence band-pass grating (bpg) stimuli.
 %
 %[im, imF] = BPG.GENIMAGES(frames, width, spFreqCPP, spFreqStdCPP, oriDEG, oriKappa)
