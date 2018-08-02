@@ -1,4 +1,4 @@
-function [cs_fig, pk_fig] = plotCSPK(category_infos, sensory_infos, params, ideal_observer, pk_hprs, optimize, optim_grid_size, pk_colormap, betarange, clickpts)
+function [cs_fig, pk_fig] = plotCSPK(category_infos, sensory_infos, params, pk_hprs, optimize, optim_grid_size, pk_colormap, betarange, clickpts)
 
 savedir = fullfile('+Model', 'figures');
 if ~exist(savedir, 'dir'), mkdir(savedir); end
@@ -11,7 +11,7 @@ optim_prefix = Model.getOptimPrefix(optimize, optim_grid_size);
 figname = ['CSSpace_' Model.getModelStringID(params, true) '.fig'];
 
 if ~exist(fullfile(savedir, figname), 'file')
-    Model.plotCategorySensorySpace(category_infos, sensory_infos, params, ideal_observer, optimize, optim_grid_size);
+    Model.plotCategorySensorySpace(category_infos, sensory_infos, params, optimize, optim_grid_size);
     close all;
 end
 
@@ -58,7 +58,7 @@ for i=1:length(sens_pts)
     params.sensory_info = s;
     params.p_match = c;
     params.var_s = Model.getEvidenceVariance(s);
-    [weights, errors, tmp_fig] = Model.plotPK(params, pk_hprs, ideal_observer, optimize, optim_grid_size);
+    [weights, errors, tmp_fig] = Model.plotPK(params, pk_hprs, optimize, optim_grid_size);
     close(tmp_fig);
     
     if nargin >= 8 && isequal(pk_colormap, 'beta')
