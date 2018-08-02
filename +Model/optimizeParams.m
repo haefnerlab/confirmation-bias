@@ -1,20 +1,14 @@
 function [optim_params, optim_correct] = optimizeParams(params, variables, ngrid)
-%Model.OPTIMIZEPARAMS find the best sampling params (in terms of percent correct) for the
+%MODEL.OPTIMIZEPARAMS find the best sampling params (in terms of percent correct) for the
 %given data-generating params.
 %
-% params = Model.OPTIMIZEPARAMS(params, variables) use 'variables' as a cell array of params
-% fields that may be searched, and defaults to just {'p_match'}, but may be any subset of
-% {'p_match', 'var_s', 'gamma', 'prior_C'}
-%
-% Model.OPTIMIZEPARAMS(params, variables, ngrid) performs grid search  where each variable
-% is discretized to 'ngrid' values between its lower and upper bound.
-
-if nargin < 2, variables = {'p_match'}; end
-if nargin < 3, ngrid = 21; end
+% params = MODEL.OPTIMIZEPARAMS(params, variables, ngrid) use 'variables' as a cell array of params
+% fields that may be searched,; it may be any subset of {'p_match', 'var_s', 'gamma', 'prior_C'}.
+% Each variable is discretized into a grid of 'ngrid' equally spaced values. If ngrid is 0, attempts
+% to use the BADS algorithm.
 
 for v=1:length(variables)
-    assert(isfield(params, variables{v}), ...
-        ['params.' variables{v} ' does not exist!']);
+    assert(isfield(params, variables{v}), ['params.' variables{v} ' does not exist!']);
 end
 
 if ngrid > 0
@@ -78,9 +72,9 @@ function correct = percent_correct(params, variables, values)
     end
     % TODO - smarter resetting of seed
     params.seed = randi(1000000000);
-    results = Model.runModelFast(params);
-    ideal_results = Model.runIdealObserver(params);
-    correct = sum(results.choices == ideal_results.choices) / params.trials;
+    results = Model.runVectorized(params);
+    ideal_results = Model.runVectorized(setfield(params, 'model', 'ideal'));
+    correct = mean(results.choices == ideal_results.choices);
 end
 
 function lb = lower_bound(variable)

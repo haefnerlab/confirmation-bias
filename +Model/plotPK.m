@@ -1,4 +1,4 @@
-function [weights, errors, fig] = plotPK(params, pk_hprs, ideal_observer, optimize, optim_grid_size)
+function [weights, errors, fig] = plotPK(params, pk_hprs, optimize, optim_grid_size)
 %PLOTPK(params) plot PK of sampling model for given params.
 %
 % [weights, errors, fig] = PLOTPK(params) returns PK and fig handle
@@ -9,21 +9,15 @@ savedir = fullfile('+Model', 'figures');
 if ~exist(savedir, 'dir'), mkdir(savedir); end
 
 if nargin < 2, pk_hprs = [1 0 10]; end
-if nargin < 3, ideal_observer = false; end
-if nargin < 4, optimize = {}; end
-if nargin < 5, optim_grid_size = 11; end
+if nargin < 3, optimize = {}; end
+if nargin < 4, optim_grid_size = 11; end
 
 optim_prefix = Model.getOptimPrefix(optimize, optim_grid_size);
 
-results_uid = Model.getModelStringID(params, ideal_observer);
+results_uid = Model.getModelStringID(params);
 if isempty(optimize)
-    if ~ideal_observer
-        results = LoadOrRun(@Model.runModelFast, {params}, ...
-            fullfile(params.save_dir, results_uid), '-verbose');
-    else
-        results = LoadOrRun(@Model.runIdealObserver, {params}, ...
-            fullfile(params.save_dir, results_uid), '-verbose');
-    end
+    results = LoadOrRun(@Model.runVectorized, {params}, ...
+        fullfile(params.save_dir, results_uid), '-verbose');
 else
     % Find optimal param settings.
     [optim_params, ~] = LoadOrRun(@Model.optimizeParams, ...
@@ -32,7 +26,7 @@ else
         '-verbose');
     % Get model results at the optimal param settings.
     results_uid = Model.getModelStringID(optim_params);
-    results = LoadOrRun(@Model.runModelFast, {optim_params}, ...
+    results = LoadOrRun(@Model.runVectorized, {optim_params}, ...
         fullfile(params.save_dir, results_uid), '-verbose');
 end
 

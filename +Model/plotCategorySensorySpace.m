@@ -1,16 +1,15 @@
-function [correct] = plotCategorySensorySpace(category_infos, sensory_infos, params, ideal_observer, optimize, optim_grid_size)
+function [correct] = plotCategorySensorySpace(category_infos, sensory_infos, params, optimize, optim_grid_size)
 %PLOTCATEGORYSENSORYSPACE make category_info vs sensory_info plots for the
 %given params.
 
 savedir = fullfile('+Model', 'figures');
 if ~exist(savedir, 'dir'), mkdir(savedir); end
 
-if nargin < 4, ideal_observer = false; end
-if nargin < 5, optimize = []; end
-if nargin < 6, optim_grid_size = 11; end
+if nargin < 4, optimize = {}; end
+if nargin < 5, optim_grid_size = 11; end
 
-if ideal_observer && ~isempty(optimize)
-    error('nothing to optimize for the ideal observer');
+if strcmpi(params.model, 'ideal') && ~isempty(optimize)
+    error('Nothing to optimize for the ideal observer');
 end
 
 [ss, cc] = meshgrid(sensory_infos, category_infos);
@@ -35,14 +34,10 @@ parfor i=1:numel(ss)
     params_copy.seed = randi(1000000000);
     
     % Run the model
-    results_uid = Model.getModelStringID(params_copy, ideal_observer);
+    results_uid = Model.getModelStringID(params_copy);
     if isempty(optimize)
-        if ~ideal_observer
-            results = LoadOrRun(@Model.runModelFast, {params_copy}, ...
-                fullfile(params.save_dir, results_uid));
-        else
-            results = Model.runIdealObserver(params_copy);
-        end
+        results = LoadOrRun(@Model.runVectorized, {params_copy}, ...
+            fullfile(params.save_dir, results_uid));
     else
         % Find optimal param settings.
         [optim_params, ~] = LoadOrRun(@Model.optimizeParams, ...
@@ -52,10 +47,10 @@ parfor i=1:numel(ss)
         optim_results{i} = cellfun(@(v) optim_params.(v), optimize);
         % Get model results at the optimal param settings.
         best_results_uid = Model.getModelStringID(optim_params);
-        results = LoadOrRun(@Model.runModelFast, {optim_params}, ...
+        results = LoadOrRun(@Model.runVectorized, {optim_params}, ...
             fullfile(params.save_dir, best_results_uid));
     end
-    correct(i) = sum(results.choices == +1) / params.trials;
+    correct(i) = mean(results.choices == +1);
 end
 
 % Un-flatten optim_results
@@ -78,13 +73,8 @@ set(gca, 'YDir', 'Normal');
 xlabel('SI');
 ylabel('CI');
 title('Percent Correct');
-if ~ideal_observer
-    figname = sprintf('CSSpace_%dx%d_%s_vx%.2f_pC%.2f_gam%.2f_ns%d_nb%d_%d_%.2e.fig', ...
-        params.trials, params.frames, optim_prefix, params.var_x, params.prior_C, ...
-        params.gamma, params.samples, params.batch, params.importance_norm, params.noise);
-else
-    figname = sprintf('CSSpace_%dx%d_vx%.2f_ideal.fig', params.trials, params.frames, params.var_x);
-end
+
+figname = ['CSSpace_' Model.getModelStringID(params, true) '.fig'];
 
 saveas(gcf, fullfile(savedir, figname));
 

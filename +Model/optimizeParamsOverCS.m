@@ -4,8 +4,7 @@ function [optim_params, optim_correct] = optimizeParamsOverCS(category_infos, se
 if nargin < 5, ngrid = 21; end
 
 for v=1:length(variables)
-    assert(isfield(params, variables{v}), ...
-        ['params.' variables{v} ' does not exist!']);
+    assert(isfield(params, variables{v}), ['params.' variables{v} ' does not exist!']);
 end
 
 assert(ngrid > 0, 'BADS over CS space not implemented (yet); use Model.optimizeParams');
@@ -84,9 +83,9 @@ for i=1:length(variables)
 end
 % TODO - smarter resetting of seed
 params.seed = randi(1000000000);
-results = LoadOrRun(@Model.runModelFast, {params}, ...
+results = LoadOrRun(@Model.runVectorized, {params}, ...
     fullfile(params.save_dir, Model.getModelStringID(params)), '-verbose');
-ideal_results = Model.runIdealObserver(results.params);
+ideal_results = Model.runVectorized(setfield(results.params, 'model', 'ideal'));
 correct = mean(results.choices == ideal_results.choices);
 end
 

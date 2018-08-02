@@ -8,13 +8,7 @@ if nargin < 7, optim_grid_size = 11; end
 optim_prefix = Model.getOptimPrefix(optimize, optim_grid_size);
 
 % Keep in sync with plotCSSpace
-if ~ideal_observer
-    figname = sprintf('CSSpace_%dx%d_%s_vx%.2f_pC%.2f_gam%.2f_ns%d_nb%d_%d_%.2e.fig', ...
-        params.trials, params.frames, optim_prefix, params.var_x, params.prior_C, ...
-        params.gamma, params.samples, params.batch, params.importance_norm, params.noise);
-else
-    figname = sprintf('CSSpace_%dx%d_vx%.2f_ideal.fig', params.trials, params.frames, params.var_x);
-end
+figname = ['CSSpace_' Model.getModelStringID(params, true) '.fig'];
 
 if ~exist(fullfile(savedir, figname), 'file')
     Model.plotCategorySensorySpace(category_infos, sensory_infos, params, ideal_observer, optimize, optim_grid_size);
