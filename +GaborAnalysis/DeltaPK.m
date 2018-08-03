@@ -21,7 +21,7 @@ memodir = fullfile(datadir, '..', 'Precomputed');
 if ~exist(memodir, 'dir'), mkdir(memodir); end
 
 window_low = 0.5;
-window_high = 0.75;
+window_high = 0.7;
 
 REGULARIZE_PKS = false;
 

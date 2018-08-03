@@ -16,7 +16,7 @@ slopes = nan(length(subjectIds), 2, nboot);
 pvalues = nan(length(subjectIds), 1);
 
 window_low = 0.5;
-window_high = 0.75;
+window_high = 0.7;
 
     function [floor, thresh] = getThresholdWrapper(subjectId, phase)
         if phase == 1

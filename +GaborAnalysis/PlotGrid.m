@@ -45,7 +45,7 @@ nS = length(subjectIDs);
 nP = length(plot_types);
 
 window_low = 0.5;
-window_high = 0.75;
+window_high = 0.7;
 
     function [floor, thresh] = getThresholdWrapper(subjectId)
         s_idx = strcmpi(subjectId, subjectIDs);
