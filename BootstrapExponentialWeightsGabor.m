@@ -1,15 +1,11 @@
-function [M, L, U, median, fits_matrix] = BootstrapExponentialWeightsGabor(Test_Data, bootstrapsteps, signalKappa, binarize)
+function [M, L, U, median, fits_matrix] = BootstrapExponentialWeightsGabor(Test_Data, bootstrapsteps, signalKappa, normalize)
 
 if nargin < 3, signalKappa = 0; end
-if nargin < 4, binarize = false; end
+if nargin < 4, normalize = false; end
 
 frame_signals = ComputeFrameSignals(Test_Data, signalKappa);
-if binarize
-    frame_signals = sign(frame_signals);
-end
 
-[trials, frames] = size(frame_signals);
-num_weights = frames + 1;
+[trials, ~] = size(frame_signals);
 fits_matrix = zeros(bootstrapsteps, 2);
 
 parfor i=1:bootstrapsteps
@@ -20,7 +16,10 @@ parfor i=1:bootstrapsteps
    
     % Temporal PK regression
     weights = CustomRegression.PsychophysicalKernel(boot_signals, boot_choices, 0, 0, 0, 1);
-    fits_matrix(i,:) = CustomRegression.expFit(weights);
+    if normalize
+        weights(1:end-1) = weights(1:end-1) / mean(weights(1:end-1));
+    end
+    fits_matrix(i,:) = CustomRegression.expFit(weights(1:end-1));
 end
 
 [ M, L, U, median] = meanci(fits_matrix, .68);

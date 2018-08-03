@@ -1,12 +1,9 @@
-function [M, L, U, median, weight_matrix] = BootstrapWeightsGabor(Test_Data, bootstrapsteps, hprs, signalKappa, binarize)
+function [M, L, U, median, weight_matrix] = BootstrapWeightsGabor(Test_Data, bootstrapsteps, hprs, signalKappa, normalize)
 
 if nargin < 3, signalKappa = 0; end
-if nargin < 4, binarize = false; end
+if nargin < 4, normalize = false; end
 
 frame_signals = ComputeFrameSignals(Test_Data, signalKappa);
-if binarize
-    frame_signals = sign(frame_signals);
-end
 
 [trials, frames] = size(frame_signals);
 num_weights = frames + 1;
@@ -20,6 +17,9 @@ parfor i=1:bootstrapsteps
    
     % Temporal PK regression
     weights = CustomRegression.PsychophysicalKernel(boot_signals, boot_choices, hprs(1), hprs(2), hprs(3), 1);
+    if normalize
+        weights(1:end-1) = weights(1:end-1) / mean(weights(1:end-1));
+    end
     weight_matrix(i,:) = weights; 
 end
 

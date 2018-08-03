@@ -1,12 +1,9 @@
-function [M, L, U, median, weight_matrix, fits] = BootstrapLinearPKFit(Test_Data, bootstrapsteps, signalKappa, binarize)
+function [M, L, U, median, weight_matrix, fits] = BootstrapLinearPKFit(Test_Data, bootstrapsteps, signalKappa, normalize)
 
 if nargin < 3, signalKappa = 0; end
-if nargin < 4, binarize = false; end 
+if nargin < 4, normalize = false; end 
 
 frame_signals = ComputeFrameSignals(Test_Data, signalKappa);
-if binarize
-    frame_signals = sign(frame_signals);
-end
 
 [trials, frames] = size(frame_signals);
 weight_matrix = zeros(bootstrapsteps, frames);
@@ -25,6 +22,7 @@ parfor i=1:bootstrapsteps
     weight_matrix(i, :) = sob(2) + (0:frames-1) * sob(1); 
     biases(i) = sob(3);
 end
+if normalize, weight_matrix = weight_matrix ./ mean(weight_matrix, 2); end
 weight_matrix = [weight_matrix biases];
 [ M, L, U, median] = meanci(weight_matrix, .68);
 
