@@ -92,9 +92,7 @@ for i=1:length(optimize)
     xlabel('SI');
     ylabel('CI');
     title(['Optimized value of ' optimize{i}]);
-    figname = sprintf('CSSpace_optim_%s_%dx%d_vx%.2f_pC%.2f_gam%.2f_ns%d_nb%d_%d_%.2e.fig', ...
-        optimize{i}, params.trials, params.frames, params.var_x, params.prior_C, ...
-        params.gamma, params.samples, params.batch, params.importance_norm, params.noise);
+    figname = ['CSSpace_optim_' optimize{i} '_' Model.getModelStringID(params, true) '.fig'];
     saveas(gcf, fullfile(savedir, figname));
 end
 end
