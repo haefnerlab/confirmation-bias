@@ -24,7 +24,7 @@ window_high = 0.7;
 
 REGULARIZE_PKS = false;
 
-    function [median, L, U, trials, frames, variance, true_pk] = getSubjectKernel(subjectId, phase)
+    function [median, L, U, trials, frames, variance, true_pk] = getNormalizedSubjectKernel(subjectId, phase)
         stair_var = get_stair_var(phase);
         SubjectData = LoadOrRun(@LoadAllSubjectData, ...
             {subjectId, phase, datadir}, fullfile(catdir, [subjectId '-' stair_var '.mat']));
@@ -51,7 +51,7 @@ REGULARIZE_PKS = false;
                 end
                 memo_name = ['Boot-PK-ideal-' stair_var '-' subjectId '-' num2str(thresh) '-' num2str(floor) regstring '.mat'];
                 [~, L, U, median, all_weights] = LoadOrRun(@BootstrapWeightsGabor, ...
-                    {SubjectDataThresh, 500, hprs, 0, false}, ...
+                    {SubjectDataThresh, 500, hprs, 0, true}, ...
                     fullfile(memodir, memo_name));
                 frames = SubjectData.number_of_images;
                 variance = var(all_weights);
@@ -84,7 +84,7 @@ for i=1:length(subjectIDs)
     hold on;
     subjectId = subjectIDs{i};
     if length(phases) == 1
-        [M, L, U, trials, frames, variance, true_pk] = getSubjectKernel(subjectId, phases);
+        [M, L, U, trials, frames, variance, true_pk] = getNormalizedSubjectKernel(subjectId, phases);
         boundedline(1:frames, M(1:frames)', [U(1:frames)-M(1:frames); M(1:frames)-L(1:frames)]');
         errorbar(frames+1, M(end), M(end)-L(end), U(end)-M(end), 'LineWidth', 2, 'Color', 'r');
         title([strrep(get_stair_var(phases), '_', ' ') 'temporal kernel (' num2str(sum(trials)) '/' num2str(length(trials)) ')']);
@@ -110,10 +110,10 @@ for i=1:length(subjectIDs)
         % 2 subplots: 2 pks in one and their difference in the other
         subplot(1, 2, 1);
         hold on;
-        [M1, L1, U1, trials1, frames1, v1, true_pk1] = getSubjectKernel(subjectId, phases(1));
+        [M1, L1, U1, trials1, frames1, v1, true_pk1] = getNormalizedSubjectKernel(subjectId, phases(1));
         leg{1} = [strrep(get_stair_var(phases(1)), '_', ' ') ' (' num2str(sum(trials1)) '/' num2str(length(trials1)) ')'];
         
-        [M2, L2, U2, trials2, frames2, v2, true_pk2] = getSubjectKernel(subjectId, phases(2));
+        [M2, L2, U2, trials2, frames2, v2, true_pk2] = getNormalizedSubjectKernel(subjectId, phases(2));
         leg{2} = [strrep(get_stair_var(phases(2)), '_', ' ') ' (' num2str(sum(trials2)) '/' num2str(length(trials2)) ')'];
         
         h = boundedline(1:frames1, M1(1:frames1)', [U1(1:frames1)-M1(1:frames1); M1(1:frames1)-L1(1:frames1)]', 'b', ...

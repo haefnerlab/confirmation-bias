@@ -194,7 +194,7 @@ for i=1:nS
                 end
                 memo_name = ['Boot-PK-ideal-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) regstring '.mat'];
                 [~, L, U, median, ~] = LoadOrRun(@BootstrapWeightsGabor, ...
-                    {SubjectDataThresh, 500, hprs, 0, false}, fullfile(memodir, memo_name));
+                    {SubjectDataThresh, 500, hprs, 0, true}, fullfile(memodir, memo_name));
                 frames = SubjectData.number_of_images;
                 boundedline(1:frames, median(1:frames)', [U(1:frames)-median(1:frames); median(1:frames)-L(1:frames)]');
                 errorbar(frames+1, median(end), median(end)-L(end), U(end)-median(end), 'LineWidth', 2, 'Color', 'r');
@@ -212,7 +212,7 @@ for i=1:nS
                 SubjectDataThresh = GaborThresholdTrials(SubjectData, phase, thresh, floor);
                 memo_name = ['Boot-LinPK-ideal-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
                 [~, L, U, median, ~] = LoadOrRun(@BootstrapLinearPKFit, ...
-                    {SubjectDataThresh, 500, 0, false}, fullfile(memodir, memo_name));
+                    {SubjectDataThresh, 500, 0, true}, fullfile(memodir, memo_name));
                 frames = SubjectData.number_of_images;
                 boundedline(1:frames, median(1:frames)', [U(1:frames)-median(1:frames); median(1:frames)-L(1:frames)]', 'r');
                 errorbar(frames+1, median(end), median(end)-L(end), U(end)-median(end), 'LineWidth', 2, 'Color', 'r');
