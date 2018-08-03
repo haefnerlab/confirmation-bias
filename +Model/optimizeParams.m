@@ -72,8 +72,10 @@ function correct = percent_correct(params, variables, values)
     end
     % TODO - smarter resetting of seed
     params.seed = randi(1000000000);
-    results = Model.runVectorized(params);
-    ideal_results = Model.runVectorized(setfield(params, 'model', 'ideal'));
+    data = Model.genDataWithParams(params);
+    results = Model.runVectorized(params, data);
+    params.model = 'ideal';
+    ideal_results = Model.runVectorized(params, data);
     correct = mean(results.choices == ideal_results.choices);
 end
 
@@ -86,6 +88,8 @@ elseif strcmpi(variable, 'gamma')
     lb = 0;
 elseif strcmpi(variable, 'prior_C')
     lb = 0;
+elseif strcmpi(variable, 'noise')
+    lb = 0;
 end
 end
 
@@ -97,6 +101,8 @@ elseif strcmpi(variable, 'var_s')
 elseif strcmpi(variable, 'gamma')
     ub = 1;
 elseif strcmpi(variable, 'prior_C')
+    ub = 1;
+elseif strcmpi(variable, 'noise')
     ub = 1;
 end
 end
