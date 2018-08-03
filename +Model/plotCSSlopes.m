@@ -1,12 +1,8 @@
-function [slopes, slopeErrors, corrects, fig] = plotCSSlopes(category_infos, sensory_infos, params, optimize, optim_grid_size, rb_range)
+function [slopes, slopeErrors, corrects, fig] = plotCSSlopes(category_infos, sensory_infos, params, rb_range)
 
 memodir = fullfile('+Model', 'saved results');
 savedir = fullfile('+Model', 'figures');
 if ~exist(savedir, 'dir'), mkdir(savedir); end
-if nargin < 4, optimize = {}; end
-if nargin < 5, optim_grid_size = 11; end
-
-optim_prefix = Model.getOptimPrefix(optimize, optim_grid_size);
 
 [ss, cc] = meshgrid(sensory_infos, category_infos);
 
@@ -32,7 +28,7 @@ parfor i=1:numel(ss)
     results_uid = Model.getModelStringID(params_copy);
     expfit_uid = ['PK-expfit-' results_uid];
     
-    [expfit, expErrors, results] = LoadOrRun(@runAndGetFit, {params_copy, optimize, optim_grid_size}, ...
+    [expfit, expErrors, results] = LoadOrRun(@runAndGetFit, {params_copy}, ...
         fullfile(memodir, expfit_uid));
     
     corrects(i) = mean(results.choices == +1);
@@ -81,24 +77,11 @@ choices = choices == +1;
 choices(flip_indexes) = ~choices(flip_indexes);
 end
 
-function [expfit, errors, runResults] = runAndGetFit(params, optimize, optim_grid_size)
+function [expfit, errors, runResults] = runAndGetFit(params)
 uid = Model.getModelStringID(params);
-optim_prefix = Model.getOptimPrefix(optimize, optim_grid_size);
-if isempty(optimize)
-    runResults = LoadOrRun(@Model.runVectorized, {params}, ...
-        fullfile(params.save_dir, uid));
-else
-    % Find optimal param settings.
-    [optim_params, ~] = LoadOrRun(@Model.optimizeParams, ...
-        {params, optimize, optim_grid_size}, ...
-        fullfile(params.save_dir, [optim_prefix '_' uid]));
-    % Get model results at the optimal param settings.
-    best_results_uid = Model.getModelStringID(optim_params);
-    runResults = LoadOrRun(@Model.runVectorized, {optim_params}, ...
-        fullfile(params.save_dir, best_results_uid));
-end
+runResults = LoadOrRun(@Model.runVectorized, {params}, fullfile(params.save_dir, uid));
 data = Model.genDataWithParams(runResults.params);
 [data, choices] = flipTrials(data, runResults.choices);
-weights = CustomRegression.PsychophysicalKernel(data, choices, 0, 0, 0);
-[expfit, errors] = CustomRegression.expFit(weights);
+[w, ~, w_err] = CustomRegression.PsychophysicalKernel(data, choices, 0, 0, 0);
+[expfit, errors] = CustomRegression.expFit(w(1:end-1), w_err(1:end-1));
 end

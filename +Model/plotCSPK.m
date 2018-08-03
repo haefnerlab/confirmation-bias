@@ -1,17 +1,13 @@
-function [cs_fig, pk_fig] = plotCSPK(category_infos, sensory_infos, params, pk_hprs, optimize, optim_grid_size, pk_colormap, betarange, clickpts)
+function [cs_fig, pk_fig] = plotCSPK(category_infos, sensory_infos, params, pk_hprs, pk_colormap, betarange, clickpts)
 
 savedir = fullfile('+Model', 'figures');
 if ~exist(savedir, 'dir'), mkdir(savedir); end
-if nargin < 6, optimize = {}; end
-if nargin < 7, optim_grid_size = 11; end
-
-optim_prefix = Model.getOptimPrefix(optimize, optim_grid_size);
 
 % Keep in sync with plotCSSpace
 figname = ['CSSpace_' Model.getModelStringID(params, true) '.fig'];
 
 if ~exist(fullfile(savedir, figname), 'file')
-    Model.plotCategorySensorySpace(category_infos, sensory_infos, params, optimize, optim_grid_size);
+    Model.plotCategorySensorySpace(category_infos, sensory_infos, params);
     close all;
 end
 
@@ -38,7 +34,7 @@ end
 pk_fig = figure;
 pk_ax = axes(pk_fig);
 
-if nargin < 8
+if nargin < 5
     % create pk_colormap that is dark blue -> dark red
     fade = linspace(0, 1, npts)';
     colors = [fade*170/255, zeros(size(fade)), (1-fade)*170/255];
@@ -58,10 +54,10 @@ for i=1:length(sens_pts)
     params.sensory_info = s;
     params.p_match = c;
     params.var_s = Model.getEvidenceVariance(s);
-    [weights, errors, tmp_fig] = Model.plotPK(params, pk_hprs, optimize, optim_grid_size);
+    [weights, errors, tmp_fig] = Model.plotPK(params, pk_hprs);
     close(tmp_fig);
     
-    if nargin >= 8 && isequal(pk_colormap, 'beta')
+    if nargin >= 5 && isequal(pk_colormap, 'beta')
         expfit = CustomRegression.expFit(weights(1:end-1), errors(1:end-1));
         disp(expfit);
         colors(i, :) = Model.betacolor(expfit(2), betarange(1) ,betarange(2));
