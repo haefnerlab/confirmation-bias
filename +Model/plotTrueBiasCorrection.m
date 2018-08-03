@@ -1,4 +1,4 @@
-function fig = plotTrueBiasCorrection(params)
+function plotTrueBiasCorrection(params, linespec)
 savedir = fullfile('+Model', 'saved results');
 if ~exist(savedir, 'dir'), mkdir(savedir); end
 
@@ -40,14 +40,15 @@ optim_params = LoadOrRun(@Model.optimizeParams, {params, {'gamma'}, 21}, ...
 
 %% Plot it
 
-fig = figure;
-errorbar(lpo, expected_bias, sigma_bias);
+if ~exist('linespec', 'var'), linespec = {'-'}; end
+
+errorbar(lpo, expected_bias, sigma_bias, linespec{:});
 xlabel('LPO');
-ylabel('E_{model}[\Delta] - E_{ideal}[\Delta]');
+ylabel('E_{model}[LLO] - E_{ideal}[LLO]');
 title('True Nonlinear Bias Correction');
 
 hold on;
-h = plot(lpo, optim_params.gamma * lpo, 'LineWidth', 2);
+h = plot(lpo, optim_params.gamma * lpo, 'k', 'LineStyle', '--', 'LineWidth', 2);
 legend(h, {'best \gamma'});
 
 end
