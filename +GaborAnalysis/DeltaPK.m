@@ -88,7 +88,7 @@ for i=1:length(subjectIDs)
         boundedline(1:frames, M(1:frames)', [U(1:frames)-M(1:frames); M(1:frames)-L(1:frames)]');
         errorbar(frames+1, M(end), M(end)-L(end), U(end)-M(end), 'LineWidth', 2, 'Color', 'r');
         title([strrep(get_stair_var(phases), '_', ' ') 'temporal kernel (' num2str(sum(trials)) '/' num2str(length(trials)) ')']);
-        xlim([-inf, inf]); ylim([-.2 1.5]);
+        xlim([-inf, inf]);
         set(gca, 'XTick', [1 frames], 'XTickLabel', [0 1]);
         set(gca, 'YTick', [0 1]);
         xlabel('Time (s)');
@@ -120,7 +120,7 @@ for i=1:length(subjectIDs)
             1:frames2, M2(1:frames2)', [U2(1:frames2)-M2(1:frames2); M2(1:frames2)-L2(1:frames2)]', 'r', ...
             'alpha');
         title([subjectId ' temporal kernels']);
-        xlim([-inf, inf]); ylim([-.2 1.5]);
+        xlim([-inf, inf]);
         set(gca, 'XTick', [1 frames1], 'XTickLabel', [0 1]);
         set(gca, 'YTick', [0 1]);
         xlabel('Time (s)');
@@ -139,9 +139,9 @@ for i=1:length(subjectIDs)
         Ud = U1 - L2;
         boundedline(1:frames1, Md(1:frames1)', [Ud(1:frames1)-Md(1:frames1); Md(1:frames1)-Ld(1:frames1)]', 'k');
         title([subjectId ' kernel difference']);
-        xlim([-inf, inf]); ylim([-.2 1.5]);
+        xlim([-inf, inf]);
         set(gca, 'XTick', [1 frames1], 'XTickLabel', [0 1]);
-        set(gca, 'YTick', [0 1]);
+        set(gca, 'YTick', [-1 0 1]);
         xlabel('Time (s)');
         ylabel('Kernel Difference');
 %         set(gca, 'XAxisLocation', 'origin');
@@ -178,7 +178,7 @@ if length(subjectIDs) > 1
         % Plot
         plot(1:frames, CombinedKernelsByPhase{1}(1:frames));
         title([strrep(get_stair_var(phases), '_', ' ') ' combined kernel']);
-        xlim([-inf, inf]); ylim([-.2 1.5]);
+        xlim([-inf, inf]);
         set(gca, 'XTick', [1 frames], 'XTickLabel', [0 1]);
         set(gca, 'YTick', [0 1]);
         xlabel('Time (s)');
@@ -196,7 +196,7 @@ if length(subjectIDs) > 1
             plot(1:frames1, PerSubjectKernelsByPhase{1, i}(1:frames1), 'Color', colors(1, :));
         end
         plot(1:frames1, CombinedKernelsByPhase{1}(1:frames1), 'Color', colors(1, :), 'LineWidth', 2);
-        xlim([-inf, inf]); ylim([-.2 1.5]);
+        xlim([-inf, inf]);
         set(gca, 'XTick', [1 frames1], 'XTickLabel', [0 1]);
         set(gca, 'YTick', [0 1]);
         xlabel('Time (s)');
@@ -210,7 +210,7 @@ if length(subjectIDs) > 1
             plot(1:frames2, PerSubjectKernelsByPhase{2, i}(1:frames2), 'Color', colors(2, :));
         end
         plot(1:frames2, CombinedKernelsByPhase{2}(1:frames2), 'Color', colors(2, :), 'LineWidth', 2);
-        xlim([-inf, inf]); ylim([-.2 1.5]);
+        xlim([-inf, inf]);
         set(gca, 'XTick', [1 frames1], 'XTickLabel', [0 1]);
         set(gca, 'YTick', [0 1]);
         xlabel('Time (s)');
