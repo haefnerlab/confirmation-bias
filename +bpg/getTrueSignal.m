@@ -1,4 +1,4 @@
-function [im, imF, sig] = getTrueSignal(nSamples, width, spFreqCPP, spFreqStdCPP, oriDEG, oriKappa, annulusPix, filterKappa)
+function [im, imF, sig, filterF, aperture] = getTrueSignal(nSamples, width, spFreqCPP, spFreqStdCPP, oriDEG, oriKappa, annulusPix, filterKappa)
 
 noise = randn(width, width, nSamples);
 for iSample=nSamples:-1:1
