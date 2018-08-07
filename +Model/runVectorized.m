@@ -19,9 +19,6 @@ if strcmp(params.model, 'ideal') && params.updates > 1
 end
 
 prior_C = params.prior_C;
-updates = params.updates;
-noise = params.noise;
-gamma = params.gamma;
 lapse = params.lapse;
 
 %% Initialize return values
@@ -31,16 +28,15 @@ lapse = params.lapse;
 results = struct(...
     'params', params, ...
     'choices', zeros(trials, 1), ...
-    'llo', zeros(trials, frames * updates), ...
-    'lpo', zeros(trials, frames * updates + 1));
+    'lpo', zeros(trials, frames + 1));
 
 results.lpo(:, 1) = log(prior_C) - log(1 - prior_C);
 
 switch lower(params.model)
     case 'is'
-        logLikeFun = @Model.isLogLikelihood;
+        updateFun = @Model.isLogOddsUpdate;
     case 'vb'
-        logLikeFun = @Model.vbLogLikelihood;
+        updateFun = @Model.vbLogOddsUpdate;
     case 'ideal'
         logLikeOdds = Model.logLikelihoodOdds(params, data);
         results.lpo(:, 2:end) = results.lpo(:, 1) + cumsum(logLikeOdds, 2);
@@ -52,17 +48,8 @@ end
 
 %% Run model (sequentially over frames/updates, but vectorized over trials)
 
-t = 1;
 for f=1:frames
-    e = data(:, f);
-    for u=1:updates
-        reults.llo(:, t) = logLikeFun(params, e, results.lpo(:, t));
-        % Log-normal random variable with expected value 1
-        eta = exp(randn(trials, 1) * noise - noise^2 / 2);
-        update_diff = reults.llo(:, t) - gamma * results.lpo(:, t);
-        results.lpo(:, t+1) = eta .* (results.lpo(:, t) + update_diff / updates);
-        t = t + 1;
-    end
+    results.lpo(:, f+1) = updateFun(params, data(:, f), results.lpo(:, f));
 end
 
 results.choices = sign(results.lpo(:, end));

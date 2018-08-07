@@ -17,9 +17,9 @@ biases = zeros(length(lpo), length(e_vals));
 for i=length(lpo):-1:1
     switch params.model
         case 'is'
-            model_update = Model.isLogLikelihood(params, e_vals, lpo(i)*ones(size(e_vals)));
+            model_update = Model.isLogOddsUpdate(params, e_vals, lpo(i)*ones(size(e_vals)));
         case 'vb'
-            model_update = Model.vbLogLikelihood(params, e_vals, lpo(i)*ones(size(e_vals)));
+            model_update = Model.vbLogOddsUpdate(params, e_vals, lpo(i)*ones(size(e_vals)));
         case 'ideal'
             % Not sure why you would want to do this, but it's included for completeness
             model_update = ideal_update;

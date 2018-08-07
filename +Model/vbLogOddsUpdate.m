@@ -1,7 +1,12 @@
-function [llo] = vbLogLikelihood(params, e, lpo)
-%MODEL.VBLOGLIKELIHOOD compute log likelihood odds estimate using variational Bayes model,
-%vectorized over trials. Uses q(x,z|C)q(C) factorization
+function lpo = vbLogOddsUpdate(params, e, lpo)
+%MODEL.VBLOGODDSUPDATE compute log likelihood odds estimate using variational Bayes model,
+%vectorized over trials. Uses q(x,z|C)q(C) factorization.
 
+trials = size(e, 1);
+
+updates = params.updates;
+noise = params.noise;
+gamma = params.gamma;
 var_s = params.var_s;
 var_x = params.var_x;
 var_xs = var_s + var_x;
@@ -9,25 +14,30 @@ var_xs = var_s + var_x;
 pz0 = params.p_match;
 log_prior_odds_z = log(pz0) - log(1 - pz0);
 
-% Convert from lpo (log odds) to the probability that C=+1
-pC = 1 ./ (1 + exp(-lpo));
-mu_C = bernoulli_plusminus(pC);
-        
-% The form of q(x,z) is a mixture of two gaussians corresponding to z = +/-1
-mu_x_pos = (e * var_x + mu_C * var_s) / var_xs; % z = +1
-mu_x_neg = (e * var_x - mu_C * var_s) / var_xs; % z = -1
+% Initialize q(C) to the running posterior
+q_odds_C = lpo;
 
-% pz is the mass in each mode of the MOG
-log_odds_z = log_prior_odds_z + 2 * e .* mu_C / var_xs;
-pz = sigmoid(log_odds_z);
+for n=1:updates
+    % Convert from lpo (log odds) to the expected value of C
+    mu_C = bernoulli_plusminus(sigmoid(q_odds_C));
+    
+    % The form of q(x,z) is a mixture of two gaussians corresponding to z = +/-1
+    mu_x_pos = (e * var_x + mu_C * var_s) / var_xs; % z = +1
+    mu_x_neg = (e * var_x - mu_C * var_s) / var_xs; % z = -1
+    
+    % pi_z is the mass in the z=+1 mode of the MoG
+    log_odds_z = log_prior_odds_z + 2 * e .* mu_C / var_xs;
+    pi_z = sigmoid(log_odds_z);
+    
+    % Compute updated log odds of C
+    q_odds_C = lpo + 2 * (pi_z .* mu_x_pos - (1 - pi_z) .* mu_x_neg) / var_x;
+    
+    % Add noise (multiply by log-normal random variable with expected value 1)
+    eta = exp(randn(trials, 1) * noise - noise^2/2);
+    q_odds_C = eta .* q_odds_C;
+end
 
-% Mean of x is weighted sum of means from each mode
-mu_x = mu_x_pos .* pz + mu_x_neg .* (1 - pz);
-
-% Infer updated p(c|s) and loop to next update for x,z now using log_odds_C for q(C). Note that the
-% full VB update is derived as log(p(C)) <-- log(p(C)) + 2*mu_x/var_x . We do not include the
-% log(p(C)) term on the RHS since that is handled by the outer loop.
-llo = 2 * mu_x / var_x;
+lpo = q_odds_C - gamma * lpo;
 
 end
 
