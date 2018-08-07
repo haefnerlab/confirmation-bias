@@ -1,4 +1,4 @@
-function [slopes, slopeErrors, corrects, fig] = plotCSSlopes(category_infos, sensory_infos, params, rb_range)
+function [slopes, slopeErrors, corrects, fig, cmap] = plotCSSlopes(category_infos, sensory_infos, params, rb_range)
 
 memodir = fullfile('+Model', 'saved results');
 savedir = fullfile('+Model', 'figures');
@@ -47,15 +47,25 @@ gray_rgbs = gray_lum * ones([size(ss) 3]);
 
 % Plot slope
 fig = figure(); hold on;
+
 % Slopes contourf
-[c,h] = contourf(smoothn(slopes), linspace(rb_range(1), rb_range(2), 11));
+% contourf(smoothn(slopes), linspace(rb_range(1), rb_range(2), 11));
+% axis image;
+% colormap(cmap);
+
+% Slopes image
+imagesc(smoothn(slopes, 1./slopeErrors), rb_range);
 axis image;
+set(gca, 'YDir', 'normal');
 colormap(cmap);
-clabel(c,h,'Color',[1 1 1]);
+colorbar;
+
 % Gray overlay
 % h = image(gray_rgbs);
 % set(h, 'AlphaData', gray_alphas);
 % Labels n such
+
+% Axis labels etc
 category_tick_indices = round(linspace(1, length(category_infos), min(length(category_infos), 5)));
 sensory_tick_indices = round(linspace(1, length(sensory_infos), min(length(sensory_infos), 5)));
 set(gca, 'YTick', category_tick_indices);

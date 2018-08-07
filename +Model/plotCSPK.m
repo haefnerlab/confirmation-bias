@@ -7,11 +7,11 @@ if ~exist(savedir, 'dir'), mkdir(savedir); end
 figname = ['CSSpace_' Model.getModelStringID(params, true) '.fig'];
 
 if ~exist(fullfile(savedir, figname), 'file')
-    Model.plotCategorySensorySpace(category_infos, sensory_infos, params);
-    close all;
+    [~, cs_fig] = Model.plotCategorySensorySpace(category_infos, sensory_infos, params);
+else
+    cs_fig = openfig(fullfile(savedir, figname));
 end
 
-cs_fig = openfig(fullfile(savedir, figname));
 img_ax = findobj(cs_fig, 'Type', 'axes');
 hold(img_ax, 'on');
 

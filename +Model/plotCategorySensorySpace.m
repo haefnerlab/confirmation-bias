@@ -1,4 +1,4 @@
-function [correct] = plotCategorySensorySpace(category_infos, sensory_infos, params, optimize, optim_grid_size)
+function [correct, fig] = plotCategorySensorySpace(category_infos, sensory_infos, params, optimize, optim_grid_size)
 %PLOTCATEGORYSENSORYSPACE make category_info vs sensory_info plots for the
 %given params.
 
@@ -59,7 +59,7 @@ if ~isempty(optim_results)
 end
 
 % Plot percent correct
-figure();
+fig = figure();
 imagesc(correct, [0.5 1.0]); axis image; colorbar;
 % Add contour line at threshold
 hold on; contour(imfilter(correct, smoothkernel(9), 'replicate'), [0.7 0.7], '-w', 'LineWidth', 2);
