@@ -6,7 +6,7 @@ if ~exist(savedir, 'dir'), mkdir(savedir); end
 
 lpo = linspace(-3, 3);
 e_max = 1 + 5 * sqrt(params.var_s);
-e_vals = linspace(-e_max, e_max)';
+e_vals = linspace(-e_max, e_max, 1001)';
 
 sig_s = sqrt(params.var_s);
 data_pdf = mog.create([-1 +1], [sig_s sig_s], [params.prior_C 1-params.prior_C]);
@@ -36,7 +36,7 @@ sigma_bias = sqrt((biases - expected_bias).^2 * e_pdf / sqrt(length(e_pdf)));
 uid = Model.getModelStringID(params);
 optim_prefix = Model.getOptimPrefix({'gamma'}, 21);
 optim_params = LoadOrRun(@Model.optimizeParams, {params, {'gamma'}, 21}, ...
-    fullfile(savedir, [optim_prefix uid]));
+    fullfile(savedir, [optim_prefix '_' uid]));
 
 %% Plot it
 
