@@ -1,10 +1,11 @@
-function [slopes, pvalues] = DeltaSlopeStatistics(subjectIds, phases, type, nboot, datadir)
+function [slopes, pvalues] = DeltaSlopeStatistics(subjectIds, phases, type, nboot, is_naive, datadir)
 %DELTASLOPESTATISTICS use linear PK fit to each of the two phases, bootstrapped, and return (1) the
 %[num subjects x 2 x bootstraps] array of PK slopes and (2) the [num subjects] array of p-values for
 %there being a significant difference between the two phases.
 
 if ~exist('nboot', 'var'), nboot = 10000; end
 if ~exist('datadir', 'var'), datadir = fullfile(pwd, '..', 'RawData'); end
+if ~exist('is_naive', 'var'), is_naive = true(size(subjectIds)); end
 
 catdir = fullfile(datadir, '..', 'ConcatData');
 if ~exist(catdir, 'dir'), mkdir(catdir); end
@@ -151,23 +152,34 @@ end
 xlabel(['\Delta PK Slope (' xlab ')']);
 xlim(range);
 
-%% Violin plots
+%% Violin plots, sans violin
 
 % Take mean over bootstrap samples
 subj_mean_slopes = mean(slopes, 3);
 
-figure;
-violins = violinplot(subj_mean_slopes, {label1, label2}, 'ShowData', false, 'ShowMean', false, 'ShowNotches', false, 'ViolinAlpha', 1);
-violins(1).ViolinColor = Model.betacolor(1, -1, 1);
-delete(violins(1).BoxPlot);
-delete(violins(1).MedianPlot);
-violins(2).ViolinColor = Model.betacolor(-1, -1, 1);
-delete(violins(2).BoxPlot);
-delete(violins(2).MedianPlot);
+% Start with all black, then change 'not-naive' subjects to gray
+colors = zeros(length(subjectIds), 3);
+colors(~is_naive, :) = .67;
 
+figure;
 hold on;
+
+% Plot lines
 for iSubject=1:length(subjectIds)
-    plot([1 2], subj_mean_slopes(iSubject, :), '-ok', 'MarkerFaceColor', 'k');
+    plot([1 2], subj_mean_slopes(iSubject, :), '-', 'Color', colors(iSubject, :), 'MarkerFaceColor', colors(iSubject, :));
+end
+
+% Overlay dots
+scatter([ones(length(subjectIds), 1); 2*ones(length(subjectIds), 1)], subj_mean_slopes(:), 20, [colors; colors], 'filled');
+
+xlim([.5 2.5]);
+set(gca, 'XTick', [1 2], 'XTickLabel', arrayfun(@getStairVar, phases, 'UniformOutput', false));
+
+switch lower(type)
+    case 'exponential'
+        ylabel('slope (\beta)');
+    case 'linear'
+        ylabel('slope (linear)');
 end
 
 end
