@@ -99,10 +99,10 @@ if strcmpi(variable, 'p_match')
 elseif strcmpi(variable, 'var_s')
     ub = inf;
 elseif strcmpi(variable, 'gamma')
-    ub = 1;
+    ub = 20;
 elseif strcmpi(variable, 'prior_C')
     ub = 1;
 elseif strcmpi(variable, 'noise')
-    ub = 1;
+    ub = 10;
 end
 end
