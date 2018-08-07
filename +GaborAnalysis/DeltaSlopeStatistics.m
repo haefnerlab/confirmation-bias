@@ -157,23 +157,51 @@ xlim(range);
 % Take mean over bootstrap samples
 subj_mean_slopes = mean(slopes, 3);
 
-% Start with all black, then change 'not-naive' subjects to gray
-colors = zeros(length(subjectIds), 3);
-colors(~is_naive, :) = .67;
+% Start with dark colors, then change 'not-naive' subjects to lighter
+red = [204 0 0] / 255;
+blu = [32 74 135] / 255;
+white = [1 1 1];
+alpha = 0.6;
+blu_lt = blu * (1-alpha) + white * alpha;
+red_lt = red * (1-alpha) + white * alpha;
+gray = white * alpha;
 
 figure;
 hold on;
 
-% Plot lines
 for iSubject=1:length(subjectIds)
-    plot([1 2], subj_mean_slopes(iSubject, :), '-', 'Color', colors(iSubject, :), 'MarkerFaceColor', colors(iSubject, :));
+    % Plot line
+    if is_naive(iSubject)
+        plot([2 1], subj_mean_slopes(iSubject, :), '-', 'Color', [0 0 0]);
+    else
+        plot([2 1], subj_mean_slopes(iSubject, :), '-', 'Color', gray);
+    end
+    
+    % Overlay dots
+    if is_naive(iSubject)
+        scatter(1, subj_mean_slopes(iSubject, 2), 15, red, 'filled');
+        scatter(2, subj_mean_slopes(iSubject, 1), 15, blu, 'filled');
+    else
+        scatter(1, subj_mean_slopes(iSubject, 2), 15, red_lt, 'filled');
+        scatter(2, subj_mean_slopes(iSubject, 1), 15, blu_lt, 'filled');
+    end
+    
+    % p-value asterisks
+    if pvalues(iSubject) < 0.0001
+        ptxt = '***';
+    elseif pvalues(iSubject) < 0.001
+        ptxt = '**';
+    elseif pvalues(iSubject) < 0.05
+        ptxt = '*';
+    else
+        ptxt = ''; % ['p = ' num2str(pvalues(iSubject), 2)];
+    end
+    text(2.05, subj_mean_slopes(iSubject, 1), ptxt);
 end
 
-% Overlay dots
-scatter([ones(length(subjectIds), 1); 2*ones(length(subjectIds), 1)], subj_mean_slopes(:), 20, [colors; colors], 'filled');
 
 xlim([.5 2.5]);
-set(gca, 'XTick', [1 2], 'XTickLabel', arrayfun(@getStairVar, phases, 'UniformOutput', false));
+set(gca, 'XTick', [1 2], 'XTickLabel', arrayfun(@getStairVar, fliplr(phases), 'UniformOutput', false));
 
 switch lower(type)
     case 'exponential'
