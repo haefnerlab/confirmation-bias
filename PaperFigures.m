@@ -6,6 +6,7 @@
 
 RATIO_PHASE = 1;
 NOISE_PHASE = 2;
+THRESHOLD = 0.7;
 DATADIR = fullfile('..', 'RawData');
 
 ratioSubjects = arrayfun(@(i) sprintf('bpgFinaltest-subject%02d', i), setdiff(1:15, [1 5 12]), 'UniformOutput', false);
@@ -28,7 +29,7 @@ N = length(bothSubjects);
 sem = @(vals) std(vals)/sqrt(N);
 for iSubject=length(bothSubjects):-1:1
     warning off;
-    [~,~,psycho_fit] = GaborAnalysis.getThresholdWindow(bothSubjects{iSubject}, NOISE_PHASE, 0.5, 0.75, DATADIR);
+    [~,~,psycho_fit] = GaborAnalysis.getThresholdWindow(bothSubjects{iSubject}, NOISE_PHASE, 0.5, THRESHOLD, DATADIR);
     warning on;
     % See @plotPsych, e.g.
     pc_zero_signal(iSubject) = (1-psycho_fit.Fit(3)-psycho_fit.Fit(4))*psycho_fit.options.sigmoidHandle(0,psycho_fit.Fit(1),psycho_fit.Fit(2))+psycho_fit.Fit(4);
