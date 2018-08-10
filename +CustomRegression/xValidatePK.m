@@ -45,6 +45,11 @@ end
 avg_ll = mean(log_likelihoods, 4);
 [~, imax] = max(avg_ll(:));
 [iRidge, iAR1, iCurve] = ind2sub(sz(1:3), imax);
+% Err on the side of less regularization by choosing smoothing that is one order of magnitude less
+% than the best.
+iRidge = max(iRidge-1, 1);
+iAR1 = max(iAR1-1, 1);
+iCurve = max(iCurve-1, 1);
 best_hprs = [hpr_ridge(iRidge), hpr_ar1(iAR1), hpr_curvature(iCurve)];
 
 end

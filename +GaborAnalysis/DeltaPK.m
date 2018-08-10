@@ -1,4 +1,4 @@
-function [perSubjectFigs, combinedfig] = DeltaPK(subjectIDs, phases, per_subject_plots, method, datadir)
+function [perSubjectFigs, combinedfig] = DeltaPK(subjectIDs, phases, per_subject_plots, regularize_individuals, method, datadir)
 %GABORANALYSIS.DELTAPK creates one figure per subject and a combined figure
 %(if 2 or more subjects) showing temporal psychophysical kernel analysis.
 %
@@ -11,8 +11,9 @@ function [perSubjectFigs, combinedfig] = DeltaPK(subjectIDs, phases, per_subject
 % - datadir: (optional) override the default place to look for data files.
 
 if nargin < 3, per_subject_plots = false; end
-if nargin < 4, method = 'lr'; end
-if nargin < 5, datadir = fullfile(pwd, '..', 'RawData'); end
+if nargin < 4, regularize_individuals = true; end
+if nargin < 5, method = 'lr'; end
+if nargin < 6, datadir = fullfile(pwd, '..', 'RawData'); end
 
 catdir = fullfile(datadir, '..', 'ConcatData');
 if ~exist(catdir, 'dir'), mkdir(catdir); end
@@ -23,13 +24,13 @@ if ~exist(memodir, 'dir'), mkdir(memodir); end
 window_low = 0.5;
 window_high = 0.7;
 
-REGULARIZE_PKS = false;
-
-    function [median, L, U, trials, frames, variance, true_pk] = getNormalizedSubjectKernel(subjectId, phase)
+    function [median, L, U, trials, frames, variance, true_pk] = getNormalizedSubjectKernel(subjectId, phase, regularize)
         stair_var = get_stair_var(phase);
         SubjectData = LoadOrRun(@LoadAllSubjectData, ...
             {subjectId, phase, datadir}, fullfile(catdir, [subjectId '-' stair_var '.mat']));
+        warning off;
         [floor, thresh] = GaborAnalysis.getThresholdWindow(subjectId, phase, window_low, window_high, datadir);
+        warning on;
         if phase == 1
             floor = .4;
             thresh = .6;
@@ -38,14 +39,19 @@ REGULARIZE_PKS = false;
         SubjectDataThresh = GaborThresholdTrials(SubjectData, phase, thresh, floor);
         switch lower(method)
             case {'regress', 'logistic', 'lr'}
-                if REGULARIZE_PKS
+                if regularize
                     regstring = '-reg';
-                    memo_name = ['PK-xValid-' stair_var '-' subjectId '-' num2str(thresh) '-' num2str(floor) '.mat'];
-                    nFold = 10;
-                    hprs = [0 logspace(-3, 5, 9)];
-                    [hprs, ~] = LoadOrRun(@CustomRegression.xValidatePK, ...
-                        {SubjectDataThresh.ideal_frame_signals, SubjectDataThresh.choice == +1, hprs, 0, hprs, 1, nFold}, ...
-                        fullfile(memodir, memo_name));
+                    % memo_name = ['PK-xValid-' stair_var '-' subjectId '-' num2str(thresh) '-' num2str(floor) '.mat'];
+                    % nFold = 10;
+                    % hprs = [0 logspace(-3, 5, 9)];
+                    % [hprs, ~] = LoadOrRun(@CustomRegression.xValidatePK, ...
+                    %     {SubjectDataThresh.ideal_frame_signals, SubjectDataThresh.choice == +1, hprs, 0, hprs, 1, nFold}, ...
+                    %     fullfile(memodir, memo_name));
+                    if phase == 1
+                        hprs = [0.1 0 10];
+                    elseif phase  == 2
+                        hprs = [0 0 500];
+                    end
                 else
                     regstring = '';
                     hprs = [0 0 0];
@@ -73,8 +79,8 @@ REGULARIZE_PKS = false;
         end
     end
 
-% CombinedKernelsByPhase{i} contains a the combined kernel mean (weighted
-% by inverse variance pr subject) for phase i.
+% CombinedKernelsByPhase{i} contains a the combined kernel mean (weighted by inverse variance pr
+% subject) for phase i. Combined kernels are always based on unregularized individual PKs.
 PerSubjectKernelsByPhase = cell(length(phases), length(subjectIDs));
 CombinedKernelsByPhase = cell(size(phases));
 CombinedNormalizerByPhase = cell(size(phases));
@@ -88,7 +94,7 @@ for i=1:length(subjectIDs)
     end
     subjectId = subjectIDs{i};
     if length(phases) == 1
-        [M, L, U, trials, frames, variance, true_pk] = getNormalizedSubjectKernel(subjectId, phases);
+        [M, L, U, trials, frames, variance, true_pk] = getNormalizedSubjectKernel(subjectId, phases, false);
         if per_subject_plots
             boundedline(1:frames, M(1:frames)', [U(1:frames)-M(1:frames); M(1:frames)-L(1:frames)]');
             errorbar(frames+1, M(end), M(end)-L(end), U(end)-M(end), 'LineWidth', 2, 'Color', 'r');
@@ -110,13 +116,19 @@ for i=1:length(subjectIDs)
             CombinedKernelsByPhase{1} = CombinedKernelsByPhase{1} + M ./ variance;
             CombinedNormalizerByPhase{1} = CombinedNormalizerByPhase{1} + 1 ./ variance;
         end
-        PerSubjectKernelsByPhase{1, i} = M;
+        
+        if regularize_individuals
+            [PerSubjectKernelsByPhase{1, i}, ~, ~, ~, ~, ~, ~] = ...
+                getNormalizedSubjectKernel(subjectId, phases, true);
+        else
+            PerSubjectKernelsByPhase{1, i} = M;
+        end
     else
         % 2 subplots: 2 pks in one and their difference in the other
-        [M1, L1, U1, trials1, frames1, v1, true_pk1] = getNormalizedSubjectKernel(subjectId, phases(1));
+        [M1, L1, U1, trials1, frames1, v1, true_pk1] = getNormalizedSubjectKernel(subjectId, phases(1), false);
         leg{1} = [strrep(get_stair_var(phases(1)), '_', ' ') ' (' num2str(sum(trials1)) '/' num2str(length(trials1)) ')'];
         
-        [M2, L2, U2, trials2, frames2, v2, true_pk2] = getNormalizedSubjectKernel(subjectId, phases(2));
+        [M2, L2, U2, trials2, frames2, v2, true_pk2] = getNormalizedSubjectKernel(subjectId, phases(2), false);
         leg{2} = [strrep(get_stair_var(phases(2)), '_', ' ') ' (' num2str(sum(trials2)) '/' num2str(length(trials2)) ')'];
         
         if per_subject_plots
@@ -162,8 +174,17 @@ for i=1:length(subjectIDs)
             CombinedKernelsByPhase{2} = CombinedKernelsByPhase{2} + M2 ./ v2;
             CombinedNormalizerByPhase{2} = CombinedNormalizerByPhase{2} + 1 ./ v2;
         end
-        PerSubjectKernelsByPhase{1, i} = M1;
-        PerSubjectKernelsByPhase{2, i} = M2;
+        
+        
+        if regularize_individuals
+            [PerSubjectKernelsByPhase{1, i}, ~, ~, ~, ~, ~, ~] = ...
+                getNormalizedSubjectKernel(subjectId, phases(1), true);
+            [PerSubjectKernelsByPhase{2, i}, ~, ~, ~, ~, ~, ~] = ...
+                getNormalizedSubjectKernel(subjectId, phases(2), true);
+        else
+            PerSubjectKernelsByPhase{1, i} = M1;
+            PerSubjectKernelsByPhase{2, i} = M2;
+        end
     end
     
     if per_subject_plots
