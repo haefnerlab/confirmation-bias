@@ -1,4 +1,4 @@
-function [slopes, slopeErrors, corrects, fig, cmap] = plotCSSlopes(category_infos, sensory_infos, params, rb_range)
+function [slopes, slopeErrors, smoothSlopes, corrects, fig, cmap] = plotCSSlopes(category_infos, sensory_infos, params, rb_range, contour_pc, contour_through_sc)
 
 memodir = fullfile('+Model', 'saved results');
 savedir = fullfile('+Model', 'figures');
@@ -36,6 +36,8 @@ parfor i=1:numel(ss)
     slopeErrors(i) = expErrors(2);
 end
 
+smoothSlopes = smoothn(slopes, 1./slopeErrors.^2);
+
 colors = arrayfun(@(b) Model.betacolor(b, rb_range(1), rb_range(2)), linspace(rb_range(1), rb_range(2)), ...
     'UniformOutput', false);
 cmap = vertcat(colors{:});
@@ -59,6 +61,18 @@ axis image;
 set(gca, 'YDir', 'normal');
 colormap(cmap);
 colorbar;
+
+if exist('contour_pc', 'var')
+    hold on;
+    [ii, jj] = meshgrid(1:length(sensory_infos), 1:length(category_infos));
+    contour(ii, jj, corrects, [0 contour_pc], 'w', 'LineWidth', 2);
+
+    if exist('contour_through_sc', 'var')
+        slopeVals = arrayfun(@(i) interp2(ss, cc, smoothSlopes, contour_through_sc(i,1), contour_through_sc(i,2)), ...
+            1:size(contour_through_sc, 1));
+        contour(ii, jj, smoothSlopes, slopeVals, 'w', 'LineWidth', 2);
+    end
+end
 
 % Gray overlay
 % h = image(gray_rgbs);
