@@ -67,17 +67,17 @@ sens_cat_pts = [.99 .59; .83 .65; .69 .79; .67 .91];
 [cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, sens_cat_pts);
 figureToPanel(cs_fig, fig3, 2, 4, 2, parula);
 figureToPanel(pk_fig, fig3, 2, 4, 3);
-[~,~,~,fig,cmap] = Model.plotCSSlopes(ps, ps, params, beta_range);
+[~,~,~,~,fig,cmap] = Model.plotCSSlopes(ps, ps, params, beta_range, THRESHOLD, sens_cat_pts);
 figureToPanel(fig, fig3, 2, 4, 4, cmap);
 
 % Same plots with gamma = 0.1 showing emergence of recency effects
 params.gamma = 0.1;
 beta_range = [-.4 .1]; % min and max beta expected (to get maximum use of colorbar range)
-sens_cat_pts =[0.99 0.61; 0.85 0.65; 0.73 0.73; 0.67 0.83; 0.65 0.95];
+sens_cat_pts = [0.99 0.61; 0.85 0.65; 0.73 0.73; 0.67 0.83; 0.65 0.95];
 [cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, sens_cat_pts);
 figureToPanel(cs_fig, fig3, 2, 4, 6, parula);
 figureToPanel(pk_fig, fig3, 2, 4, 7);
-[~,~,~,fig,cmap] = Model.plotCSSlopes(ps, ps, params, beta_range);
+[~,~,~,~,fig,cmap] = Model.plotCSSlopes(ps, ps, params, beta_range, THRESHOLD, sens_cat_pts);
 figureToPanel(fig, fig3, 2, 4, 8, cmap);
 
 %% Figure 3 (variational bayes version)
@@ -105,11 +105,16 @@ beta_range = [-.2 .2]; % min and max beta expected (to get maximum use of colorb
 Model.plotCSSlopes(ps, ps, params, beta_range);
 
 function figureToPanel(figSource, figDest, subM, subN, subI, cmap)
+margin = 0.02;
+widths = (1 - (subN + 1) * margin) / subN;
+heights = (1 - (subM + 1) * margin) / subM;
+[col, row] = ind2sub([subN, subM], subI);
+left = col * (widths + margin);
+bottom = 1 - row * (heights + margin) + heights;
 figure(figSource);
 ax = gca;
 ax_copy = copyobj(ax, figDest);
-ax_tmp = subplot(subM, subN, subI);
-ax_copy.Position = ax_tmp.Position;
+ax_copy.Position = [left bottom widths heights];
 ax_copy.Parent = figDest;
 close(figSource);
 if exist('cmap', 'var')
