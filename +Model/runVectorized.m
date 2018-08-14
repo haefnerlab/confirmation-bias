@@ -39,9 +39,16 @@ function results = runVectorized(params, data)
 % - params.lapse = (inference) probability of "lapse" (random choice on a trial regardless of stim)
 
 if ~exist('data', 'var')
-    % Create a seed so that results.params.seed has a record of the exact data.
-    params.seed = randi(1000000000);
+    if ~isfield(params, 'seed') || isempty(params.seed)
+        % Create a seed so that results.params.seed has a record of the exact data, unless
+        % params.seed is already set
+        params.seed = randi(1000000000);
+    end
     data = Model.genDataWithParams(params);
+else
+    % Data matrix is given, so seed is unknown (except perhaps by the calling function, but we don't
+    % want results.params.seed to be misleading)
+    params.seed = [];
 end
 
 prior_C = params.prior_C;
