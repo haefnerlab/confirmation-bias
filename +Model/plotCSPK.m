@@ -70,7 +70,7 @@ for i=1:length(sens_pts)
     
     scatter(img_ax, il, ip, 50, colors(i,:), 'filled');
     hold(pk_ax, 'on');
-    errorbar(1:params.frames, weights(1:end-1), errors(1:end-1), 'Color', colors(i,:), 'LineWidth', 2);
+    errorbar(pk_ax, 1:params.frames, weights(1:end-1), errors(1:end-1), 'Color', colors(i,:), 'LineWidth', 2);
 end
 
 yl = ylim;

@@ -6,16 +6,42 @@ function results = runVectorized(params, data)
 %params.seed is set.
 %
 %To run the ideal observer:
-% - params.
+% - params.model = 'ideal'
+% - params.category_info = (data gen) category info
+% - params.sensory_info = (data gen) sensory info
+% - params.p_match = (inference) category info
+% - params.var_s + params.var_x = (inference) sensory info (see @Model.getEvidenceVariance)
+% - params.prior_C = (inference) prior probability that C=+1
+%
+%To run the sampling model:
+% - params.model = 'is' for "importance sampling"
+% - params.category_info = (data gen) category info
+% - params.sensory_info = (data gen) sensory info
+% - params.p_match = (inference) category info
+% - params.var_x = (inference) variance of each mode of x|C Mixture of Gaussians
+% - params.var_s = (inference) variance of s|x
+% - params.updates = (inference) number of updates per frame ("n_U" in the paper)
+% - params.samples = (inference) number of parallel samples in a single update ("S" in the paper)
+% - params.gamma = (inference) linear approximate bias correction term
+% - params.noise = (inference) log-normal noise per update is exp(randn*noise - noise^2/2)
+% - params.lapse = (inference) probability of "lapse" (random choice on a trial regardless of stim)
+%
+%To run the variational model:
+% - params.model = 'is' for "importance sampling"
+% - params.category_info = (data gen) category info
+% - params.sensory_info = (data gen) sensory info
+% - params.p_match = (inference) category info
+% - params.var_x = (inference) variance of each mode of x|C Mixture of Gaussians
+% - params.var_s = (inference) variance of s|x
+% - params.updates = (inference) number of coordinate ascent steps per frame ("n_U" in the paper)
+% - params.gamma = (inference) linear approximate bias correction term
+% - params.noise = (inference) log-normal noise per update is exp(randn*noise - noise^2/2)
+% - params.lapse = (inference) probability of "lapse" (random choice on a trial regardless of stim)
 
 if ~exist('data', 'var')
     % Create a seed so that results.params.seed has a record of the exact data.
     params.seed = randi(1000000000);
     data = Model.genDataWithParams(params);
-end
-
-if strcmp(params.model, 'ideal') && params.updates > 1
-    params.updates = 1;
 end
 
 prior_C = params.prior_C;
@@ -55,6 +81,6 @@ end
 results.choices = sign(results.lpo(:, end));
 if isfield(params, 'lapse')
     lapse_trials = rand(trials, 1) < lapse;
-    results.choices(lapse_trials) = rand(sum(lapse_trials), 1) < 0.5;
+    results.choices(lapse_trials) = sign(rand(sum(lapse_trials), 1) - 0.5);
 end
 end
