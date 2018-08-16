@@ -37,6 +37,7 @@ function results = runVectorized(params, data)
 % - params.gamma = (inference) linear approximate bias correction term
 % - params.noise = (inference) log-normal noise per update is exp(randn*noise - noise^2/2)
 % - params.lapse = (inference) probability of "lapse" (random choice on a trial regardless of stim)
+% - params.step_size = (inference) fraction of full update to log odds C to apply in each iteration.
 
 if ~exist('data', 'var')
     if ~isfield(params, 'seed') || isempty(params.seed)
