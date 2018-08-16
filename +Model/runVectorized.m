@@ -86,8 +86,7 @@ for f=1:frames
 end
 
 results.choices = sign(results.lpo(:, end));
-if isfield(params, 'lapse')
-    lapse_trials = rand(trials, 1) < lapse;
-    results.choices(lapse_trials) = sign(rand(sum(lapse_trials), 1) - 0.5);
-end
+fifty_fifty = results.lpo(:,end) == 0;
+random_trials = fifty_fifty | rand(trials, 1) < lapse;
+results.choices(random_trials) = sign(rand(sum(random_trials), 1) - 0.5);
 end
