@@ -8,7 +8,7 @@ function [weights, errors, fig] = plotPK(params, pk_hprs, optimize, optim_grid_s
 savedir = fullfile('+Model', 'figures');
 if ~exist(savedir, 'dir'), mkdir(savedir); end
 
-if nargin < 2, pk_hprs = [1 0 10]; end
+if nargin < 2, pk_hprs = [0 0 0]; end
 if nargin < 3, optimize = {}; end
 if nargin < 4, optim_grid_size = 11; end
 
