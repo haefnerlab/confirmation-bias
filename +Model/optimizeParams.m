@@ -1,4 +1,4 @@
-function [optim_params, optim_correct] = optimizeParams(params, variables, ngrid)
+function [optim_params, optim_correct, correct_grid] = optimizeParams(params, variables, ngrid)
 %MODEL.OPTIMIZEPARAMS find the best sampling params (in terms of percent correct) for the
 %given data-generating params.
 %
@@ -66,17 +66,19 @@ end
 end
 
 function correct = percent_correct(params, variables, values)
-    % Run sampling model on current setting of variables.
-    for i=1:length(variables)
-        params.(variables{i}) = values(i);
-    end
-    % TODO - smarter resetting of seed
-    params.seed = randi(1000000000);
-    data = Model.genDataWithParams(params);
-    results = Model.runVectorized(params, data);
-    params.model = 'ideal';
-    ideal_results = Model.runVectorized(params, data);
-    correct = mean(results.choices == ideal_results.choices);
+% Run sampling model on current setting of variables.
+for i=1:length(variables)
+    params.(variables{i}) = values(i);
+end
+% TODO - smarter resetting of seed
+params.seed = randi(1000000000);
+% Generate data with *both* +1 and -1 categories to avoid degenerate "optimization" solutions where
+% all responses are +1
+data = Model.genDataWithParams(params, true);
+results = Model.runVectorized(params, data);
+params.model = 'ideal';
+ideal_results = Model.runVectorized(params, data);
+correct = mean(results.choices == ideal_results.choices);
 end
 
 function lb = lower_bound(variable)
@@ -90,6 +92,8 @@ elseif strcmpi(variable, 'prior_C')
     lb = 0;
 elseif strcmpi(variable, 'noise')
     lb = 0;
+elseif strcmpi(variable, 'step_size')
+    lb = 0;
 end
 end
 
@@ -99,10 +103,12 @@ if strcmpi(variable, 'p_match')
 elseif strcmpi(variable, 'var_s')
     ub = inf;
 elseif strcmpi(variable, 'gamma')
-    ub = 20;
+    ub = 2;
 elseif strcmpi(variable, 'prior_C')
     ub = 1;
 elseif strcmpi(variable, 'noise')
     ub = 10;
+elseif strcmpi(variable, 'step_size')
+    ub = 1;
 end
 end

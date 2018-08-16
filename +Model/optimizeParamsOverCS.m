@@ -83,7 +83,9 @@ for i=1:length(variables)
 end
 % TODO - smarter resetting of seed
 params.seed = randi(1000000000);
-data = Model.genDataWithParams(params);
+% Generate data with *both* +1 and -1 categories to avoid degenerate "optimization" solutions where
+% all responses are +1
+data = Model.genDataWithParams(params, true);
 results = LoadOrRun(@Model.runVectorized, {params, data}, ...
     fullfile(params.save_dir, Model.getModelStringID(params)), '-verbose');
 params.model = 'ideal';
@@ -96,11 +98,15 @@ if strcmpi(variable, 'p_match')
     lb = 0.5;
 elseif strcmpi(variable, 'var_s')
     lb = 0;
+elseif strcmpi(variable, 'var_x')
+    lb = 0;
 elseif strcmpi(variable, 'gamma')
     lb = 0;
 elseif strcmpi(variable, 'prior_C')
     lb = 0;
 elseif strcmpi(variable, 'noise')
+    lb = 0;
+elseif strcmpi(variable, 'step_size')
     lb = 0;
 end
 end
@@ -109,12 +115,16 @@ function ub = upper_bound(variable)
 if strcmpi(variable, 'p_match')
     ub = 1;
 elseif strcmpi(variable, 'var_s')
-    ub = inf;
+    ub = 10;
+elseif strcmpi(variable, 'var_x')
+    ub = 10;
 elseif strcmpi(variable, 'gamma')
-    ub = 20;
+    ub = 10;
 elseif strcmpi(variable, 'prior_C')
     ub = 1;
 elseif strcmpi(variable, 'noise')
     ub = 10;
+elseif strcmpi(variable, 'step_size')
+    ub = 1;
 end
 end

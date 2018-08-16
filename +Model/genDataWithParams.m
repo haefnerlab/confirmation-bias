@@ -1,4 +1,4 @@
-function data = genDataWithParams(params)
+function data = genDataWithParams(params, negtrials)
 %Model.GENDATAWITHPARAMS generates a set of 'trials' (each is a 1xframes vector of real
 %numbers), all with correct choice +1, with statistics matching the given sampling params.
 
@@ -15,4 +15,9 @@ var_s = Model.getEvidenceVariance(params.sensory_info);
 
 % Draw signal from around the center with stdev calculated above.
 data = centers + randn(params.trials, params.frames) * sqrt(var_s);
+
+if nargin >= 2 && negtrials
+    flip = rand(params.trials, 1) < 0.5;
+    data(flip, :) = -data(flip, :);
+end
 end
