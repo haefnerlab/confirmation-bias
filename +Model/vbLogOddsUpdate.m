@@ -31,9 +31,8 @@ for n=1:updates
     % rule based on q(x,z)
     lpo = lpo * (1 - gamma / updates) + step_size * 2 * (pi_z .* mu_x_pos - (1 - pi_z) .* mu_x_neg) / var_x;
     
-    % Add noise (multiply by log-normal random variable with expected value 1)
-    eta = exp(randn(trials, 1) * noise - noise^2/2);
-    lpo = eta .* lpo;
+    % Add zero-mean additive noise.
+    lpo = lpo + randn(trials, 1) * noise;
 end
 
 end

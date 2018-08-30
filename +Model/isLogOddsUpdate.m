@@ -54,9 +54,8 @@ for n=1:updates
     
     lpo = lpo * (1 - gamma / updates) + llo / updates;
     
-    % Add log-normal noise with expected value 1
-    eta = exp(randn(trials, 1)*noise - noise^2/2);
-    lpo = lpo .* eta;
+    % Add zero-mean additive noise.
+    lpo = lpo + randn(trials, 1) * noise;
 end
 
 end
