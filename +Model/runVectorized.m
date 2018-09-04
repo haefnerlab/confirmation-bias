@@ -71,6 +71,8 @@ switch lower(params.model)
         updateFun = @Model.isLogOddsUpdate;
     case 'vb'
         updateFun = @Model.vbLogOddsUpdate;
+    case 'vb-czx'
+        updateFun = @Model.vbLogOddsUpdateCZX;
     case 'ideal'
         logLikeOdds = Model.logLikelihoodOdds(params, data);
         results.lpo(:, 2:end) = results.lpo(:, 1) + cumsum(logLikeOdds, 2);

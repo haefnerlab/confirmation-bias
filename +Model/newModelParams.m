@@ -9,7 +9,7 @@ function params = newModelParams(varargin)
 % Param keys are
 % GENERAL CONFIGURATION
 %   save_dir      - directory to save/load precomputed results
-%   model         - one of 'is', 'vb', or 'ideal' specifying which model to use
+%   model         - one of 'is', 'vb', 'vb-czx', or 'ideal' specifying which model to use
 % DATA GENERATION
 %   trials        - number of trials
 %   frames        - number of frames per trial
