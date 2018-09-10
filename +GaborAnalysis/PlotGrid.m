@@ -341,7 +341,7 @@ for i=1:nS
                 sigs = SubjectDataThresh.ideal_frame_signals;
                 resps = SubjectDataThresh.choice == +1;
                 memo_name = ['PK-xValidCompare-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
-                [pkLL, regLL, expLL, linLL, ~] = LoadOrRun(@CustomRegression.xValidatePKModels, ...
+                [pkLL, regLL, expLL, linLL, reg_hprs] = LoadOrRun(@CustomRegression.xValidatePKModels, ...
                     {sigs, resps, nFold}, fullfile(memodir, memo_name));
                 baseline = mean(linLL);
                 bar([1 2 3 4], mean([pkLL(:) regLL(:) expLL(:) linLL(:)], 1)-baseline);
@@ -349,7 +349,7 @@ for i=1:nS
                 errorbar(2, mean(regLL)-baseline, std(regLL)/sqrt(nFold), '-k');
                 errorbar(3, mean(expLL)-baseline, std(expLL)/sqrt(nFold), '-k');
                 errorbar(4, mean(linLL)-baseline, std(linLL)/sqrt(nFold), '-k');
-                set(gca, 'XTick', 1:4, 'XTickLabel', {'Unregularized', 'Ridge+AR2', 'Exponential', 'Linear'});
+                set(gca, 'XTick', 1:4, 'XTickLabel', {'Unregularized', ['[' num2str(reg_hprs([1 3])) ']'], 'Exponential', 'Linear'});
                 ylabel('Relative Log-Likelihood');
         end
         drawnow;
