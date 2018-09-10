@@ -19,7 +19,7 @@ end
 function [err, grad] = errfn(p, w, v)
 scale = p(1);
 beta = p(2);
-betaPriorVar = inf;
+betaPriorVar = 100;
 frames = (0:length(w)-1)';
 w_hat = scale*exp(frames*beta);
 diffs = w_hat - w;

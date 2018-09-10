@@ -223,6 +223,21 @@ for i=1:nS
                 if isfield(SubjectDataThresh, 'model_pk')
                     plot(1:frames, SubjectDataThresh.model_pk, 'LineWidth', 2);
                 end
+            case {'pk-exp'}
+                SubjectDataThresh = GaborThresholdTrials(SubjectData, phase, thresh, floor);
+                memo_name = ['Boot-ExpPK-ideal-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
+                [~, L, U, median, ~] = LoadOrRun(@BootstrapExponentialWeightsGabor, ...
+                    {SubjectDataThresh, 500, 0, true}, fullfile(memodir, memo_name));
+                frames = SubjectData.number_of_images;
+                boundedline(1:frames, median(1:frames)', [U(1:frames)-median(1:frames); median(1:frames)-L(1:frames)]', 'r');
+                errorbar(frames+1, median(end), median(end)-L(end), U(end)-median(end), 'LineWidth', 2, 'Color', 'r');
+                title(['linear temporal kernel (LR)']);
+                set(gca, 'XAxisLocation', 'origin');
+                set(gca, 'XTick', [1 frames]);
+                axis tight;
+                if isfield(SubjectDataThresh, 'model_pk')
+                    plot(1:frames, SubjectDataThresh.model_pk, 'LineWidth', 2);
+                end
             case 'pk-xv'
                 % PK cross-validation
                 nFold = 10;

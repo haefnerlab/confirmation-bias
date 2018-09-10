@@ -265,7 +265,12 @@ if length(subjectIDs) > 1
     combinedfig.PaperUnits = 'inches';
     combinedfig.PaperSize = [8 4];
     combinedfig.PaperPosition = [0 0 8 4];
-    saveas(combinedfig, [CombinedIdentifier '-PKPlot.png']);
+    try
+        saveas(combinedfig, [CombinedIdentifier '-PKPlot.png']);
+    catch e
+        msg = getReport(e);
+        warning(msg);
+    end
 end
 end
 
