@@ -10,7 +10,7 @@ function [grid, combined] = PlotGrid(subjectIDs, thresholds, phase, plot_types, 
 % - thresholds: an array the same size as subjectIDs with each subject's
 %   threshold, or a 2d array (subjects x 2) with [lo hi] ranges to keep.
 % - phase: 0 for contrast, 1 for ratio
-% - plot_types: (optional) cell array of plots to show. options are 'staircase', 'rt', 'pm', 'pk', 'sd'
+% - plot_types: (optional) cell array of plots to show. See 'switch' statement below for options.
 % - datadir: (optional) override the default place to look for data files.
 
 if nargin < 4, plot_types = {'staircase', 'pm', 'pk'}; end
@@ -231,7 +231,7 @@ for i=1:nS
                 frames = SubjectData.number_of_images;
                 boundedline(1:frames, median(1:frames)', [U(1:frames)-median(1:frames); median(1:frames)-L(1:frames)]', 'r');
                 errorbar(frames+1, median(end), median(end)-L(end), U(end)-median(end), 'LineWidth', 2, 'Color', 'r');
-                title(['linear temporal kernel (LR)']);
+                title(['exponential temporal kernel (LR)']);
                 set(gca, 'XAxisLocation', 'origin');
                 set(gca, 'XTick', [1 frames]);
                 axis tight;
@@ -335,6 +335,22 @@ for i=1:nS
                 xlabel('Per Frame Signal');
                 legend(arrayfun(@(s) [stair_var_name '=' num2str(s)], unq_signals, 'UniformOutput', false));
                 axis tight;
+            case 'xv'
+                nFold = 10;
+                SubjectDataThresh = GaborThresholdTrials(SubjectData, phase, thresh, floor);
+                sigs = SubjectDataThresh.ideal_frame_signals;
+                resps = SubjectDataThresh.choice == +1;
+                memo_name = ['PK-xValidCompare-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
+                [pkLL, regLL, expLL, linLL, ~] = LoadOrRun(@CustomRegression.xValidatePKModels, ...
+                    {sigs, resps, nFold}, fullfile(memodir, memo_name));
+                baseline = mean(linLL);
+                bar([1 2 3 4], mean([pkLL(:) regLL(:) expLL(:) linLL(:)], 1)-baseline);
+                errorbar(1, mean(pkLL)-baseline, std(pkLL)/sqrt(nFold), '-k');
+                errorbar(2, mean(regLL)-baseline, std(regLL)/sqrt(nFold), '-k');
+                errorbar(3, mean(expLL)-baseline, std(expLL)/sqrt(nFold), '-k');
+                errorbar(4, mean(linLL)-baseline, std(linLL)/sqrt(nFold), '-k');
+                set(gca, 'XTick', 1:4, 'XTickLabel', {'Unregularized', 'Ridge+AR2', 'Exponential', 'Linear'});
+                ylabel('Relative Log-Likelihood');
         end
         drawnow;
     end
