@@ -4,7 +4,8 @@ clear;
 RATIO_PHASE = 1;
 NOISE_PHASE = 2;
 THRESHOLD = 0.7;
-DATADIR = fullfile('..', 'RawData');
+DATADIR = fullfile(pwd, '..', 'RawData');
+MEMODIR = fullfile(pwd, '..', 'Precomputed');
 
 %% Figure 1
 
@@ -49,6 +50,86 @@ fprintf('Ratio condition mean %%correct at 6:4 = %f +/- %f\n', mean(100*pc_60_40
 GaborAnalysis.DeltaSlopeStatistics(bothSubjects, [1 2], 'exponential');
 GaborAnalysis.DeltaSlopeStatistics(bothSubjects, [1 2], 'linear');
 GaborAnalysis.DeltaPK(bothSubjects, [1 2], false);
+
+%% Supplemental PK cross-validation figure
+
+nFold = 20;
+pkLLNoise = zeros(4, N, nFold);
+pkLLRatio = zeros(4, N, nFold);
+for iSubject=N:-1:1
+    % Noise experiment PK cross-validation
+    SubjectData = LoadAllSubjectData(bothSubjects{iSubject}, NOISE_PHASE);
+    [floor, thresh] = GaborAnalysis.getThresholdWindow(bothSubjects{iSubject}, NOISE_PHASE, 0.5, THRESHOLD);
+    SubjectDataThresh = GaborThresholdTrials(SubjectData, NOISE_PHASE, thresh, floor);
+    sigs = SubjectDataThresh.ideal_frame_signals;
+    resps = SubjectDataThresh.choice == +1;
+    memo_name = ['PK-xValidCompare-noise-' bothSubjects{iSubject} '-' num2str(thresh) '-' num2str(floor) '.mat'];
+    [pkLLNoise(1, iSubject, :), pkLLNoise(2, iSubject, :), pkLLNoise(3, iSubject, :), pkLLNoise(4, iSubject, :), ~] = ...
+        LoadOrRun(@CustomRegression.xValidatePKModels, {sigs, resps, nFold}, fullfile(MEMODIR, memo_name));
+    
+    % Ratio experiment PK cross-validation
+    SubjectData = LoadAllSubjectData(bothSubjects{iSubject}, RATIO_PHASE);
+    SubjectDataThresh = GaborThresholdTrials(SubjectData, RATIO_PHASE, .6, .4);
+    sigs = SubjectDataThresh.ideal_frame_signals;
+    resps = SubjectDataThresh.choice == +1;
+    disp(bothSubjects{iSubject});
+    disp(size(sigs));
+    disp(size(resps));
+    memo_name = ['PK-xValidCompare-true_ratio-' bothSubjects{iSubject} '-0.6-0.4.mat'];
+    [pkLLRatio(1, iSubject, :), pkLLRatio(2, iSubject, :), pkLLRatio(3, iSubject, :), pkLLRatio(4, iSubject, :), ~] = ...
+        LoadOrRun(@CustomRegression.xValidatePKModels, {sigs, resps, nFold}, fullfile(MEMODIR, memo_name));
+end
+
+% Sort across 'folds' so it's easy to get confidence intervals
+pkLLNoise = sort(pkLLNoise, 3);
+pkLLRatio = sort(pkLLRatio, 3);
+
+meanLLNoise = mean(pkLLNoise, 3);
+loLLNoise = pkLLNoise(:, :, round(.25 * nFold));
+hiLLNoise = pkLLNoise(:, :, round(.75 * nFold));
+
+meanLLRatio = mean(pkLLRatio, 3);
+loLLRatio = pkLLRatio(:, :, round(.25 * nFold));
+hiLLRatio = pkLLRatio(:, :, round(.75 * nFold));
+
+% Use linear model as baseline
+baselineLLNoise = meanLLNoise(4, :);
+baselineLLRatio = meanLLRatio(4, :);
+
+figure;
+subplot(2,1,1);
+hold on;
+p1 = bar(meanLLNoise'-baselineLLNoise');
+drawnow;
+for iSubject=1:N
+    for iType=1:4
+        c = p1(iType).FaceColor;
+        x = p1(iType).XData(iSubject) + p1(iType).XOffset;
+        m = meanLLNoise(iType, iSubject);
+        errorbar(x, m-baselineLLNoise(iSubject), m-loLLNoise(iType, iSubject), hiLLNoise(iType, iSubject)-m, 'Color', 'k');
+        % scatter(x*ones(nFold, 1), pkLLNoise(iType, iSubject, :)-baselineLLNoise(iSubject), 15, c);
+    end
+end
+legend({'Unregularized LR', 'Regularized LR', 'Exponential', 'Linear'}, 'location', 'best');
+ylabel('Relative log-likelihood');
+title('Noise Condition');
+
+subplot(2,1,2);
+hold on;
+p1 = bar(meanLLRatio'-baselineLLRatio');
+drawnow;
+for iSubject=1:N
+    for iType=1:4
+        c = p1(iType).FaceColor;
+        x = p1(iType).XData(iSubject) + p1(iType).XOffset;
+        m = meanLLRatio(iType, iSubject);
+        errorbar(x, m-baselineLLRatio(iSubject), m-loLLRatio(iType, iSubject), hiLLRatio(iType, iSubject)-m, 'Color', 'k');
+        % scatter(x*ones(nFold, 1), pkLLRatio(iType, iSubject, :)-baselineLLRatio(iSubject), 15, c);
+    end
+end
+ylabel('Relative log-likelihood');
+title('Ratio Condition');
+xlabel('Subjects');
 
 %% Figure 3 - sampling model results
 
