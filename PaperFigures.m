@@ -207,7 +207,7 @@ figureToPanel(fig, figModelSupp, 6, 3, 9, cmap);
 % Replicate sampling model results above (gamma = 0)
 params = Model.newModelParams('model', 'vb-czx', 'var_x', 0.1, 'gamma', 0, 'noise', 0, 'trials', 10000, 'updates', 5, 'step_size', 0.01);
 beta_range = [-0.5 -eps]; % min and max beta expected (to get maximum use of colorbar range)
-sens_cat_pts = [0.99 0.59; 0.81 0.65; 0.73 0.73; 0.65 0.85; 0.65 0.97];
+sens_cat_pts = [0.99 0.59; 0.81 0.65; 0.71 0.73; 0.67 0.83; 0.65 0.97];
 [cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, sens_cat_pts);
 figureToPanel(cs_fig, figModelSupp, 6, 3, 10, parula);
 figureToPanel(pk_fig, figModelSupp, 6, 3, 11);
@@ -217,8 +217,8 @@ figureToPanel(fig, figModelSupp, 6, 3, 12, cmap);
 % Same with gamma = 0.1, noise = 0
 params = Model.newModelParams('model', 'vb-czx', 'var_x', 0.1, 'gamma', 0.1, 'noise', 0, 'trials', 10000, 'updates', 5, 'step_size', 0.01);
 beta_range = [-.4 .1]; % min and max beta expected (to get maximum use of colorbar range)
-sens_cat_pts = [0.99 0.59; 0.85 0.63; 0.73 0.71; 0.65 0.83; 0.63 0.97];
-[cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range);
+sens_cat_pts = [0.93 0.61; 0.79 0.67; 0.69 0.75; 0.65 0.85; 0.63 0.97];
+[cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, sens_cat_pts);
 figureToPanel(cs_fig, figModelSupp, 6, 3, 13, parula);
 figureToPanel(pk_fig, figModelSupp, 6, 3, 14);
 [~,~,~,~,fig,cmap] = Model.plotCSSlopes(ps, ps, params, beta_range, THRESHOLD, sens_cat_pts);
@@ -227,8 +227,8 @@ figureToPanel(fig, figModelSupp, 6, 3, 15, cmap);
 % Same with gamma = 0, noise = 0.05
 params = Model.newModelParams('model', 'vb-czx', 'var_x', 0.1, 'gamma', 0, 'noise', 0.05, 'trials', 10000, 'updates', 5, 'step_size', 0.01);
 beta_range = [-.4 .1]; % min and max beta expected (to get maximum use of colorbar range)
-sens_cat_pts = [0.99 0.69; 0.91 0.75; 0.85 0.83; 0.81 0.93; 0.79 0.99];
-[cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range);
+sens_cat_pts = [0.99 0.67; 0.89 0.77; 0.83 0.87; 0.79 0.99];
+[cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, sens_cat_pts);
 figureToPanel(cs_fig, figModelSupp, 6, 3, 16, parula);
 figureToPanel(pk_fig, figModelSupp, 6, 3, 17);
 [~,~,~,~,fig,cmap] = Model.plotCSSlopes(ps, ps, params, beta_range, THRESHOLD, sens_cat_pts);
