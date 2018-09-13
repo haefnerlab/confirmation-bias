@@ -32,6 +32,15 @@ elseif phase == 2
     yvals = arrayfun(@(u) mean(Data.accuracy(Data.noise == u)), uniq_vals);
     num_trials_at_vals = arrayfun(@(u) sum(Data.noise == u), uniq_vals);
     stderrs = arrayfun(@(u) std(Data.accuracy(Data.noise == u)), uniq_vals) ./ sqrt(num_trials_at_vals); 
+elseif phase == -2
+    % '-2' is an indicator that we want the noise phase but with signed signals
+    options.sigmoidName  = 'norm';
+    options.expType      = 'YesNo';
+
+    uniq_vals = unique(Data.sign_noise);
+    yvals = arrayfun(@(u) mean(Data.choice(Data.sign_noise == u) == +1), uniq_vals);
+    num_trials_at_vals = arrayfun(@(u) sum(Data.sign_noise == u), uniq_vals);
+    stderrs = arrayfun(@(u) std(Data.choice(Data.sign_noise == u) == +1), uniq_vals) ./ sqrt(num_trials_at_vals); 
 end
 
 % Run PM fitting.

@@ -1,17 +1,17 @@
 %% Setup
 
 clear;
-RATIO_PHASE = 1;
-NOISE_PHASE = 2;
+RATIO_PHASE = 1; % aka HSLC
+NOISE_PHASE = 2; % aka LSHC
 THRESHOLD = 0.7;
 DATADIR = fullfile(pwd, '..', 'RawData');
 MEMODIR = fullfile(pwd, '..', 'Precomputed');
 
-%% Figure 1
-
-% Nothing to do - conceptual figures only created in vector graphics editor
-
-%% Figure 2 - data analysis
+DARK_RED = [204 0 0] / 255;
+DARK_BLUE = [32 74 135] / 255;
+% fade 50% towards white
+LIGHT_RED = DARK_RED * .5 + .5;
+LIGHT_BLUE = DARK_BLUE * .5 + .5;
 
 ratioSubjects = arrayfun(@(i) sprintf('bpgFinaltest-subject%02d', i), setdiff(1:15, [1 5 12]), 'UniformOutput', false);
 noiseSubjects = arrayfun(@(i) sprintf('bpgFinaltest-subject%02d', i), setdiff(1:15, [1 5]), 'UniformOutput', false);
@@ -30,6 +30,13 @@ bothSubjects = [intersect(naiveRatioSubjects, naiveNoiseSubjects) informedSubjec
 
 % Compute population-level psycho metrics
 N = length(bothSubjects);
+
+%% Figure 1
+
+% Nothing to do - conceptual figures only created in vector graphics editor
+
+%% Figure 2 - data analysis
+
 sem = @(vals) std(vals)/sqrt(N);
 for iSubject=length(bothSubjects):-1:1
     warning off;
@@ -50,6 +57,46 @@ fprintf('Ratio condition mean %%correct at 6:4 = %f +/- %f\n', mean(100*pc_60_40
 GaborAnalysis.DeltaSlopeStatistics(bothSubjects, [1 2], 'exponential');
 GaborAnalysis.DeltaSlopeStatistics(bothSubjects, [1 2], 'linear');
 GaborAnalysis.DeltaPK(bothSubjects, [1 2], false);
+
+%% Psychometric curves
+
+figure;
+
+% Noise condition
+subplot(1,2,1);
+hold on;
+noises = linspace(-0.8, 0.8, 101);
+avg_pm_curve = zeros(size(noises));
+for iSubject=1:N
+    SubjectData = LoadAllSubjectData(bothSubjects{iSubject}, NOISE_PHASE);
+    [pm_fit, ~, ~, ~] = LoadOrRun(@GaborPsychometric, {SubjectData, -2}, ...
+        fullfile(MEMODIR, ['PM-noise-signed-' bothSubjects{iSubject} '.mat']));
+    % Next line copied from @plotPsych in the psignifit toolbox
+    subject_pm_curve = (1-pm_fit.Fit(3)-pm_fit.Fit(4))*arrayfun(@(x) pm_fit.options.sigmoidHandle(x,pm_fit.Fit(1),pm_fit.Fit(2)), noises)+pm_fit.Fit(4);
+    avg_pm_curve = avg_pm_curve + (subject_pm_curve - avg_pm_curve) / iSubject;
+    plot(noises, subject_pm_curve, 'Color', LIGHT_RED, 'LineWidth', 1);
+end
+plot(noises, avg_pm_curve, 'Color', DARK_RED, 'LineWidth', 2);
+xlabel('noise level (\kappa)');
+ylabel('percent chose left');
+
+% Ratio condition
+subplot(1,2,2);
+hold on;
+ratios = linspace(0, 1, 101);
+avg_pm_curve = zeros(size(ratios));
+for iSubject=1:N
+    SubjectData = LoadAllSubjectData(bothSubjects{iSubject}, RATIO_PHASE);
+    [pm_fit, ~, ~, ~] = LoadOrRun(@GaborPsychometric, {SubjectData, RATIO_PHASE}, ...
+        fullfile(MEMODIR, ['PM-true_ratio-signed-' bothSubjects{iSubject} '.mat']));
+    % Next line copied from @plotPsych in the psignifit toolbox
+    subject_pm_curve = (1-pm_fit.Fit(3)-pm_fit.Fit(4))*arrayfun(@(x) pm_fit.options.sigmoidHandle(x,pm_fit.Fit(1),pm_fit.Fit(2)), ratios)+pm_fit.Fit(4);
+    avg_pm_curve = avg_pm_curve + (subject_pm_curve - avg_pm_curve) / iSubject;
+    plot(ratios, subject_pm_curve, 'Color', LIGHT_BLUE, 'LineWidth', 1);
+end
+plot(ratios, avg_pm_curve, 'Color', DARK_BLUE, 'LineWidth', 2);
+xlabel('frame ratio left:right');
+ylabel('percent chose left');
 
 %% Supplemental PK cross-validation figure
 
