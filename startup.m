@@ -2,7 +2,6 @@ if exist('psignifit', 'file')~=2, addpath('psignifit-master'); end
 if exist('smoothn', 'file')~=2, addpath('smoothn'); end
 if exist('fadecolors', 'file')~=2, addpath('tools'); end
 if exist('advancedcolormap', 'file')~=2, addpath('AdvancedColorMap'); end
-if exist('violinplot', 'file')~=2, addpath('Violinplot-Matlab'); end
 if exist('boundedline', 'file')~=2
     D = dir(fullfile('tools', 'boundedline-pkg'));
     for i=1:length(D)
