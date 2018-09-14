@@ -93,7 +93,18 @@ for i=1:nS
                 xlabel('Previous Trial');
                 ylabel('Prob(choose left)');
                 set(ax, 'XTick', 1:4, 'XTickLabel', {'L/C', 'R/C', 'L/W', 'R/W'});
-                title('serial dependencies');
+                title('serial dependencies (all trials)');
+                ylim([0 1]);
+            case 'sd-sub'
+                SubjectDataThresh = GaborThresholdTrials(...
+                    SubjectData, phase, thresh, floor);
+                [pCL, pCR, pWL, pWR] = Serial_Dependencies(SubjectDataThresh);
+                bar([pCL, pCR, pWL, pWR]);
+                plot([1 4], [.5 .5], '--k');
+                xlabel('Previous Trial');
+                ylabel('Prob(choose left)');
+                set(ax, 'XTick', 1:4, 'XTickLabel', {'L/C', 'R/C', 'L/W', 'R/W'});
+                title('serial dependencies (sub threshold)');
                 ylim([0 1]);
             case 'pm'
                 % Get PM fit.
