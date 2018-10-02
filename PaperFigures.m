@@ -50,13 +50,13 @@ for iSubject=length(bothSubjects):-1:1
     slope = getSlopePC(psycho_fit, 0.5);
     pc_60_40_adjusted(iSubject) = 0.5 + .1 * slope;
 end
-fprintf('Noise condition mean threshold = %f +/- %f\n', mean(threshold), sem(threshold));
-fprintf('Noise condition mean %%correct at zero signal = %f +/- %f\n', mean(100*pc_zero_signal), sem(100*pc_zero_signal));
-fprintf('Ratio condition mean %%correct at 6:4 = %f +/- %f\n', mean(100*pc_60_40_adjusted), sem(100*pc_60_40_adjusted));
+fprintf('Noise condition mean threshold = %f +/- %f, stdev = %f\n', mean(threshold), sem(threshold), std(threshold));
+fprintf('Noise condition mean %%correct at zero signal = %f +/- %f, stdev = %f\n', mean(100*pc_zero_signal), sem(100*pc_zero_signal), std(100*pc_zero_signal));
+fprintf('Ratio condition mean %%correct at 6:4 = %f +/- %f, stdev = %f\n', mean(100*pc_60_40_adjusted), sem(100*pc_60_40_adjusted), std(100*pc_60_40_adjusted));
 
-GaborAnalysis.DeltaSlopeStatistics(bothSubjects, [1 2], 'exponential');
-GaborAnalysis.DeltaSlopeStatistics(bothSubjects, [1 2], 'linear');
-GaborAnalysis.DeltaPK(bothSubjects, [1 2], false);
+% GaborAnalysis.DeltaSlopeStatistics(bothSubjects, [1 2], 'exponential');
+% GaborAnalysis.DeltaSlopeStatistics(bothSubjects, [1 2], 'linear');
+% GaborAnalysis.DeltaPK(bothSubjects, [1 2], false);
 
 %% Psychometric curves
 
