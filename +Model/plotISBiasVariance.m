@@ -5,7 +5,7 @@ if nargin < 6, use_precomputed = false; end
 if nargin < 7, verbose = false; end
 
 %% Load or compute results
-savedir = fullfile('+Model', 'saved results');
+savedir = fullfile('+Model', 'tmp');
 
 log_prior_c = linspace(-2, 2, n_gridpts);
 s_values = linspace(-2, 2, n_gridpts);
@@ -123,7 +123,7 @@ marg_variance = zeros(1, n_gridpts);
 
 s_values = linspace(-2, 2, n_gridpts);
 prior_s = mog.create([+1, -1], [sig_s_C, sig_s_C], [.5 .5]);
-pdf_s = mog.pdf(s_values, prior_s, true);
+pdf_s = mog.pdf(s_values', prior_s, true)';
 
 % Note: meshgrid creates unintuitive slicing. Despite order of
 % arguments to meshgrid as [ss, pp, gg], ss varies over the second
@@ -154,10 +154,10 @@ p_x_Cm = mog.create([-1, +1], [sig_x, sig_x], [cat_info, 1-cat_info]);
 for r=1:n_repeats
     xs = mog.sample(Q, n_samples);
     % Compute updates for C=+/-1 based on p(x|C+) and p(x|C-)
-    updates_p = mog.pdf(xs, p_x_Cp);
-    updates_m = mog.pdf(xs, p_x_Cm);
+    updates_p = mog.pdf(xs', p_x_Cp);
+    updates_m = mog.pdf(xs', p_x_Cm);
     % Compute importance-sampling weights: 1/prior.
-    ws = 1 ./ mog.pdf(xs, prior_x);
+    ws = 1 ./ mog.pdf(xs', prior_x);
     sampled_updates(r) = log(dot(ws, updates_p)) - log(dot(ws, updates_m));
 end
 % true update based on p(s|C=+1), which is a mixture of gaussians with
