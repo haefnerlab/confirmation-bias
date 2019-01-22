@@ -49,7 +49,9 @@ for n=1:updates
     end
 
     % Normalize importance-sampling weights
-    weights(:, :, n) = weights(:, :, n) ./ sum(weights(:, :, n), 2);
+    if params.importance_norm
+        weights(:, :, n) = weights(:, :, n) ./ sum(weights(:, :, n), 2);
+    end
 
     % Compute p(x|C=+1) and p(x|C=-1), then take weighted sum for each trial.
     pCp = sum(reshape(mog.pdf(flat_samples, p_x_Cp), [trials samples]) .* weights(:, :, n), 2);
