@@ -31,6 +31,11 @@ bothSubjects = [intersect(naiveRatioSubjects, naiveNoiseSubjects) informedSubjec
 % Compute population-level psycho metrics
 N = length(bothSubjects);
 
+for n=N:-1:1
+    hyphenSplit = strsplit(bothSubjects{n}, '-');
+    shortnames{n} = hyphenSplit{2};
+end
+
 %% Figure 1
 
 % Nothing to do - conceptual figures only created in vector graphics editor
@@ -54,9 +59,9 @@ fprintf('Noise condition mean threshold = %f +/- %f, stdev = %f\n', mean(thresho
 fprintf('Noise condition mean %%correct at zero signal = %f +/- %f, stdev = %f\n', mean(100*pc_zero_signal), sem(100*pc_zero_signal), std(100*pc_zero_signal));
 fprintf('Ratio condition mean %%correct at 6:4 = %f +/- %f, stdev = %f\n', mean(100*pc_60_40_adjusted), sem(100*pc_60_40_adjusted), std(100*pc_60_40_adjusted));
 
-% GaborAnalysis.DeltaSlopeStatistics(bothSubjects, [1 2], 'exponential');
-% GaborAnalysis.DeltaSlopeStatistics(bothSubjects, [1 2], 'linear');
-% GaborAnalysis.DeltaPK(bothSubjects, [1 2], false);
+GaborAnalysis.DeltaSlopeStatistics(bothSubjects, [1 2], 'exponential');
+GaborAnalysis.DeltaSlopeStatistics(bothSubjects, [1 2], 'linear');
+GaborAnalysis.DeltaPK(bothSubjects, [1 2], false);
 
 %% Psychometric curves
 
@@ -127,58 +132,91 @@ for iSubject=N:-1:1
         LoadOrRun(@CustomRegression.xValidatePKModels, {sigs, resps, nFold}, fullfile(MEMODIR, memo_name));
 end
 
+% Note: CustomRegression.xValidatePKModels gives paired results. That is, each of the 4 models is
+% tested on the exact same data fold. The relevant statistic is therefore the *average of
+% differences in LL* rather than the *difference in averages*.
+
+% Compute differences w.r.t. linear model as the baseline
+baselineModel = 4;
+pkLLNoiseDiffs = pkLLNoise - pkLLNoise(baselineModel, :, :);
+pkLLRatioDiffs = pkLLRatio - pkLLRatio(baselineModel, :, :);
+
+% Sum across subjects for combined result
+pkLLNoiseDiffsAll = squeeze(sum(pkLLNoiseDiffs, 2));
+pkLLRatioDiffsAll = squeeze(sum(pkLLNoiseDiffs, 2));
+
 % Sort across 'folds' so it's easy to get confidence intervals
-pkLLNoise = sort(pkLLNoise, 3);
-pkLLRatio = sort(pkLLRatio, 3);
+pkLLNoiseDiffs = sort(pkLLNoiseDiffs, 3);
+pkLLRatioDiffs = sort(pkLLRatioDiffs, 3);
+pkLLNoiseDiffsAll = sort(pkLLNoiseDiffsAll, 2);
+pkLLRatioDiffsAll = sort(pkLLRatioDiffsAll, 2);
 
-meanLLNoise = mean(pkLLNoise, 3);
-loLLNoise = pkLLNoise(:, :, round(.25 * nFold));
-hiLLNoise = pkLLNoise(:, :, round(.75 * nFold));
+% Get mean and 50% confidence intervals across folds for each statistic
+meanDiffLLNoise = mean(pkLLNoiseDiffs, 3);
+loLLNoise = pkLLNoiseDiffs(:, :, round(.25 * nFold));
+hiLLNoise = pkLLNoiseDiffs(:, :, round(.75 * nFold));
 
-meanLLRatio = mean(pkLLRatio, 3);
-loLLRatio = pkLLRatio(:, :, round(.25 * nFold));
-hiLLRatio = pkLLRatio(:, :, round(.75 * nFold));
+meanDiffLLRatio = mean(pkLLRatioDiffs, 3);
+loLLRatio = pkLLRatioDiffs(:, :, round(.25 * nFold));
+hiLLRatio = pkLLRatioDiffs(:, :, round(.75 * nFold));
 
-% Use linear model as baseline
-baselineLLNoise = meanLLNoise(4, :);
-baselineLLRatio = meanLLRatio(4, :);
+meanDiffLLNoiseAll = mean(pkLLNoiseDiffsAll, 2);
+loLLNoiseAll = pkLLNoiseDiffsAll(:, round(.25 * nFold));
+hiLLNoiseAll = pkLLNoiseDiffsAll(:, round(.75 * nFold));
+
+meanDiffLLRatioAll = mean(pkLLRatioDiffsAll, 2);
+loLLRatioAll = pkLLRatioDiffsAll(:, round(.25 * nFold));
+hiLLRatioAll = pkLLRatioDiffsAll(:, round(.75 * nFold));
 
 figure;
 subplot(2,1,1);
 hold on;
-p1 = bar(meanLLNoise'-baselineLLNoise');
+p1 = bar([meanDiffLLNoise'; meanDiffLLNoiseAll']);
 drawnow;
 for iSubject=1:N
     for iType=1:4
         c = p1(iType).FaceColor;
         x = p1(iType).XData(iSubject) + p1(iType).XOffset;
-        m = meanLLNoise(iType, iSubject);
-        errorbar(x, m-baselineLLNoise(iSubject), m-loLLNoise(iType, iSubject), hiLLNoise(iType, iSubject)-m, 'Color', 'k');
-        % scatter(x*ones(nFold, 1), pkLLNoise(iType, iSubject, :)-baselineLLNoise(iSubject), 15, c);
+        m = meanDiffLLNoise(iType, iSubject);
+        errorbar(x, m, m-loLLNoise(iType, iSubject), hiLLNoise(iType, iSubject)-m, 'Color', 'k');
     end
+end
+for iType=1:4
+    c = p1(iType).FaceColor;
+    x = N + 1 + p1(iType).XOffset;
+    m = meanDiffLLNoiseAll(iType);
+    errorbar(x, m, m-loLLNoiseAll(iType), hiLLNoiseAll(iType)-m, 'Color', 'k');
 end
 legend({'Unregularized LR', 'Regularized LR', 'Exponential', 'Linear'}, 'location', 'best');
 ylabel('Relative log-likelihood');
 title('Noise Condition');
+set(gca, 'XTick', 1:N+1, 'XTickLabel', [shortnames, {'Combined'}]);
+xtickangle(45);
 
 subplot(2,1,2);
 hold on;
-p1 = bar(meanLLRatio'-baselineLLRatio');
+p1 = bar([meanDiffLLRatio'; meanDiffLLRatioAll']);
 drawnow;
 for iSubject=1:N
     for iType=1:4
         c = p1(iType).FaceColor;
         x = p1(iType).XData(iSubject) + p1(iType).XOffset;
-        m = meanLLRatio(iType, iSubject);
-        errorbar(x, m-baselineLLRatio(iSubject), m-loLLRatio(iType, iSubject), hiLLRatio(iType, iSubject)-m, 'Color', 'k');
-        % scatter(x*ones(nFold, 1), pkLLRatio(iType, iSubject, :)-baselineLLRatio(iSubject), 15, c);
+        m = meanDiffLLRatio(iType, iSubject);
+        errorbar(x, m, m-loLLRatio(iType, iSubject), hiLLRatio(iType, iSubject)-m, 'Color', 'k');
     end
+end
+for iType=1:4
+    c = p1(iType).FaceColor;
+    x = N + 1 + p1(iType).XOffset;
+    m = meanDiffLLRatioAll(iType);
+    errorbar(x, m, m-loLLRatioAll(iType), hiLLRatioAll(iType)-m, 'Color', 'k');
 end
 ylabel('Relative log-likelihood');
 title('Ratio Condition');
-xlabel('Subjects');
+set(gca, 'XTick', 1:N+1, 'XTickLabel', [shortnames, {'Combined'}]);
+xtickangle(45);
 
-%% Figure 3 - sampling model results
+%% Figure 3 - model results
 
 fig3 = figure;
 
@@ -190,27 +228,27 @@ params = Model.newModelParams('model', 'ideal', 'trials', 10000);
 [~, ideal_fig] = Model.plotCategorySensorySpace(ps, ps, params);
 figureToPanel(ideal_fig, fig3, 2, 4, 5, parula);
 
-% Model performance with gamma = 0.
-params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', 0, 'trials', 10000, 'updates', 5, 'samples', 5);
-beta_range = [-0.5 -eps]; % min and max beta expected (to get maximum use of colorbar range)
-sens_cat_pts = [.99 .59; .83 .65; .69 .79; .67 .91];
+% Sampling model with gamma = 0.1
+params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', 0.1, 'noise', 0, 'trials', 10000, 'updates', 5, 'samples', 5);
+beta_range = [-.4 .1]; % min and max beta expected (to get maximum use of colorbar range)
+sens_cat_pts = [0.99 0.61; 0.85 0.65; 0.73 0.73; 0.67 0.83; 0.65 0.95];
 [cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, sens_cat_pts);
 figureToPanel(cs_fig, fig3, 2, 4, 2, parula);
 figureToPanel(pk_fig, fig3, 2, 4, 3);
 [~,~,~,~,fig,cmap] = Model.plotCSSlopes(ps, ps, params, beta_range, THRESHOLD, sens_cat_pts);
 figureToPanel(fig, fig3, 2, 4, 4, cmap);
 
-% Same plots with gamma = 0.1 showing emergence of recency effects
-params.gamma = 0.1;
+% Variational model with gamma = 0.1
+params = Model.newModelParams('model', 'vb-czx', 'var_x', 0.1, 'gamma', 0.1, 'noise', 0, 'trials', 10000, 'updates', 5, 'step_size', 0.01);
 beta_range = [-.4 .1]; % min and max beta expected (to get maximum use of colorbar range)
-sens_cat_pts = [0.99 0.61; 0.85 0.65; 0.73 0.73; 0.67 0.83; 0.65 0.95];
+sens_cat_pts = [0.93 0.61; 0.79 0.67; 0.69 0.75; 0.65 0.85; 0.63 0.97];
 [cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, sens_cat_pts);
 figureToPanel(cs_fig, fig3, 2, 4, 6, parula);
 figureToPanel(pk_fig, fig3, 2, 4, 7);
 [~,~,~,~,fig,cmap] = Model.plotCSSlopes(ps, ps, params, beta_range, THRESHOLD, sens_cat_pts);
 figureToPanel(fig, fig3, 2, 4, 8, cmap);
 
-%% Supplemental figure model results (noise term + VB model)
+%% Supplemental figure model results (showing effect of gamma parameter)
 
 figModelSupp = figure;
 
@@ -229,9 +267,9 @@ figureToPanel(pk_fig, figModelSupp, 6, 3, 2);
 [~,~,~,~,fig,cmap] = Model.plotCSSlopes(ps, ps, params, beta_range, THRESHOLD, sens_cat_pts);
 figureToPanel(fig, figModelSupp, 6, 3, 3, cmap);
 
-% Same with gamma = 0.1, noise = 0
+% Same with gamma = 0.1
 params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', 0.1, 'noise', 0, 'trials', 10000, 'updates', 5, 'samples', 5);
-beta_range = [-.4 .1]; % min and max beta expected (to get maximum use of colorbar range)
+beta_range = [-.43 .1]; % min and max beta expected (to get maximum use of colorbar range)
 sens_cat_pts = [0.99 0.61; 0.85 0.65; 0.73 0.73; 0.67 0.83; 0.65 0.95];
 [cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, sens_cat_pts);
 figureToPanel(cs_fig, figModelSupp, 6, 3, 4, parula);
@@ -239,10 +277,10 @@ figureToPanel(pk_fig, figModelSupp, 6, 3, 5);
 [~,~,~,~,fig,cmap] = Model.plotCSSlopes(ps, ps, params, beta_range, THRESHOLD, sens_cat_pts);
 figureToPanel(fig, figModelSupp, 6, 3, 6, cmap);
 
-% Same with gamma = 0, noise = 0.1
-params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', 0, 'noise', 0.1, 'trials', 10000, 'updates', 5, 'samples', 5);
-beta_range = [-.4 .1]; % min and max beta expected (to get maximum use of colorbar range)
-sens_cat_pts = [0.99 .59; 0.81 .67; 0.69 .81; 0.65 .99];
+% Same with gamma = 0.2
+params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', 0.2, 'noise', 0, 'trials', 10000, 'updates', 5, 'samples', 5);
+beta_range = [-.4 .23]; % min and max beta expected (to get maximum use of colorbar range)
+sens_cat_pts = [0.99 0.61; 0.87 0.65; 0.75 0.73; 0.67 0.83; 0.65 0.95];
 [cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, sens_cat_pts);
 figureToPanel(cs_fig, figModelSupp, 6, 3, 7, parula);
 figureToPanel(pk_fig, figModelSupp, 6, 3, 8);
@@ -251,7 +289,7 @@ figureToPanel(fig, figModelSupp, 6, 3, 9, cmap);
 
 % --- VB-CZX ---
 
-% Replicate sampling model results above (gamma = 0)
+% Replicate vb model results above (gamma = 0)
 params = Model.newModelParams('model', 'vb-czx', 'var_x', 0.1, 'gamma', 0, 'noise', 0, 'trials', 10000, 'updates', 5, 'step_size', 0.01);
 beta_range = [-0.5 -eps]; % min and max beta expected (to get maximum use of colorbar range)
 sens_cat_pts = [0.99 0.59; 0.81 0.65; 0.71 0.73; 0.67 0.83; 0.65 0.97];
@@ -261,7 +299,7 @@ figureToPanel(pk_fig, figModelSupp, 6, 3, 11);
 [~,~,~,~,fig,cmap] = Model.plotCSSlopes(ps, ps, params, beta_range, THRESHOLD, sens_cat_pts);
 figureToPanel(fig, figModelSupp, 6, 3, 12, cmap);
 
-% Same with gamma = 0.1, noise = 0
+% Same with gamma = 0.1
 params = Model.newModelParams('model', 'vb-czx', 'var_x', 0.1, 'gamma', 0.1, 'noise', 0, 'trials', 10000, 'updates', 5, 'step_size', 0.01);
 beta_range = [-.4 .1]; % min and max beta expected (to get maximum use of colorbar range)
 sens_cat_pts = [0.93 0.61; 0.79 0.67; 0.69 0.75; 0.65 0.85; 0.63 0.97];
@@ -271,10 +309,10 @@ figureToPanel(pk_fig, figModelSupp, 6, 3, 14);
 [~,~,~,~,fig,cmap] = Model.plotCSSlopes(ps, ps, params, beta_range, THRESHOLD, sens_cat_pts);
 figureToPanel(fig, figModelSupp, 6, 3, 15, cmap);
 
-% Same with gamma = 0, noise = 0.05
-params = Model.newModelParams('model', 'vb-czx', 'var_x', 0.1, 'gamma', 0, 'noise', 0.05, 'trials', 10000, 'updates', 5, 'step_size', 0.01);
-beta_range = [-.4 .1]; % min and max beta expected (to get maximum use of colorbar range)
-sens_cat_pts = [0.99 0.67; 0.89 0.77; 0.83 0.87; 0.79 0.99];
+% Same with gamma = 0.2
+params = Model.newModelParams('model', 'vb-czx', 'var_x', 0.1, 'gamma', 0.2, 'noise', 0, 'trials', 10000, 'updates', 5, 'step_size', 0.01);
+beta_range = [-.26 .2]; % min and max beta expected (to get maximum use of colorbar range)
+sens_cat_pts = [0.99 0.59; 0.83 0.65; 0.71 0.73; 0.63 0.87; 0.61 0.99];
 [cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, sens_cat_pts);
 figureToPanel(cs_fig, figModelSupp, 6, 3, 16, parula);
 figureToPanel(pk_fig, figModelSupp, 6, 3, 17);
