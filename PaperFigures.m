@@ -259,7 +259,7 @@ ps = 0.51:0.02:0.99;
 
 % Replicate sampling model results above (gamma = 0)
 params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', 0, 'noise', 0, 'trials', 10000, 'updates', 5, 'samples', 5);
-beta_range = [-0.5 -eps]; % min and max beta expected (to get maximum use of colorbar range)
+beta_range = [-0.5 0]; % min and max beta expected (to get maximum use of colorbar range)
 sens_cat_pts = [.99 .59; .83 .65; .69 .79; .67 .91];
 [cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, sens_cat_pts);
 figureToPanel(cs_fig, figModelSupp, 6, 3, 1, parula);
@@ -291,7 +291,7 @@ figureToPanel(fig, figModelSupp, 6, 3, 9, cmap);
 
 % Replicate vb model results above (gamma = 0)
 params = Model.newModelParams('model', 'vb-czx', 'var_x', 0.1, 'gamma', 0, 'noise', 0, 'trials', 10000, 'updates', 5, 'step_size', 0.01);
-beta_range = [-0.5 -eps]; % min and max beta expected (to get maximum use of colorbar range)
+beta_range = [-0.5 0]; % min and max beta expected (to get maximum use of colorbar range)
 sens_cat_pts = [0.99 0.59; 0.81 0.65; 0.71 0.73; 0.67 0.83; 0.65 0.97];
 [cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, sens_cat_pts);
 figureToPanel(cs_fig, figModelSupp, 6, 3, 10, parula);
