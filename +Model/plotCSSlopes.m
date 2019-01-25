@@ -70,7 +70,7 @@ if exist('contour_pc', 'var')
     if exist('contour_through_sc', 'var')
         slopeVals = arrayfun(@(i) interp2(ss, cc, smoothSlopes, contour_through_sc(i,1), contour_through_sc(i,2)), ...
             1:size(contour_through_sc, 1));
-        contour(ii, jj, smoothSlopes, slopeVals, 'w', 'LineWidth', 2);
+        contour(ii, jj, smoothSlopes, slopeVals, 'k', 'LineWidth', 2);
     end
 end
 
