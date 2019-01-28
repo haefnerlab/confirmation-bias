@@ -29,7 +29,7 @@ for n=1:updates
     
     % Compute updated log odds of C using (gamma-discounted) prior and (step_size-discounted) update
     % rule based on q(x,z)
-    lpo = lpo * (1 - gamma / updates) + step_size * 2 * (pi_z .* mu_x_pos - (1 - pi_z) .* mu_x_neg) / var_x;
+    lpo = lpo * (1 - gamma / updates) + step_size * 2 * (pi_z .* mu_x_pos - (1 - pi_z) .* mu_x_neg) / var_x / updates;
     
     % Add zero-mean additive noise.
     lpo = lpo + randn(trials, 1) * noise;

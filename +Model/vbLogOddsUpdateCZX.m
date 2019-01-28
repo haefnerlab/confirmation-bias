@@ -30,7 +30,7 @@ for n=1:updates
     mu_z = bernoulli_plusminus(sigmoid(log_odds_z));
     
     % Update C using (gamma-discounted) prior and (step_size-discounted) update rule
-    lpo = lpo * (1 - gamma / updates) + step_size * 2 * mu_x .* mu_z / var_x;
+    lpo = lpo * (1 - gamma / updates) + step_size * 2 * mu_x .* mu_z / var_x / updates;
     
     % Add zero-mean additive noise.
     lpo = lpo + randn(trials, 1) * noise;
