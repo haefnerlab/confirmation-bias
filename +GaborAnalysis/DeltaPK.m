@@ -1,4 +1,4 @@
-function [perSubjectFigs, combinedfig] = DeltaPK(subjectIDs, phases, per_subject_plots, regularize_individuals, method, datadir)
+function [perSubjectFigs, combinedFig] = DeltaPK(subjectIDs, phases, per_subject_plots, method, datadir)
 %GABORANALYSIS.DELTAPK creates one figure per subject and a combined figure
 %(if 2 or more subjects) showing temporal psychophysical kernel analysis.
 %
@@ -11,8 +11,7 @@ function [perSubjectFigs, combinedfig] = DeltaPK(subjectIDs, phases, per_subject
 % - datadir: (optional) override the default place to look for data files.
 
 if nargin < 3, per_subject_plots = false; end
-if nargin < 4, regularize_individuals = true; end
-if nargin < 5, method = 'lr'; end
+if nargin < 5, method = 'reg-lr'; end
 if nargin < 6, datadir = fullfile(pwd, '..', 'RawData'); end
 
 catdir = fullfile(datadir, '..', 'ConcatData');
@@ -24,67 +23,141 @@ if ~exist(memodir, 'dir'), mkdir(memodir); end
 window_low = 0.5;
 window_high = 0.7;
 
-    function [median, L, U, trials, frames, variance, true_pk] = getNormalizedSubjectKernel(subjectId, phase, regularize)
+color1 = [32 74 135] / 255;
+color2 = [164 0 0] / 255;
+color3 = [0 0 0] / 255;
+white = [255 255 255] / 255;
+
+% Confidence interval
+conf = 0.68;
+
+%% Helper functions
+
+    function trials = getSubjectThresholdTrials(subjectId, phase)
         stair_var = get_stair_var(phase);
         SubjectData = LoadOrRun(@LoadAllSubjectData, ...
             {subjectId, phase, datadir}, fullfile(catdir, [subjectId '-' stair_var '.mat']));
+        trials = SubjectData.(stair_var) <= thresh & SubjectData.(stair_var) >= floor;
+    end
+
+    function true_pk = getGroundTruthModelPK(subjectId, phase)
+        stair_var = get_stair_var(phase);
+        SubjectData = LoadOrRun(@LoadAllSubjectData, ...
+            {subjectId, phase, datadir}, fullfile(catdir, [subjectId '-' stair_var '.mat']));
+        
+        if isfield(SubjectData, 'model_pk')
+            true_pk = SubjectData.model_pk;
+        else
+            true_pk = nan(1, SubjectData.number_of_images);
+        end
+    end
+
+    function [boot_params, frames] = getSubjectBootstrapRegression(subjectId, phase, model)
+        stair_var = get_stair_var(phase);
+        SubjectData = LoadOrRun(@LoadAllSubjectData, ...
+            {subjectId, phase, datadir}, fullfile(catdir, [subjectId '-' stair_var '.mat']));
+        frames = SubjectData.number_of_images;
         warning off;
         [floor, thresh] = GaborAnalysis.getThresholdWindow(subjectId, phase, window_low, window_high, datadir);
         warning on;
+        % Hard reset of thresholds in the 'ratio' task since bins are too coarse. Performance is
+        % within a few pecent of 70% for all subjects at the 4:6 or 6:4 ratios.
         if phase == 1
             floor = .4;
             thresh = .6;
         end
-        trials = SubjectData.(stair_var) <= thresh & SubjectData.(stair_var) >= floor;
         SubjectDataThresh = GaborThresholdTrials(SubjectData, phase, thresh, floor);
-        switch lower(method)
-            case {'regress', 'logistic', 'lr'}
-                if regularize
-                    regstring = '-reg';
-                    % memo_name = ['PK-xValid-' stair_var '-' subjectId '-' num2str(thresh) '-' num2str(floor) '.mat'];
-                    % nFold = 10;
-                    % hprs = [0 logspace(-3, 5, 9)];
-                    % [hprs, ~] = LoadOrRun(@CustomRegression.xValidatePK, ...
-                    %     {SubjectDataThresh.ideal_frame_signals, SubjectDataThresh.choice == +1, hprs, 0, hprs, 1, nFold}, ...
-                    %     fullfile(memodir, memo_name));
-                    if phase == 1
-                        hprs = [0.1 0 10];
-                    elseif phase  == 2
-                        hprs = [0 0 500];
-                    end
-                else
-                    regstring = '';
-                    hprs = [0 0 0];
+        switch lower(model)
+            case {'lr-reg', 'reg-lr'}
+                % Regularized logistic regression
+                
+                % UNCOMMENT TO RUN CROSS-VALIDATION PER SUBJECT
+                % memo_name = ['PK-xValid-' stair_var '-' subjectId '-' num2str(thresh) '-' num2str(floor) '.mat'];
+                % nFold = 10;
+                % hprs = [0 logspace(-3, 5, 9)];
+                % [hprs, ~] = LoadOrRun(@CustomRegression.xValidatePK, ...
+                %     {SubjectDataThresh.ideal_frame_signals, SubjectDataThresh.choice == +1, hprs, 0, hprs, 1, nFold}, ...
+                %     fullfile(memodir, memo_name));
+                
+                % USING EMPIRICAL GEOMETRIC MEAN OF CROSS-VALIDATED HYPERPARAMETERS
+                if phase == 1
+                    hprs = [0.1 0 10];
+                elseif phase  == 2
+                    hprs = [0 0 500];
                 end
-                memo_name = ['Boot-PK-ideal-' stair_var '-' subjectId '-' num2str(thresh) '-' num2str(floor) regstring '.mat'];
-                [~, L, U, median, all_weights] = LoadOrRun(@BootstrapWeightsGabor, ...
+                
+                % Get logistic regression weights with bootstrapping
+                memo_name = ['Boot-PK-ideal-' stair_var '-' subjectId '-' num2str(thresh) '-' num2str(floor) '-reg.mat'];
+                [~, ~, ~, ~, boot_params] = LoadOrRun(@BootstrapWeightsGabor, ...
                     {SubjectDataThresh, 500, hprs, 0, true}, ...
                     fullfile(memodir, memo_name));
-                frames = SubjectData.number_of_images;
-                variance = var(all_weights);
+            case {'regress', 'logistic', 'lr'}
+                % Unregularized logistic regression
+                hprs = [0 0 0];
+                memo_name = ['Boot-PK-ideal-' stair_var '-' subjectId '-' num2str(thresh) '-' num2str(floor) '.mat'];
+                [~, ~, ~, ~, boot_params] = LoadOrRun(@BootstrapWeightsGabor, ...
+                    {SubjectDataThresh, 500, hprs, 0, true}, ...
+                    fullfile(memodir, memo_name));
             case {'cta'}
+                % Choice-triggered average
                 memo_name = ['Boot-CTA-' stair_var '-' subjectId '-' num2str(thresh) '-' num2str(floor) '.mat'];
-                [~, L, U, median, all_weights] = LoadOrRun(@BootstrapCTA, ...
+                [~, ~, ~, ~, boot_params] = LoadOrRun(@BootstrapCTA, ...
                     {SubjectDataThresh, 500}, ...
                     fullfile(memodir, memo_name));
-                frames = SubjectData.number_of_images;
-                variance = var(all_weights);
+            case {'lin', 'linear'}
+                % Linear model: weight = slope * frameno + offset
+                memo_name = ['Boot-lin-' stair_var '-' subjectId '-' num2str(thresh) '-' num2str(floor) '.mat'];
+                [~, ~, ~, ~, ~, boot_params] = LoadOrRun(@BootstrapLinearPKFit, ...
+                    {SubjectDataThresh, 500, 0, true}, ...
+                    fullfile(memodir, memo_name));
+            case {'exp', 'exponential'}
+                % Exponential model: weight = alpha * exp(beta * frameno)
+                memo_name = ['Boot-exp-' stair_var '-' subjectId '-' num2str(thresh) '-' num2str(floor) '.mat'];
+                [~, ~, ~, ~, ~, boot_params] = LoadOrRun(@BootstrapExponentialWeightsGabor, ...
+                    {SubjectDataThresh, 500, 0, true}, ...
+                    fullfile(memodir, memo_name));
             otherwise
-                error('Unknown PK method: %s', method);
-        end
-        if isfield(SubjectData, 'model_pk')
-            true_pk = SubjectData.model_pk;
-        else
-            true_pk = nan;
+                error('Unknown PK method: %s', model);
         end
     end
 
-% CombinedKernelsByPhase{i} contains a the combined kernel mean (weighted by inverse variance pr
-% subject) for phase i. Combined kernels are always based on unregularized individual PKs.
+    function [weights, bias] = paramsToKernel(params, modelstring, frames, normalize)
+        switch lower(modelstring)
+            case {'regress', 'logistic', 'lr', 'reg-lr', 'lr-reg'}
+                weights = params(:,1:end-1);
+                bias = params(:,end);
+            case {'cta'}
+                weights = params;
+                bias = zeros(size(params,1), 1);
+            case {'lin', 'linear'}
+                % In linear model, 3 parameters are [slope offset bias]
+                weights = (0:frames-1).*params(:,1) + params(:,2);
+                bias = params(:,3);
+            case {'exp', 'exponential'}
+                % In exponential model, 3 parameters are [alpha beta bias]
+                weights = params(:,1).*exp(params(:,2).*(0:frames-1));
+                bias = params(:,3);
+            otherwise
+                error('Unrecognized PK model type: %s', modelstring);
+        end
+        
+        if normalize
+            weights = weights ./ mean(weights, 2);
+            % NOTE we don't touch 'bias' here!
+        end
+    end
+
+%% Loop over subjects. Compute individual and combined kernels.
+
+combinedFig = -1;
+if length(subjectIDs) > 1
+    combinedFig = figure;
+    hold on;
+end
+
+% CombinedKernelsByPhase{i} contains all bootstrapped temporal weights, normalized to mean 1, per
+% phase per subject. They will later be concatenated to get the average across all subjects.
 PerSubjectKernelsByPhase = cell(length(phases), length(subjectIDs));
-CombinedKernelsByPhase = cell(size(phases));
-CombinedNormalizerByPhase = cell(size(phases));
-CombinedIdentifier = strjoin(subjectIDs, '-');
 
 perSubjectFigs = [];
 for i=1:length(subjectIDs)
@@ -94,10 +167,23 @@ for i=1:length(subjectIDs)
     end
     subjectId = subjectIDs{i};
     if length(phases) == 1
-        [M, L, U, trials, frames, variance, true_pk] = getNormalizedSubjectKernel(subjectId, phases, false);
+        [boot_params, frames] = getSubjectBootstrapRegression(subjectId, phases, method);
+        [boot_weights, boot_bias] = paramsToKernel(boot_params, method, frames, true);
+        [~, lo_w, hi_w, med_w] = meanci(boot_weights, conf);
+        [~, lo_b, hi_b, med_b] = meanci(boot_bias, conf);
+        
+        PerSubjectKernelsByPhase{i} = boot_weights;
+        
+        % Add to the combined figure
+        if length(subjectIDs) > 1
+            figure(combinedFig);
+            plot(1:frames, med_w, 'LineWidth', 1, 'Color', (color1+white)/2);
+        end
+        
         if per_subject_plots
-            boundedline(1:frames, M(1:frames)', [U(1:frames)-M(1:frames); M(1:frames)-L(1:frames)]');
-            errorbar(frames+1, M(end), M(end)-L(end), U(end)-M(end), 'LineWidth', 2, 'Color', 'r');
+            boundedline(1:frames, med_w', [med_w-lo_w; hi_w-med_w]');
+            errorbar(frames+1, med_b, med_b-lo_b, hi_b-med_b, 'LineWidth', 2, 'Color', color1);
+            trials = getSubjectThresholdTrials(subjectId, phases);
             title([strrep(get_stair_var(phases), '_', ' ') 'temporal kernel (' num2str(sum(trials)) '/' num2str(length(trials)) ')']);
             xlim([-inf, inf]);
             set(gca, 'XTick', [1 frames], 'XTickLabel', [0 1]);
@@ -105,85 +191,77 @@ for i=1:length(subjectIDs)
             xlabel('Time (s)');
             ylabel('Psychophysical Kernel');
             axis tight;
-            if ~isnan(true_pk)
-                plot(1:frames, true_pk, 'Color', 'r', 'LineWidth', 2);
+            
+            ground_truth_pk = getGroundTruthModelPK(subjectId, phase);
+            if ~all(isnan(ground_truth_pk))
+                plot(1:frames, ground_truth_pk, 'Color', color1, 'LineWidth', 2);
             end
         end
-        if i == 1
-            CombinedKernelsByPhase{1} = M ./ variance;
-            CombinedNormalizerByPhase{1} = 1 ./ variance;
-        else
-            CombinedKernelsByPhase{1} = CombinedKernelsByPhase{1} + M ./ variance;
-            CombinedNormalizerByPhase{1} = CombinedNormalizerByPhase{1} + 1 ./ variance;
+    elseif length(phases) == 2
+        [boot_params1, frames1] = getSubjectBootstrapRegression(subjectId, phases(1), method);
+        [boot_w1, boot_b1] = paramsToKernel(boot_params1, method, frames1, true);
+        [~, lo_w1, hi_w1, med_w1] = meanci(boot_w1, conf);
+        [~, lo_b1, hi_b1, med_b1] = meanci(boot_b1, conf);
+        PerSubjectKernelsByPhase{1, i} = boot_w1;
+        
+        [boot_params2, frames2] = getSubjectBootstrapRegression(subjectId, phases(2), method);
+        [boot_w2, boot_b2] = paramsToKernel(boot_params2, method, frames2, true);
+        [~, lo_w2, hi_w2, med_w2] = meanci(boot_w2, conf);
+        [~, lo_b2, hi_b2, med_b2] = meanci(boot_b2, conf);
+        PerSubjectKernelsByPhase{2, i} = boot_w2;
+
+        assert(frames1 == frames2, 'Cannot subtract PKs with different # frames');
+        boot_diff_w = boot_w1 - boot_w2;
+        [~, lo_diff, hi_diff, med_diff] = meanci(boot_diff_w, conf);
+        
+        % Add to the combined figure
+        % Combined chematic is 3 subplots: each pk in their own and their difference in the third
+        if length(subjectIDs) > 1
+            figure(combinedFig);
+            subplot(1,3,1); hold on;
+            plot(1:frames1, med_w1, 'LineWidth', 1, 'Color', (color1+white)/2);
+            
+            subplot(1,3,2); hold on;
+            plot(1:frames2, med_w2, 'LineWidth', 1, 'Color', (color2+white)/2);
+            
+            subplot(1,3,3); hold on;
+            plot(1:frames1, med_diff, 'LineWidth', 1, 'Color', (color3+white)/2);
         end
         
-        if regularize_individuals
-            [PerSubjectKernelsByPhase{1, i}, ~, ~, ~, ~, ~, ~] = ...
-                getNormalizedSubjectKernel(subjectId, phases, true);
-        else
-            PerSubjectKernelsByPhase{1, i} = M;
-        end
-    else
-        % 2 subplots: 2 pks in one and their difference in the other
-        [M1, L1, U1, trials1, frames1, v1, true_pk1] = getNormalizedSubjectKernel(subjectId, phases(1), false);
-        leg{1} = [strrep(get_stair_var(phases(1)), '_', ' ') ' (' num2str(sum(trials1)) '/' num2str(length(trials1)) ')'];
         
-        [M2, L2, U2, trials2, frames2, v2, true_pk2] = getNormalizedSubjectKernel(subjectId, phases(2), false);
-        leg{2} = [strrep(get_stair_var(phases(2)), '_', ' ') ' (' num2str(sum(trials2)) '/' num2str(length(trials2)) ')'];
-        
+        % Per-subject chematic is 2 subplots: 2 pks in one and their difference in the other
         if per_subject_plots
+            % Create legends
+            trials1 = getSubjectThresholdTrials(subjectId, phases(1));
+            leg{1} = [strrep(get_stair_var(phases(1)), '_', ' ') ' (' num2str(sum(trials1)) '/' num2str(length(trials1)) ')'];
+            trials2 = getSubjectThresholdTrials(subjectId, phases(1));
+            leg{2} = [strrep(get_stair_var(phases(2)), '_', ' ') ' (' num2str(sum(trials2)) '/' num2str(length(trials2)) ')'];
+            
+            % Plot both PKs
             subplot(1, 2, 1);
             hold on;
-            h = boundedline(1:frames1, M1(1:frames1)', [U1(1:frames1)-M1(1:frames1); M1(1:frames1)-L1(1:frames1)]', 'b', ...
-                1:frames2, M2(1:frames2)', [U2(1:frames2)-M2(1:frames2); M2(1:frames2)-L2(1:frames2)]', 'r', ...
+            h = boundedline(1:frames1, med_w1', [med_w1-lo_w1; hi_w1-med_w1]', color2, ...
+                1:frames2, med_w2', [med_w2-lo_w2; hi_w2-med_w2]', color1, ...
                 'alpha');
+            errorbar(frames+1, med_b1, med_b1-lo_b1, hi_b1-med_b1, 'LineWidth', 2, 'Color', color2);
+            errorbar(frames+1, med_b2, med_b2-lo_b2, hi_b2-med_b2, 'LineWidth', 2, 'Color', color1);
             title([subjectId ' temporal kernels']);
             xlim([-inf, inf]);
-            set(gca, 'XTick', [1 frames1], 'XTickLabel', [0 1]);
+            set(gca, 'XTick', [1 max(frames1, frames2)], 'XTickLabel', [0 1]);
             set(gca, 'YTick', [0 1]);
             xlabel('Time (s)');
             ylabel('Psychophysical Kernel');
             legend(h, leg, 'Location', 'best');
-            if ~isnan(true_pk1)
-                plot(1:frames1, true_pk1, 'Color', 'b', 'LineWidth', 2);
-                plot(1:frames2, true_pk2, 'Color', 'r', 'LineWidth', 2);
-            end
             
+            % Plot PK differences
             subplot(1, 2, 2);
-            assert(frames1 == frames2, 'Cannot subtract PKs with different # frames');
-            Md = M1 - M2;
-            Ld = L1 - U2;
-            Ud = U1 - L2;
-            boundedline(1:frames1, Md(1:frames1)', [Ud(1:frames1)-Md(1:frames1); Md(1:frames1)-Ld(1:frames1)]', 'k');
+            boundedline(1:length(med_diff), med_diff', [med_diff-lo_diff; hi_diff-med_diff]', color3);
             title([subjectId ' kernel difference']);
             xlim([-inf, inf]);
-            set(gca, 'XTick', [1 frames1], 'XTickLabel', [0 1]);
+            set(gca, 'XTick', [1 max(frames1, frames2)], 'XTickLabel', [0 1]);
             set(gca, 'YTick', [-1 0 1]);
             xlabel('Time (s)');
             ylabel('Kernel Difference');
-        end
-        
-        if i == 1
-            CombinedKernelsByPhase{1} = M1 ./ v1;
-            CombinedNormalizerByPhase{1} = 1 ./ v1;
-            CombinedKernelsByPhase{2} = M2 ./ v2;
-            CombinedNormalizerByPhase{2} = 1 ./ v2;
-        else
-            CombinedKernelsByPhase{1} = CombinedKernelsByPhase{1} + M1 ./ v1;
-            CombinedNormalizerByPhase{1} = CombinedNormalizerByPhase{1} + 1 ./ v1;
-            CombinedKernelsByPhase{2} = CombinedKernelsByPhase{2} + M2 ./ v2;
-            CombinedNormalizerByPhase{2} = CombinedNormalizerByPhase{2} + 1 ./ v2;
-        end
-        
-        
-        if regularize_individuals
-            [PerSubjectKernelsByPhase{1, i}, ~, ~, ~, ~, ~, ~] = ...
-                getNormalizedSubjectKernel(subjectId, phases(1), true);
-            [PerSubjectKernelsByPhase{2, i}, ~, ~, ~, ~, ~, ~] = ...
-                getNormalizedSubjectKernel(subjectId, phases(2), true);
-        else
-            PerSubjectKernelsByPhase{1, i} = M1;
-            PerSubjectKernelsByPhase{2, i} = M2;
         end
     end
     
@@ -195,16 +273,17 @@ for i=1:length(subjectIDs)
     end
 end
 
-combinedfig = -1;
 if length(subjectIDs) > 1
-    combinedfig = figure;
-    hold on;
+    figure(combinedFig);
+    
+    % First, loop over phases and simply concatenate bootstrapped kernels from all subjects together
+    for iPhase=length(phases):-1:1
+        concatSubjectKernels{iPhase} = vertcat(PerSubjectKernelsByPhase{iPhase, :});
+        [~, lo_combo{iPhase}, hi_combo{iPhase}, med_combo{iPhase}] = meanci(concatSubjectKernels{iPhase}, conf);
+    end
     
     if length(phases) == 1
-        % Normalization
-        CombinedKernelsByPhase{1} = CombinedKernelsByPhase{1} ./ CombinedNormalizerByPhase{1};
-        % Plot
-        plot(1:frames, CombinedKernelsByPhase{1}(1:frames));
+        plot(1:frames, med_combo{1}, 'Color', color1, 'LineWidth', 2);
         title([strrep(get_stair_var(phases), '_', ' ') ' combined kernel']);
         xlim([-inf, inf]);
         set(gca, 'XTick', [1 frames], 'XTickLabel', [0 1]);
@@ -212,48 +291,32 @@ if length(subjectIDs) > 1
         xlabel('Time (s)');
         ylabel('Psychophysical Kernel');
     else
-        colors = [0 0 1; 1 0 0; 0 0 0];
-        % Normalization
-        CombinedKernelsByPhase{1} = CombinedKernelsByPhase{1} ./ CombinedNormalizerByPhase{1};
-        CombinedKernelsByPhase{2} = CombinedKernelsByPhase{2} ./ CombinedNormalizerByPhase{2};
-        % 3 subplots: each condition per-subject and mean PKs and their difference
+        diffAllKernels = concatSubjectKernels{1} - concatSubjectKernels{2};
+        [~, lo_diff, hi_diff, med_diff] = meanci(diffAllKernels, conf);
+        
         subplot(1, 3, 1);
         hold on;
-        for i=1:length(subjectIDs)
-            plot(1:frames1, PerSubjectKernelsByPhase{1, i}(1:frames1), 'Color', colors(1, :));
-        end
-        plot(1:frames1, CombinedKernelsByPhase{1}(1:frames1), 'Color', colors(1, :), 'LineWidth', 2);
+        plot(1:frames1, med_combo{1}, 'Color', color1, 'LineWidth', 2);
         xlim([-inf, inf]);
         set(gca, 'XTick', [1 frames1], 'XTickLabel', [0 1]);
         set(gca, 'YTick', [0 1]);
         xlabel('Time (s)');
         ylabel('Psychophysical Kernel');
-        title(get_stair_var(phases(1)));
+        title(strrep(get_stair_var(phases(1)), '_', ' '));
         
         subplot(1, 3, 2);
         hold on;
-        for i=1:length(subjectIDs)
-            plot(1:frames2, PerSubjectKernelsByPhase{2, i}(1:frames2), 'Color', colors(2, :));
-        end
-        plot(1:frames2, CombinedKernelsByPhase{2}(1:frames2), 'Color', colors(2, :), 'LineWidth', 2);
+        plot(1:frames2, med_combo{2}, 'Color', color2, 'LineWidth', 2);
         xlim([-inf, inf]);
-        set(gca, 'XTick', [1 frames1], 'XTickLabel', [0 1]);
+        set(gca, 'XTick', [1 frames2], 'XTickLabel', [0 1]);
         set(gca, 'YTick', [0 1]);
         xlabel('Time (s)');
         ylabel('Psychophysical Kernel');
-        title(get_stair_var(phases(2)));
+        title(strrep(get_stair_var(phases(2)), '_', ' '));
         
         subplot(1, 3, 3);
         hold on;
-        assert(frames1 == frames2, 'Cannot subtract PKs with different # frames');
-        for i=1:length(subjectIDs)
-            diff = normalize(PerSubjectKernelsByPhase{1, i}(1:frames1)) - ...
-                normalize(PerSubjectKernelsByPhase{2, i}(1:frames2));
-            plot(1:frames1, diff, 'Color', colors(3, :));
-        end
-        combo_diff = normalize(CombinedKernelsByPhase{1}(1:frames1)) - ...
-            normalize(CombinedKernelsByPhase{2}(1:frames2));
-        plot(1:frames1, combo_diff, 'Color', colors(3, :), 'LineWidth', 2);
+        plot(1:frames1, med_diff, 'Color', color3, 'LineWidth', 2);
         title('Normalized Kernel Difference');
         xlim([-inf, inf]);
         set(gca, 'XTick', [1 frames1], 'XTickLabel', [0 1]);
@@ -262,11 +325,11 @@ if length(subjectIDs) > 1
         ylabel('Kernel Differnce');
     end
     
-    combinedfig.PaperUnits = 'inches';
-    combinedfig.PaperSize = [8 4];
-    combinedfig.PaperPosition = [0 0 8 4];
+    combinedFig.PaperUnits = 'inches';
+    combinedFig.PaperSize = [8 4];
+    combinedFig.PaperPosition = [0 0 8 4];
     try
-        saveas(combinedfig, [CombinedIdentifier '-PKPlot.png']);
+        saveas(combinedFig, [strjoin(subjectIDs, '-') '-PKPlot.png']);
     catch e
         msg = getReport(e);
         warning(msg);

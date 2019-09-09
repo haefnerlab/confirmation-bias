@@ -4,7 +4,7 @@ clear;
 RATIO_PHASE = 1; % aka HSLC
 NOISE_PHASE = 2; % aka LSHC
 THRESHOLD = 0.7;
-DATADIR = fullfile(pwd, '..', 'RawData');
+DATADIR = fullfile(pwd, '..', 'PublishData');
 MEMODIR = fullfile(pwd, '..', 'Precomputed');
 
 DARK_RED = [204 0 0] / 255;
@@ -13,11 +13,11 @@ DARK_BLUE = [32 74 135] / 255;
 LIGHT_RED = DARK_RED * .5 + .5;
 LIGHT_BLUE = DARK_BLUE * .5 + .5;
 
-ratioSubjects = arrayfun(@(i) sprintf('bpgFinaltest-subject%02d', i), setdiff(1:15, [1 5 12]), 'UniformOutput', false);
-noiseSubjects = arrayfun(@(i) sprintf('bpgFinaltest-subject%02d', i), setdiff(1:15, [1 5]), 'UniformOutput', false);
+ratioSubjects = arrayfun(@(i) sprintf('BPGTask-subject%02d', i), setdiff(1:15, [1 5 12]), 'UniformOutput', false);
+noiseSubjects = arrayfun(@(i) sprintf('BPGTask-subject%02d', i), setdiff(1:15, [1 5]), 'UniformOutput', false);
 
-% informed is the opposite of naive
-informedSubjects = arrayfun(@(i) sprintf('bpgFinaltest-subject%02d', i), [7 8 9], 'UniformOutput', false);
+% Informed is the opposite of naive. Subjects 7 through 9 were authors.
+informedSubjects = arrayfun(@(i) sprintf('BPGTask-subject%02d', i), [7 8 9], 'UniformOutput', false);
 
 naiveRatioSubjects = setdiff(ratioSubjects, informedSubjects);
 naiveNoiseSubjects = setdiff(noiseSubjects, informedSubjects);
@@ -27,6 +27,7 @@ naiveBothSubjects = intersect(naiveRatioSubjects, naiveNoiseSubjects);
 ratioSubjects = [naiveRatioSubjects informedSubjects];
 noiseSubjects = [naiveNoiseSubjects informedSubjects];
 bothSubjects = [intersect(naiveRatioSubjects, naiveNoiseSubjects) informedSubjects];
+is_naive = ismember(bothSubjects, naiveBothSubjects);
 
 % Compute population-level psycho metrics
 N = length(bothSubjects);
@@ -59,9 +60,12 @@ fprintf('Noise condition mean threshold = %f +/- %f, stdev = %f\n', mean(thresho
 fprintf('Noise condition mean %%correct at zero signal = %f +/- %f, stdev = %f\n', mean(100*pc_zero_signal), sem(100*pc_zero_signal), std(100*pc_zero_signal));
 fprintf('Ratio condition mean %%correct at 6:4 = %f +/- %f, stdev = %f\n', mean(100*pc_60_40_adjusted), sem(100*pc_60_40_adjusted), std(100*pc_60_40_adjusted));
 
-GaborAnalysis.DeltaSlopeStatistics(bothSubjects, [1 2], 'exponential');
-GaborAnalysis.DeltaSlopeStatistics(bothSubjects, [1 2], 'linear');
-GaborAnalysis.DeltaPK(bothSubjects, [1 2], false);
+nboot_pvalue = 10000;
+GaborAnalysis.DeltaSlopeStatistics(bothSubjects, [1 2], 'exponential', nboot_pvalue, is_naive, DATADIR);
+GaborAnalysis.DeltaSlopeStatistics(bothSubjects, [1 2], 'linear', nboot_pvalue, is_naive, DATADIR);
+
+method = 'exp'; % options include 'reg-lr', 'lr', 'exp', or 'lin'
+GaborAnalysis.DeltaPK(bothSubjects, [1 2], false, method, DATADIR);
 
 %% Psychometric curves
 
@@ -73,7 +77,7 @@ hold on;
 noises = linspace(-0.8, 0.8, 101);
 avg_pm_curve = zeros(size(noises));
 for iSubject=1:N
-    SubjectData = LoadAllSubjectData(bothSubjects{iSubject}, NOISE_PHASE);
+    SubjectData = LoadAllSubjectData(bothSubjects{iSubject}, NOISE_PHASE, DATADIR);
     [pm_fit, ~, ~, ~] = LoadOrRun(@GaborPsychometric, {SubjectData, -2}, ...
         fullfile(MEMODIR, ['PM-noise-signed-' bothSubjects{iSubject} '.mat']));
     % Next line copied from @plotPsych in the psignifit toolbox
@@ -91,7 +95,7 @@ hold on;
 ratios = linspace(0, 1, 101);
 avg_pm_curve = zeros(size(ratios));
 for iSubject=1:N
-    SubjectData = LoadAllSubjectData(bothSubjects{iSubject}, RATIO_PHASE);
+    SubjectData = LoadAllSubjectData(bothSubjects{iSubject}, RATIO_PHASE, DATADIR);
     [pm_fit, ~, ~, ~] = LoadOrRun(@GaborPsychometric, {SubjectData, RATIO_PHASE}, ...
         fullfile(MEMODIR, ['PM-true_ratio-signed-' bothSubjects{iSubject} '.mat']));
     % Next line copied from @plotPsych in the psignifit toolbox

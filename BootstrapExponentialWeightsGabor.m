@@ -1,4 +1,4 @@
-function [M, L, U, median, fits] = BootstrapExponentialWeightsGabor(Test_Data, bootstrapsteps, signalKappa, normalize)
+function [M, L, U, median, weight_matrix, fits] = BootstrapExponentialWeightsGabor(Test_Data, bootstrapsteps, signalKappa, normalize)
 
 if nargin < 3, signalKappa = 0; end
 if nargin < 4, normalize = false; end
