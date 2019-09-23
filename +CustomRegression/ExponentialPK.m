@@ -39,6 +39,12 @@ glm_weights = glmfit(data, responses, 'binomial');
 ab = CustomRegression.expFit(glm_weights(2:end));
 init_guess = [ab glm_weights(1)];
 
+% Attenuate initial guess if it is extreme, simply by decaying parameter values towards zero (which
+% is, in this model, a lack of prediction)
+while abs(neg_bernoulli_log_likelihood(init_guess)) > 1e6
+    init_guess = init_guess / 2;
+end
+
 % Fit weights using 'fminunc', only computing the hessian (which is slow) if errors are requested.
 if compute_error
     [abb, negPostVal, ~, ~, ~, hessian] = fminunc(@neg_bernoulli_log_likelihood, init_guess);
