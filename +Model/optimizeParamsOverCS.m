@@ -1,4 +1,4 @@
-function [optim_params, optim_correct] = optimizeParamsOverCS(category_infos, sensory_infos, params, variables, ngrid)
+function [optim_params, optim_correct, correct_grid] = optimizeParamsOverCS(category_infos, sensory_infos, params, variables, ngrid)
 %OPTIMIZEPARAMSOVERCS like Model.optimizeParams but taking into account smoothness over CS-space
 
 if nargin < 5, ngrid = 21; end
@@ -81,15 +81,24 @@ function correct = percent_correct(params, variables, values)
 for i=1:length(variables)
     params.(variables{i}) = values(i);
 end
+
 % TODO - smarter resetting of seed
 params.seed = randi(1000000000);
+
 % Generate data with *both* +1 and -1 categories to avoid degenerate "optimization" solutions where
 % all responses are +1
 data = Model.genDataWithParams(params, true);
-results = LoadOrRun(@Model.runVectorized, {params, data}, ...
-    fullfile(params.save_dir, Model.getModelStringID(params)), '-verbose');
+
+% Run model on data. Note that there are problems if we wrap this call in LoadOrRun, since then the
+% 'data' seen by the ideal observer would no longer match the data seen by the model!
+results = Model.runVectorized(params, data);
+
+% Run ideal observer on the same data
 params.model = 'ideal';
 ideal_results = Model.runVectorized(params, data);
+
+% Rather than optimize 'percent correct,' we optimize 'percent in agreement with the ideal observer'
+% which is more robust.
 correct = mean(results.choices == ideal_results.choices);
 end
 
