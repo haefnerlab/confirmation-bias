@@ -102,9 +102,9 @@ function ub = upper_bound(variable)
 if strcmpi(variable, 'p_match')
     ub = 1;
 elseif strcmpi(variable, 'var_s')
-    ub = inf;
+    ub = 10;
 elseif strcmpi(variable, 'gamma')
-    ub = 2;
+    ub = 1;
 elseif strcmpi(variable, 'prior_C')
     ub = 1;
 elseif strcmpi(variable, 'noise')

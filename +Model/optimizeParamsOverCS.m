@@ -119,7 +119,7 @@ elseif strcmpi(variable, 'var_s')
 elseif strcmpi(variable, 'var_x')
     ub = 10;
 elseif strcmpi(variable, 'gamma')
-    ub = 10;
+    ub = 1;
 elseif strcmpi(variable, 'prior_C')
     ub = 1;
 elseif strcmpi(variable, 'noise')
