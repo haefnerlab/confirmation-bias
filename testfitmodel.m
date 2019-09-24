@@ -2,7 +2,7 @@
 
 % true_params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', 0, 'trials', 1600, 'updates', 5, 'samples', 5, 'seed', 872810841);
 true_params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', 0, 'trials', 1600, 'updates', 5, 'step_size', 0.01, 'seed', 47429240);
-data = Model.genDataWithParams(true_params, true);
+data = Model.genDataWithParams(true_params);
 results = Model.runVectorized(true_params, data);
 
 nBoot = 500;
@@ -61,7 +61,7 @@ end
 %% Try fitting the model to itself on choices
 
 distributions = Fitting.defaultDistributions();
-data = Model.genDataWithParams(true_params, true);
+data = Model.genDataWithParams(true_params);
 results = Model.runVectorized(true_params, data);
 
 DummySubjectData = struct(...
