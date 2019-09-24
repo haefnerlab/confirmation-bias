@@ -89,7 +89,7 @@ if exist('contour_pc', 'var')
     [ii, jj] = meshgrid(1:length(sensory_infos), 1:length(category_infos));
     contour(ii, jj, smoothn(corrects), [0 contour_pc], 'w', 'LineWidth', 2);
 
-    if exist('contour_through_sc', 'var')
+    if exist('contour_through_sc', 'var') && ~isempty(contour_through_sc)
         slopeVals = arrayfun(@(i) interp2(ss, cc, smoothSlopes, contour_through_sc(i,1), contour_through_sc(i,2)), ...
             1:size(contour_through_sc, 1));
         contour(ii, jj, smoothSlopes, slopeVals, 'k', 'LineWidth', 2);
@@ -120,5 +120,17 @@ function [expfit, experrors, runResults, correct_categories] = runAndGetFit(para
 uid = Model.getModelStringID(params);
 runResults = LoadOrRun(@Model.runVectorized, {params}, fullfile(params.save_dir, uid));
 [data, correct_categories] = Model.genDataWithParams(runResults.params);
-[expfit, ~, experrors] = CustomRegression.ExponentialPK(data, runResults.choices == +1, 1);
+% Fit PK to simulation (redo simulation on error)
+err = true;
+while err
+    try
+        [expfit, ~, experrors] = CustomRegression.ExponentialPK(data, runResults.choices == +1, 1);
+        err = false;
+    catch
+        disp('trying again...');
+        runResults = LoadOrRun(@Model.runVectorized, {params}, fullfile(params.save_dir, uid), ...
+            '-recompute');
+        [data, correct_categories] = Model.genDataWithParams(runResults.params);
+    end
+end
 end
