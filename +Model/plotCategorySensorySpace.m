@@ -1,4 +1,4 @@
-function [correct, fig] = plotCategorySensorySpace(category_infos, sensory_infos, params, optimize, optim_grid_size)
+function [correct, fig, opt_fig] = plotCategorySensorySpace(category_infos, sensory_infos, params, optimize, optim_grid_size)
 %PLOTCATEGORYSENSORYSPACE make category_info vs sensory_info plots for the
 %given params.
 
@@ -8,6 +8,18 @@ if ~exist(savedir, 'dir'), mkdir(savedir); end
 if nargin < 4, optimize = {}; end
 if nargin < 5, optim_grid_size = 11; end
 
+if exist('optimize', 'var') && ~isempty(optimize)
+    optim_prefix = Model.getOptimPrefix(optimize, optim_grid_size);
+    results_uid = Model.getModelStringID(params, true);
+    optim_results_uid = ['optim_CS_' optim_prefix '_' results_uid];
+    [optim_params, ~, ~] = LoadOrRun(@Model.optimizeParamsOverCS, ...
+        {category_infos, sensory_infos, params, optimize, optim_grid_size}, ...
+        fullfile(params.save_dir, optim_results_uid));
+else
+    optimize = {};
+    optim_params = [];
+end
+
 if strcmpi(params.model, 'ideal') && ~isempty(optimize)
     error('Nothing to optimize for the ideal observer');
 end
@@ -16,11 +28,8 @@ end
 
 % Preallocate return values.
 correct = nan(size(ss));
-optim_results = cell(numel(ss), 1);
 
-optim_prefix = Model.getOptimPrefix(optimize, optim_grid_size);
-
-parfor i=1:numel(ss)
+for i=1:numel(ss)
     params_copy = params;
     % Set data-generating parameters.
     params_copy.sensory_info = ss(i);
@@ -33,29 +42,25 @@ parfor i=1:numel(ss)
     % TODO - smarter setting of seed?
     params_copy.seed = randi(1000000000);
     
-    % Run the model
-    results_uid = Model.getModelStringID(params_copy);
     if isempty(optimize)
+        % Run the model on the given params.
+        results_uid = Model.getModelStringID(params_copy);
         results = LoadOrRun(@Model.runVectorized, {params_copy}, ...
             fullfile(params.save_dir, results_uid));
     else
-        % Find optimal param settings.
-        [optim_params, ~] = LoadOrRun(@Model.optimizeParams, ...
-            {params_copy, optimize, optim_grid_size}, ...
-            fullfile(params.save_dir, [optim_prefix '_' results_uid]));
-        % Record optimal value of each optimized parameter.
-        optim_results{i} = cellfun(@(v) optim_params.(v), optimize);
-        % Get model results at the optimal param settings.
-        best_results_uid = Model.getModelStringID(optim_params);
-        results = LoadOrRun(@Model.runVectorized, {optim_params}, ...
-            fullfile(params.save_dir, best_results_uid));
+        % Run the model using the best params at this value of category and sensory info.
+        for iVar=1:length(optimize)
+            params_copy.(optimize{iVar}) = optim_params(i).(optimize{iVar});
+        end
+        results_uid = Model.getModelStringID(params_copy);
+        results = LoadOrRun(@Model.runVectorized, {params_copy}, ...
+            fullfile(params.save_dir, results_uid), '-verbose');
     end
-    correct(i) = mean(results.choices == +1);
-end
-
-% Un-flatten optim_results
-if ~isempty(optim_results)
-    optim_results = reshape(vertcat(optim_results{:}), [size(ss) length(optimize)]);
+    
+    [~, correct_categories] = Model.genDataWithParams(results.params);
+    
+    correct(i) = mean(results.choices == correct_categories);
+    if mod(i,10)==1, disp(i); end
 end
 
 % Plot percent correct
@@ -79,9 +84,13 @@ figname = ['CSSpace_' Model.getModelStringID(params, true) '.fig'];
 saveas(gcf, fullfile(savedir, figname));
 
 % Plot value of optimized parameters.
-for i=1:length(optimize)
-    figure();
-    imagesc(optim_results); axis image; colorbar;
+for i=length(optimize):-1:1
+    opt_fig(i) = figure();
+    
+    % Unravel optimal param values
+    opt_param_values = reshape([optim_params.(optimize{i})]', size(ss));
+    
+    imagesc(opt_param_values); axis image; colorbar; colormap cool;
     category_tick_indices = round(linspace(1, length(category_infos), min(length(category_infos), 5)));
     sensory_tick_indices = round(linspace(1, length(sensory_infos), min(length(sensory_infos), 5)));
     set(gca, 'YTick', category_tick_indices);

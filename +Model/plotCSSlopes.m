@@ -1,8 +1,21 @@
-function [slopes, slopeErrors, smoothSlopes, corrects, fig, cmap] = plotCSSlopes(category_infos, sensory_infos, params, rb_range, contour_pc, contour_through_sc)
+function [slopes, slopeErrors, smoothSlopes, corrects, fig, cmap] = plotCSSlopes(category_infos, sensory_infos, params, rb_range, contour_pc, contour_through_sc, optim, optim_grid_size)
 
 memodir = fullfile('+Model', 'saved results');
 savedir = fullfile('+Model', 'figures');
 if ~exist(savedir, 'dir'), mkdir(savedir); end
+
+if exist('optim', 'var') && ~isempty(optim)
+    optim_prefix = Model.getOptimPrefix(optim, optim_grid_size);
+    results_uid = Model.getModelStringID(params, true);
+    optim_results_uid = ['optim_CS_' optim_prefix '_' results_uid];
+    [optim_params, ~] = LoadOrRun(@Model.optimizeParamsOverCS, ...
+        {category_infos, sensory_infos, params, optim, optim_grid_size}, ...
+        fullfile(params.save_dir, optim_results_uid));
+else
+    optim = {};
+    optim_params = [];
+    optim_prefix = '';
+end
 
 [ss, cc] = meshgrid(sensory_infos, category_infos);
 
@@ -11,7 +24,7 @@ corrects = nan(size(ss));
 slopes = nan(size(ss));
 slopeErrors = nan(size(ss));
 
-parfor i=1:numel(ss)
+for i=1:numel(ss)
     params_copy = params;
     % Set data-generating parameters.
     params_copy.sensory_info = ss(i);
@@ -21,21 +34,30 @@ parfor i=1:numel(ss)
     params_copy.var_s = Model.getEvidenceVariance(ss(i));
     params_copy.p_match = cc(i);
     
+    % Construct UIDs for saving/loading with disk
+    results_uid = Model.getModelStringID(params_copy);
+    expfit_uid = ['PK-expfit-' optim_prefix '_' results_uid];
+
+    % Set optimizable parameters to their optimal value
+    if ~isempty(optim)
+        for iVar=1:length(optim)
+            params_copy.(optim{iVar}) = optim_params(i).(optim{iVar});
+        end
+    end
+    
     % TODO - smarter setting of seed?
     params_copy.seed = randi(1000000000);
     
     % Run the model if needed
-    results_uid = Model.getModelStringID(params_copy);
-    expfit_uid = ['PK-expfit-' results_uid];
-    
-    [expfit, expErrors, results] = LoadOrRun(@runAndGetFit, {params_copy}, ...
+    [expFit, expErrors, results, correct_categories] = LoadOrRun(@runAndGetFit, {params_copy}, ...
         fullfile(memodir, expfit_uid));
     
-    corrects(i) = mean(results.choices == +1);
-    slopes(i) = expfit(2);
+    corrects(i) = mean(results.choices == correct_categories);
+    slopes(i) = expFit(2);
     slopeErrors(i) = expErrors(2);
 end
 
+slopeErrors(isnan(slopeErrors)) = inf;
 smoothSlopes = smoothn(slopes, 1./slopeErrors.^2);
 
 colors = arrayfun(@(b) Model.betacolor(b, rb_range(1), rb_range(2)), linspace(rb_range(1), rb_range(2)), ...
@@ -56,7 +78,7 @@ fig = figure(); hold on;
 % colormap(cmap);
 
 % Slopes image
-imagesc(smoothn(slopes, 1./slopeErrors), rb_range);
+imagesc(smoothSlopes, rb_range);
 axis image;
 set(gca, 'YDir', 'normal');
 colormap(cmap);
@@ -65,7 +87,7 @@ colorbar;
 if exist('contour_pc', 'var')
     hold on;
     [ii, jj] = meshgrid(1:length(sensory_infos), 1:length(category_infos));
-    contour(ii, jj, corrects, [0 contour_pc], 'w', 'LineWidth', 2);
+    contour(ii, jj, smoothn(corrects), [0 contour_pc], 'w', 'LineWidth', 2);
 
     if exist('contour_through_sc', 'var')
         slopeVals = arrayfun(@(i) interp2(ss, cc, smoothSlopes, contour_through_sc(i,1), contour_through_sc(i,2)), ...
@@ -94,18 +116,9 @@ figname = ['CSSlopes_' Model.getModelStringID(params, true) '.fig'];
 saveas(fig, fullfile(savedir, figname));
 end
 
-function [data, choices] = flipTrials(data, choices)
-flip_indexes = rand(length(choices), 1) < 0.5;
-data(flip_indexes, :) = -data(flip_indexes, :);
-choices = choices == +1;
-choices(flip_indexes) = ~choices(flip_indexes);
-end
-
-function [expfit, errors, runResults] = runAndGetFit(params)
+function [expfit, experrors, runResults, correct_categories] = runAndGetFit(params)
 uid = Model.getModelStringID(params);
 runResults = LoadOrRun(@Model.runVectorized, {params}, fullfile(params.save_dir, uid));
-data = Model.genDataWithParams(runResults.params);
-[data, choices] = flipTrials(data, runResults.choices);
-[w, ~, w_err] = CustomRegression.PsychophysicalKernel(data, choices, 0, 0, 0);
-[expfit, errors] = CustomRegression.expFit(w(1:end-1), w_err(1:end-1));
+[data, correct_categories] = Model.genDataWithParams(runResults.params);
+[expfit, ~, experrors] = CustomRegression.ExponentialPK(data, runResults.choices == +1, 1);
 end
