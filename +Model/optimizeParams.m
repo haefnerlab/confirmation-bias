@@ -78,11 +78,8 @@ results_uid = Model.getModelStringID(params);
 results = LoadOrRun(@Model.runVectorized, {params}, fullfile(params.save_dir, results_uid));
 
 % Rather than compute % correct (which is noisy), compute % agreement with ideal observer (which is
-% more rubust at low information levels). Note use of results.params rather than params in case we
-% 'load'ed results instead of recomputing from scratch (seed would be different!!)
-params.model = 'ideal';
-ideal_results = Model.runVectorized(results.params);
-correct = mean(results.choices == ideal_results.choices);
+% more rubust at low information levels).
+correct = mean(results.choices == results.ideal_choices);
 end
 
 function lb = lower_bound(variable)

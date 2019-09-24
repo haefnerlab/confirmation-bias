@@ -62,9 +62,18 @@ lapse = params.lapse;
 results = struct(...
     'params', params, ...
     'choices', zeros(trials, 1), ...
+    'ideal_choices', zeros(trials, 1), ...
     'lpo', zeros(trials, frames + 1));
 
 results.lpo(:, 1) = log(prior_C) - log(1 - prior_C);
+
+%% Compute ideal observer results (fast)
+
+logLikeOdds = Model.logLikelihoodOdds(params, data);
+results.lpo(:, 2:end) = results.lpo(:, 1) + cumsum(logLikeOdds, 2);
+results.ideal_choices = sign(results.lpo(:, end));
+
+%% Handle different models
 
 switch lower(params.model)
     case 'is'
