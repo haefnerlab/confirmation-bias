@@ -30,9 +30,8 @@ else
 end
 
 data = Model.genDataWithParams(results.params);
-[data, choices] = flipTrials(data, results.choices);
 regressors = Model.logLikelihoodOdds(params, data);
-[weights, ~, errors] = CustomRegression.PsychophysicalKernel(regressors, choices, ...
+[weights, ~, errors] = CustomRegression.PsychophysicalKernel(regressors, results.choices==+1, ...
     pk_hprs(1), pk_hprs(2), pk_hprs(3));
 
 pk_id = ['PK_' results_uid];
@@ -45,11 +44,4 @@ xlabel('time');
 ylabel('weight');
 saveas(fig, savefile);
 
-end
-
-function [data, choices] = flipTrials(data, choices)
-flip_indexes = rand(length(choices), 1) < 0.5;
-data(flip_indexes, :) = -data(flip_indexes, :);
-choices = choices == +1;
-choices(flip_indexes) = ~choices(flip_indexes);
 end

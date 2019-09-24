@@ -1,8 +1,5 @@
 function log_likelihood = pkModelLogLikelihood(params, pk_mean, pk_var)
 
-% TODO - smarter setting of seed?
-params.seed = randi(1000000000);
-
 % Clear seed for random simulation each time
 params.seed = [];
 params.var_s = params.var_s_per_sample * params.samples;

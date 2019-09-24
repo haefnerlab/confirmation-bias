@@ -85,20 +85,14 @@ end
 % TODO - smarter resetting of seed
 params.seed = randi(1000000000);
 
-% Generate data with *both* +1 and -1 categories to avoid degenerate "optimization" solutions where
-% all responses are +1
-data = Model.genDataWithParams(params, true);
+results_uid = Model.getModelStringID(params);
+results = LoadOrRun(@Model.runVectorized, {params}, fullfile(params.save_dir, results_uid));
 
-% Run model on data. Note that there are problems if we wrap this call in LoadOrRun, since then the
-% 'data' seen by the ideal observer would no longer match the data seen by the model!
-results = Model.runVectorized(params, data);
-
-% Run ideal observer on the same data
+% Rather than compute % correct (which is noisy), compute % agreement with ideal observer (which is
+% more rubust at low information levels). Note use of results.params rather than params in case we
+% 'load'ed results instead of recomputing from scratch (seed would be different!!)
 params.model = 'ideal';
-ideal_results = Model.runVectorized(params, data);
-
-% Rather than optimize 'percent correct,' we optimize 'percent in agreement with the ideal observer'
-% which is more robust.
+ideal_results = Model.runVectorized(results.params);
 correct = mean(results.choices == ideal_results.choices);
 end
 
