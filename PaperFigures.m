@@ -41,7 +41,7 @@ end
 
 % Nothing to do - conceptual figures only created in vector graphics editor
 
-%% Figure 2 - data analysis
+%% Figure 2,3 - data analysis
 
 sem = @(vals) std(vals)/sqrt(N);
 for iSubject=length(bothSubjects):-1:1
@@ -88,6 +88,7 @@ end
 plot(noises, avg_pm_curve, 'Color', DARK_RED, 'LineWidth', 2);
 xlabel('noise level (\kappa)');
 ylabel('percent chose left');
+xlim([-inf inf]);
 
 % Ratio condition
 subplot(1,2,2);
@@ -106,6 +107,7 @@ end
 plot(ratios, avg_pm_curve, 'Color', DARK_BLUE, 'LineWidth', 2);
 xlabel('frame ratio left:right');
 ylabel('percent chose left');
+xlim([-inf inf]);
 
 %% Supplemental PK cross-validation figure
 
@@ -114,7 +116,7 @@ pkLLNoise = zeros(4, N, nFold);
 pkLLRatio = zeros(4, N, nFold);
 for iSubject=N:-1:1
     % Noise experiment PK cross-validation
-    SubjectData = LoadAllSubjectData(bothSubjects{iSubject}, NOISE_PHASE);
+    SubjectData = LoadAllSubjectData(bothSubjects{iSubject}, NOISE_PHASE, DATADIR);
     [floor, thresh] = GaborAnalysis.getThresholdWindow(bothSubjects{iSubject}, NOISE_PHASE, 0.5, THRESHOLD);
     SubjectDataThresh = GaborThresholdTrials(SubjectData, NOISE_PHASE, thresh, floor);
     sigs = SubjectDataThresh.ideal_frame_signals;
@@ -124,7 +126,7 @@ for iSubject=N:-1:1
         LoadOrRun(@CustomRegression.xValidatePKModels, {sigs, resps, nFold}, fullfile(MEMODIR, memo_name));
     
     % Ratio experiment PK cross-validation
-    SubjectData = LoadAllSubjectData(bothSubjects{iSubject}, RATIO_PHASE);
+    SubjectData = LoadAllSubjectData(bothSubjects{iSubject}, RATIO_PHASE, DATADIR);
     SubjectDataThresh = GaborThresholdTrials(SubjectData, RATIO_PHASE, .6, .4);
     sigs = SubjectDataThresh.ideal_frame_signals;
     resps = SubjectDataThresh.choice == +1;
@@ -220,9 +222,9 @@ title('Ratio Condition');
 set(gca, 'XTick', 1:N+1, 'XTickLabel', [shortnames, {'Combined'}]);
 xtickangle(45);
 
-%% Figure 3 - model results
+%% Figure 4 - model results
 
-fig3 = figure;
+fig4 = figure;
 
 % Range of values for category and sensory information
 ps = 0.51:0.02:0.99;
@@ -231,19 +233,19 @@ ps = 0.51:0.02:0.99;
 params = Model.newModelParams('model', 'ideal', 'trials', 10000);
 disp('Loading/Running ideal observer');
 [~, ideal_fig] = Model.plotCategorySensorySpace(ps, ps, params);
-figureToPanel(ideal_fig, fig3, 2, 4, 5, parula);
+figureToPanel(ideal_fig, fig4, 2, 4, 5, parula);
 
 % Sampling model with gamma = 0.1
-params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', 0.1, 'noise', 0, 'trials', 10000, 'updates', 5, 'samples', 5);
+params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', 0.1, 'noise', 0, 'trials', 10000, 'updates', 5, 'samples', 1);
 beta_range = [-.32 .1]; % min and max beta expected (to get maximum use of colorbar range)
 disp('Loading/Running sampling model, getting threshold points for PKs');
 sens_cat_pts = Model.getThresholdPoints(ps, params, 0.7, 5);
 [cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, sens_cat_pts);
-figureToPanel(cs_fig, fig3, 2, 4, 2, parula);
-figureToPanel(pk_fig, fig3, 2, 4, 3);
+figureToPanel(cs_fig, fig4, 2, 4, 2, parula);
+figureToPanel(pk_fig, fig4, 2, 4, 3);
 disp('Loading/Running sampling model, gettings slopes over CS-Space');
 [~,~,~,~,fig,cmap] = Model.plotCSSlopes(ps, ps, params, beta_range, THRESHOLD, sens_cat_pts);
-figureToPanel(fig, fig3, 2, 4, 4, cmap);
+figureToPanel(fig, fig4, 2, 4, 4, cmap);
 
 % Variational model with gamma = 0.1
 params = Model.newModelParams('model', 'vb-czx', 'var_x', 0.1, 'gamma', 0.1, 'noise', 0, 'trials', 10000, 'updates', 5, 'step_size', 0.05);
@@ -251,50 +253,59 @@ beta_range = [-.32 .1]; % min and max beta expected (to get maximum use of color
 disp('Loading/Running variational model, getting threshold points for PKs');
 sens_cat_pts = Model.getThresholdPoints(ps, params, 0.7, 5);
 [cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, sens_cat_pts);
-figureToPanel(cs_fig, fig3, 2, 4, 6, parula);
-figureToPanel(pk_fig, fig3, 2, 4, 7);
+figureToPanel(cs_fig, fig4, 2, 4, 6, parula);
+figureToPanel(pk_fig, fig4, 2, 4, 7);
 disp('Loading/Running variational model, gettings slopes over CS-Space');
 [~,~,~,~,fig,cmap] = Model.plotCSSlopes(ps, ps, params, beta_range, THRESHOLD, sens_cat_pts);
-figureToPanel(fig, fig3, 2, 4, 8, cmap);
+figureToPanel(fig, fig4, 2, 4, 8, cmap);
 
-%% Figure 4 - model optimality figure varying 'gamma' parameter
+%% Figure 5 - model optimality figure varying 'gamma' parameter
 
-fig4 = figure;
+fig5 = figure;
 
 % Range of values for category and sensory information
 ps = 0.51:0.02:0.99;
 
-% Sampling model
+% >> Uncomment for sampling model <<
+lo_gamma = 0.1;
+hi_gamma = 0.5;
+params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', hi_gamma, 'noise', 0, 'trials', 10000, 'updates', 5, 'samples', 5);
+
+% >> Uncomment for variational model <<
+% lo_gamma = 0.1;
+% hi_gamma = 0.5;
+% params = Model.newModelParams('model', 'vb-czx', 'var_x', 0.1, 'gamma', hi_gamma, 'noise', 0, 'trials', 10000, 'updates', 5, 'step_size', 0.05);
+
 % First panel: percent correct with high gamma (low gamma was done in Fig 3)
-params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', 0.9, 'noise', 0, 'trials', 10000, 'updates', 5, 'samples', 1);
 [correct_hi, cs_fig] = Model.plotCategorySensorySpace(ps, ps, params);
-figureToPanel(cs_fig, fig4, 2, 3, 1, parula);
-title('Performance (\gamma=0.9)');
+figureToPanel(cs_fig, fig5, 2, 3, 1, parula);
+title(sprintf('Performance (\\gamma=%.1f)', hi_gamma));
 
 % Second panel: difference in % correct
-params_lo = setfield(params, 'gamma', 0.1);
+params_lo = setfield(params, 'gamma', lo_gamma);
 [~, diff_fig] = Model.plotDeltaPerformance(ps, ps, params, params_lo);
-figureToPanel(diff_fig, fig4, 2, 3, 2, parula);
-title('\DeltaPerformance (\gamma=0.9 vs. \gamma=0.1)');
+figureToPanel(diff_fig, fig5, 2, 3, 2, parula);
+title(sprintf('\\DeltaPerformance (\\gamma=%.1f vs. \\gamma=%.1f)', hi_gamma, lo_gamma));
 
 % Third panel: optimal gamma across C-S space
 [~, opt_correct_fig, opt_gamma_fig] = Model.plotCategorySensorySpace(ps, ps, params, {'gamma'}, 21);
-figureToPanel(opt_gamma_fig, fig4, 2, 3, 3, cool);
-title('Performance-optimal \gamma* value');
+figureToPanel(opt_gamma_fig, fig5, 2, 3, 3, cool);
+title('Optimized value of \gamma');
 
 % Fourth panel: percent correct with optimal gamma
-figureToPanel(opt_correct_fig, fig4, 2, 3, 4, parula);
+figureToPanel(opt_correct_fig, fig5, 2, 3, 4, parula);
+title('Performance with optimal \gamma*');
 
 % Fifth panel: diff in % correct between optimized model and ideal observer
 params_ideal = setfield(params, 'model', 'ideal');
 [~, diff_fig] = Model.plotDeltaPerformance(ps, ps, params_ideal, params, {}, 0, {'gamma'}, 21);
-figureToPanel(diff_fig, fig4, 2, 3, 5, parula);
+figureToPanel(diff_fig, fig5, 2, 3, 5, parula);
 title('\DeltaPerformance (ideal vs. \gamma*)');
 
 % Sixth panel: slopes with optimal gamma
 beta_range = [-.1 .1];
 [~,~,~,~,fig,cmap] = Model.plotCSSlopes(ps, ps, params, beta_range, THRESHOLD, [], {'gamma'}, 21);
-figureToPanel(fig, fig4, 2, 3, 6, cmap);
+figureToPanel(fig, fig5, 2, 3, 6, cmap);
 title('Temporal Weight Slope \beta with \gamma*');
 
 %% Supplemental figure model results (showing effect of gamma parameter)
