@@ -31,8 +31,8 @@ responses = 1.0 * responses(:);
         neg_log_bernoulli = -responses .* logits(:) + log(1 + exp(logits(:)));
         NLP = sum(neg_log_bernoulli);
         % Add mild priors to alpha and beta terms for stability
-        neg_log_prior_beta = 1/2*abb(2)^2/10;
-        neg_log_prior_alpha = abs(abb(1))/10;
+        neg_log_prior_beta = 1/2*abb(2)^2/100;
+        neg_log_prior_alpha = abs(abb(1))/100;
         NLP = NLP + neg_log_prior_alpha + neg_log_prior_beta;
         
         if nargout >= 2

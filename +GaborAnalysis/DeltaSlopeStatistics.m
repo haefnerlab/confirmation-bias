@@ -59,7 +59,7 @@ window_high = 0.7;
                 slopes = fits(:, 1);
             case 'exponential'
                 memo_name = ['Boot-ExpPK-ideal-' stair_var '-' subjectId '-' num2str(thresh) '-' num2str(floor) '.mat'];
-                [~, ~, ~, ~, fits] = LoadOrRun(@BootstrapExponentialWeightsGabor, {SubjectDataThresh, nboot, 0, true}, ...
+                [~, ~, ~, ~, ~, fits] = LoadOrRun(@BootstrapExponentialWeightsGabor, {SubjectDataThresh, nboot, 0, true}, ...
                     fullfile(memodir, memo_name));
                 slopes = fits(:, 2);
         end
@@ -86,9 +86,11 @@ all_slopes_diff = zeros(length(subjectIds), nboot);
 all_slopes_diff_medians = zeros(length(subjectIds), 1);
 for s_idx=1:length(subjectIds)
     %% Compute fits for subject
+    fprintf('Getting PK slope for %s, phase %d\n', subjectIds{s_idx}, phases(1));
     slopes1 = getSlopesForPhase(subjectIds{s_idx}, phases(1));
     slopes(s_idx, 1, :) = slopes1;
     
+    fprintf('Getting PK slope for %s, phase %d\n', subjectIds{s_idx}, phases(2));
     slopes2 = getSlopesForPhase(subjectIds{s_idx}, phases(2));
     slopes(s_idx, 2, :) = slopes2;
     
