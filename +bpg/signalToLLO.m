@@ -1,9 +1,12 @@
-function [llo, emp_sensory_info] = signalToLLO(signal, kappa, p_match, add_noise_sig)
+function [full_llo, sensory_llo, emp_sensory_info] = signalToLLO(signal, kappa, p_match, add_noise_sig)
 %SIGNALTOLLO take the output of bpg.getSignal and convert it to log-likelihood-odds using a
 %precomputed histogram of possible signal values per noise level. The second argument (kappa)
 %controls behavior: if kappa is empty, it is treated as 'unknown' and the signal histogram is
 %treated as a mixture of distributions (modeling 'uknown noise level'). If kappa is a scalar, only
-%the histogram for that signal level is used.
+%the histogram for that signal level is used. Finally, both 'kappa' and 'p_match' may be [M x 2]
+%vectors indicating discrete distributions of values, i.e. the subject's 'prior' over each unknown
+%value. For instance kappa = [0 .6; 0.04 .4] means kappa has a 60% (resp. 40%) chance of having a
+%value of 0 (resp. 0.04);
 %
 %Also estimates "empirical sensory info" as the likelihood ratio if p_match had been equal to 1
 %(i.e. with all uncertainty reduced to the sensory kind). The relevant quantity for the model is,
@@ -40,34 +43,65 @@ if exist('add_noise_sig', 'var')
     kappa_mu_sig(:,3) = sqrt(kappa_mu_sig(:,3).^2 + add_noise_sig^2);
 end
 
+%% Convert input arguments in whatever form into a prior over 'kappa' and 'p_match'
 if isempty(kappa)
-    % The underlying signal level is uknown. Assume a flat prior over kappas in the above table.
-    likelihood_positive_per_mode = normpdf(signal(:)', +kappa_mu_sig(:,2), kappa_mu_sig(:,3));
-    likelihood_negative_per_mode = normpdf(signal(:)', -kappa_mu_sig(:,2), kappa_mu_sig(:,3));
-    
-    likelihood_positive = p_match * mean(likelihood_positive_per_mode,1) + (1 - p_match) * mean(likelihood_negative_per_mode,1);
-    likelihood_negative = p_match * mean(likelihood_negative_per_mode,1) + (1 - p_match) * mean(likelihood_positive_per_mode,1);
-    
-    sensory_llo = log(mean(likelihood_positive_per_mode,1)) - log(mean(likelihood_negative_per_mode,1));
+    kappa_prior = [kappa_mu_sig(:,1), ones(size(kappa_mu_sig(:,1)))];
+elseif isscalar(kappa)
+    kappa_prior = [kappa 1];
 else
-    % For each given signal value, look up parameters of the gaussian fit for its corresponding signal
-    % level (kappa)
-    signal_mu = interp1(kappa_mu_sig(:,1), kappa_mu_sig(:,2), kappa);
-    signal_sig = interp1(kappa_mu_sig(:,1), kappa_mu_sig(:,3), kappa);
-
-    % For mixtures of Gaussians, log-likelihood odds are not a nice function of the log likelihood of
-    % the corresponding Gaussian components. There is no real shortcut besides computing the likelihood
-    % directly then taking the log.
-    likelihood_positive = p_match * normpdf(signal(:)', +signal_mu, signal_sig) + (1 - p_match) * normpdf(signal(:)', -signal_mu, signal_sig);
-    likelihood_negative = p_match * normpdf(signal(:)', -signal_mu, signal_sig) + (1 - p_match) * normpdf(signal(:)', +signal_mu, signal_sig);
-    
-    sensory_llo = log(normpdf(signal(:)', +signal_mu, signal_sig)) - log(normpdf(signal(:)', -signal_mu, signal_sig));
+    kappa_prior = kappa;
 end
 
-llo = log(likelihood_positive) - log(likelihood_negative);
+if isempty(p_match)
+    values = 0.5:0.1:1;
+    p_match_prior = [values(:) ones(size(values(:)))];
+elseif isscalar(p_match)
+    p_match_prior = [p_match 1];
+else
+    p_match_prior = p_match;
+end
+
+% Ensure normalization
+kappa_prior(:,2) = kappa_prior(:,2)/sum(kappa_prior(:,2));
+p_match_prior(:,2) = p_match_prior(:,2)/sum(p_match_prior(:,2));
+
+% Interpolate the above table to get mu and sigma parameters of signal distributions at points
+% specified in the prior over kappa
+prior_mu_per_kappa = interp1(kappa_mu_sig(:,1), kappa_mu_sig(:,2), kappa_prior(:,1));
+prior_sig_per_kappa = interp1(kappa_mu_sig(:,1), kappa_mu_sig(:,3), kappa_prior(:,1));
+
+K = size(kappa_prior, 1);
+P = size(p_match_prior, 1);
+S = numel(signal);
+
+%% Compute a likelihood term per-kappa and per-p_match (independent priors)
+
+% Each of these terms is [K x S] where K is number of 'kappa' values and 'S' is numel(signal)
+likelihood_positive_per_kappa = normpdf(signal(:)', +prior_mu_per_kappa, prior_sig_per_kappa);
+likelihood_negative_per_kappa = normpdf(signal(:)', -prior_mu_per_kappa, prior_sig_per_kappa);
+
+% Compute 'sensory_llo' as log likelihood odds with p_match = 1
+sensory_llo = log(likelihood_positive_per_kappa' * kappa_prior(:,2)) - ...
+    log(likelihood_negative_per_kappa' * kappa_prior(:,2));
 emp_sensory_info = 1 ./ (1 + exp(-abs(sensory_llo)));
 
-llo = reshape(llo, size(signal));
+% Expand to shape [P x K x S] by 'mixing' using p_match terms
+likelihood_positive = p_match_prior(:,1) .* reshape(likelihood_positive_per_kappa, [1 K S]) + ...
+    (1 - p_match_prior(:,1)) .* reshape(likelihood_negative_per_kappa, [1 K S]);
+likelihood_negative = p_match_prior(:,1) .* reshape(likelihood_negative_per_kappa, [1 K S]) + ...
+    (1 - p_match_prior(:,1)) .* reshape(likelihood_positive_per_kappa, [1 K S]);
+
+% Marginalize over 2 prior dimensions to get [S x 1] marginal likelihoods per category
+pr_k = reshape(kappa_prior(:,2), [1 K 1]);
+pr_p = reshape(p_match_prior(:,2), [P 1 1]);
+marginal_likelihood_positive = squeeze(sum(sum(likelihood_positive .* pr_k .* pr_p, 1), 2));
+marginal_likelihood_negative = squeeze(sum(sum(likelihood_negative .* pr_k .* pr_p, 1), 2));
+
+full_llo = log(marginal_likelihood_positive) - log(marginal_likelihood_negative);
+
+% Reshape output to match shape of 'signal'
+full_llo = reshape(full_llo, size(signal));
+sensory_llo = reshape(sensory_llo, size(signal));
 emp_sensory_info = reshape(emp_sensory_info, size(signal));
 
 end

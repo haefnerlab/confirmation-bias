@@ -1,18 +1,12 @@
-function s = lloToEvidence(params, llos)
+function s = lloToEvidence(var_s, sensory_llos)
+% Convert LLOs to model evidence scalars by solving the relation
+%
+%     log(normpdf(s,mu_1,sig_1)/normpdf(s,mu_2,sig_2))=llo
+%
+% In general, this would be a quadratic in s. Here, we know sig_1=sig_2, and mu_1=-mu_2=+1, which
+% greatly simplifies things. The log likelihood odds, or 'llo' must be 'sensory only', i.e. each
+% distribution is a single gaussian rather than a mixture of them.
 
-gen_sig_s = sqrt(Model.getEvidenceVariance(params.sensory_info));
-p_match = params.category_info;
-
-num_grid = 200;
-sgrid = sort([linspace(-1-5*gen_sig_s, -1+5*gen_sig_s, num_grid) linspace(+1-5*gen_sig_s, +1+5*gen_sig_s, num_grid)])';
-
-mog_pos = mog.create([-1 +1], [gen_sig_s gen_sig_s], [1-p_match p_match]);
-mog_neg = mog.create([-1 +1], [gen_sig_s gen_sig_s], [p_match 1-p_match]);
-
-llogrid = mog.logpdf(sgrid, mog_pos) - mog.logpdf(sgrid, mog_neg);
-
-s = interp1(llogrid, sgrid, llos);
-
-s = reshape(s, size(llos));
+s = sensory_llos * var_s / 4;
 
 end
