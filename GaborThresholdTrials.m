@@ -12,32 +12,33 @@ test_trials = Data.(stair_param) <= threshold;
 if exist('floor', 'var')
     test_trials = test_trials & Data.(stair_param) >= floor;
 end
-elements = sum(test_trials);
 
 %% Subselect trial data.
 
-Data.current_trial = elements;
+Data.current_trial = sum(test_trials);
+Data = maskFieldsDetectDimension(Data, test_trials);
 
-Data.contrast = Data.contrast(test_trials);
-Data.ratio = Data.ratio(test_trials);
-Data.noise = Data.noise(test_trials);
-Data.step_size = Data.step_size(test_trials);
-
-Data.iid = Data.iid(test_trials);
-Data.seed = Data.seed(test_trials);
-if isfield(Data, 'checksum'), Data.checksum = Data.checksum(test_trials); end
-Data.streak = Data.streak(test_trials);
-Data.reversal_counter = Data.reversal_counter(test_trials);
-Data.correct_answer = Data.correct_answer(test_trials);
-Data.ideal_answer = Data.ideal_answer(test_trials);
-Data.reaction_time = Data.reaction_time(test_trials);
-Data.choice = Data.choice(test_trials);
-Data.accuracy = Data.accuracy(test_trials);
-Data.frame_categories = Data.frame_categories(test_trials, :);
-Data.ideal_frame_signals = Data.ideal_frame_signals(test_trials, :);
-
-if isempty(Data.model_observer)
-    Data.eye_tracker_points = Data.eye_tracker_points(test_trials);
 end
 
+function str = maskFieldsDetectDimension(str, mask)
+% Apply logical mask to fields in the given struct, automatically detecting which fields and which
+% dimension of those fields need processing based on their length.
+nTrials = length(mask);
+fields = fieldnames(str);
+for iField=1:length(fields)
+    needsMask = false;
+    val = str.(fields{iField});
+    dims = ndims(val);
+    ref = struct('type', '()', 'subs', {repmat({':'}, 1, dims)});
+    for d=1:dims
+        if size(val, d) == nTrials
+            ref.subs{d} = mask;
+            needsMask = true;
+            break
+        end
+    end
+    if needsMask
+        str.(fields{iField}) = subsref(val, ref);
+    end
+end
 end
