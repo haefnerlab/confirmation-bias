@@ -10,8 +10,8 @@ unqStim = unique(allStimParameters, 'rows');
 
 for iStim=size(unqStim,1):-1:1
     trials = all(allStimParameters == unqStim(iStim, :), 2);
-    [LLOs, empirical_sensory_info] = bpg.signalToLLO(SubjectData.ideal_frame_signals(trials, :), [], ...
-        unqStim(iStim, 2), sensory_noise);
+    [LLOs, sensory_LLOs, empirical_sensory_info] = bpg.signalToLLO(...
+        SubjectData.ideal_frame_signals(trials, :), [], unqStim(iStim, 2), sensory_noise);
     
     category_info = unqStim(iStim, 2);
     sensory_info = mean(empirical_sensory_info(:));
@@ -28,8 +28,10 @@ for iStim=size(unqStim,1):-1:1
     this_params.data_ratio    = unqStim(iStim, 2);
     
     param_set(iStim) = this_params;
-    % Save model inputs and subject choices -- necessary and sufficient info for fitting
-    stim_set{iStim} = Model.lloToEvidence(this_params, LLOs);
+    % Save model inputs and subject choices -- necessary and sufficient info for fitting. To do so,
+    % match LLO from 'sensory' distribution only, since p_match<1 introduces degeneracies in the
+    % transformation.
+    stim_set{iStim} = Model.lloToEvidence(this_params.var_s, sensory_LLOs);
     choice_set{iStim} = sign(SubjectData.choice(trials) - 0.5);
     
     % DEBUGGING
@@ -39,7 +41,7 @@ for iStim=size(unqStim,1):-1:1
     plot(sigs(:), stim_set{iStim}(:), '.', 'Color', colors(iStim, :), 'DisplayName', mat2str(unqStim(iStim,:)));
     
     subplot(1,4,2); hold on;
-    plot(sigs(:), LLOs(:), '.', 'Color', colors(iStim, :), 'DisplayName', mat2str(unqStim(iStim,:)));
+    plot(sigs(:), sensory_LLOs(:), '.', 'Color', colors(iStim, :), 'DisplayName', mat2str(unqStim(iStim,:)));
     
     subplot(1,4,3); hold on;
     plot(sigs(:), empirical_sensory_info(:), '.', 'Color', colors(iStim, :), 'DisplayName', mat2str(unqStim(iStim,:)));
@@ -51,10 +53,12 @@ end
 
 subplot(1,4,1);
 xlabel('getSignal()'); ylabel('Model stim');
+set(gca, 'XAxisLocation', 'origin', 'YAxisLocation', 'origin');
 legend();
 
 subplot(1,4,2);
 xlabel('getSignal()'); ylabel('LLO');
+set(gca, 'XAxisLocation', 'origin', 'YAxisLocation', 'origin');
 
 subplot(1,4,3);
 xlabel('getSignal()'); ylabel('sensory info');
