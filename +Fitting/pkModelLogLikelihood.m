@@ -1,5 +1,7 @@
 function log_likelihood = pkModelLogLikelihood(params, pk_mean, pk_var)
 
+params = Fitting.sanitize(params);
+
 % Clear seed for random simulation each time
 params.seed = [];
 params.var_s = params.var_s_per_sample * params.samples;
