@@ -379,6 +379,85 @@ figureToPanel(pk_fig, figModelSupp, 6, 3, 17);
 [~,~,~,~,fig,cmap] = Model.plotCSSlopes(ps, ps, params, beta_range, THRESHOLD, sens_cat_pts);
 figureToPanel(fig, figModelSupp, 6, 3, 18, cmap);
 
+%% Model fits
+
+init_model_params = Model.newModelParams('model', 'is', ...
+    'gamma', 0.1, ...
+    'samples', 5, ...
+    'updates', 2, ...
+    'lapse', 0.01);
+
+nInner = 10;
+
+fields = {'prior_C', 'gamma', 'samples', 'lapse', 'sensor_noise'};
+LB = [0 0 1 0 0];
+UB = [1 1 100 1 5];
+PLB = LB;
+PUB = UB;
+
+x0 = [.5 .1 5 .01 1];
+
+vbmc_options = vbmc('defaults');
+vbmc_options.UncertaintyHandling = 'yes';
+
+% for iSubject=1:length(noiseSubjects)
+%     memo_name = ['VBMC-noise-' noiseSubjects{iSubject} '.mat'];
+%     
+%     SubjectData = LoadAllSubjectData(noiseSubjects{iSubject}, NOISE_PHASE, DATADIR);
+%     ThresholdData = GaborThresholdTrials(SubjectData, NOISE_PHASE, 0.17, 0);
+%     likefn_args = {fields, init_model_params, ThresholdData, nInner};
+%     [VP, ~, ~, extflag] = LoadOrRun(@vbmc, ...
+%         [{@Fitting.subjectDataLogLikelihood, x0, LB, UB, PLB, PUB, vbmc_options} likefn_args], ...
+%         fullfile(MEMODIR, memo_name));
+%     
+%     savedir = fullfile('demo-fit', noiseSubjects{iSubject});
+%     if ~exist(savedir, 'dir'), mkdir(savedir); end
+%     
+%     Xsamp = vbmc_rnd(VP, 1e5);
+%     [fig, ax] = cornerplot(Xsamp, fields, [], [LB; UB]);
+%     statuses = {'not converged', 'converged'};
+%     suptitle(sprintf('%s :: %s', noiseSubjects{iSubject}, statuses{extflag+1}));
+%     saveas(fig, fullfile(savedir, 'cornerplot-noise.fig'));
+%     close(fig);
+%     
+%     fig = visModelFitPsychometric(ThresholdData, NOISE_PHASE, VP, fields, init_model_params, nInner, 10);
+%     saveas(fig, fullfile(savedir, 'psychometric-noise-subthreshold.fig'));
+%     close(fig);
+%     
+%     fig = visModelFitPsychometric(SubjectData, NOISE_PHASE, VP, fields, init_model_params, nInner, 10);
+%     saveas(fig, fullfile(savedir, 'psychometric-noise.fig'));
+%     close(fig);
+% end
+
+for iSubject=1:length(ratioSubjects)
+    memo_name = ['VBMC-ratio-' ratioSubjects{iSubject} '.mat'];
+    
+    SubjectData = LoadAllSubjectData(ratioSubjects{iSubject}, RATIO_PHASE, DATADIR);
+    ThresholdData = GaborThresholdTrials(SubjectData, RATIO_PHASE, 0.6, 0.4);
+    likefn_args = {fields, init_model_params, ThresholdData, nInner};
+    [VP, ~, ~, extflag] = LoadOrRun(@vbmc, ...
+        [{@Fitting.subjectDataLogLikelihood, x0, LB, UB, PLB, PUB, vbmc_options} likefn_args], ...
+        fullfile(MEMODIR, memo_name));
+    
+    savedir = fullfile('demo-fit', ratioSubjects{iSubject});
+    if ~exist(savedir, 'dir'), mkdir(savedir); end
+    
+    Xsamp = vbmc_rnd(VP, 1e5);
+    [fig, ax] = cornerplot(Xsamp, fields, [], [LB; UB]);
+    statuses = {'not converged', 'converged'};
+    suptitle(sprintf('%s :: %s', ratioSubjects{iSubject}, statuses{extflag+1}));
+    saveas(fig, fullfile(savedir, 'cornerplot-ratio.fig'));
+    close(fig);
+    
+    fig = visModelFitPsychometric(ThresholdData, RATIO_PHASE, VP, fields, init_model_params, nInner, 10);
+    saveas(fig, fullfile(savedir, 'psychometric-ratio-subthreshold.fig'));
+    close(fig);
+    
+    fig = visModelFitPsychometric(SubjectData, RATIO_PHASE, VP, fields, init_model_params, nInner, 10);
+    saveas(fig, fullfile(savedir, 'psychometric-ratio.fig'));
+    close(fig);
+end
+
 %% Helper function for figure layout
 
 function ax_copy = figureToPanel(figSource, figDest, subM, subN, subI, cmap)
