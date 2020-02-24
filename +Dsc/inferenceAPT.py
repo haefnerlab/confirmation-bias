@@ -9,13 +9,18 @@ Created on Sun Feb 23 15:26:46 2020
 #%% 
 # define simulator
 import matlab.engine
+from delfi.simulator.BaseSimulator import BaseSimulator
+import scipy.io
+import os
+
 
 def ConfirmationBiasSimulator(params,signals):
     # run matlab code run.vectorized and read results
-    eng = matlab.engine.start_matlab()
+    
     sim_results = eng.Model.runVectorized(params, signals)
     return sim_results
 # define a simulator class linking to the real simulator
+
 def ConfirmationBias(BaseSimulator):
     def __init__(self,signal,seed = None):
         dim_param = 5
@@ -46,7 +51,16 @@ import numpy as np
 import delfi.inference as infer
 
 if __name__ == "__main__":
+
+    # load the MATLAB engine
+    eng = matlab.engine.start_matlab()
+
+    datafolder = '../dscData'
+    filename = 'syntheticData_priorC5.mat'
+    mat = scipy.io.loadmat(os.path.join(datafolder, filename))
     # load data
+
+
     
     # define prior over model parameters
     seed_p = 2
