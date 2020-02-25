@@ -16,8 +16,8 @@ important_fields = {'prior_C', 'gamma', 'lapse', 'samples', 'p_match', 'var_s'};
 prior_C_list = linspace(0, 1,10);
 for i = 1:numel(prior_C_list)
     params = Model.newModelParams('model', 'is', ...
-        'prior_C', prior_C_list(i));
+        'prior_C', prior_C_list(i), 'trials', 800);
     [signals, categories,seed] = Model.genDataWithParams(params);
     sim_results = Model.runVectorized(params, signals);
-    save(['../dscData/syntheticData_priorC',num2str(i)],'signals','sim_results');
+    save(['../dscData/syntheticData_priorC',num2str(i)],'signals','sim_results','params');
 end
