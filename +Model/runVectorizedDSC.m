@@ -39,7 +39,7 @@ function results = runVectorizedDSC(params, data)
 % - params.lapse = (inference) probability of "lapse" (random choice on a trial regardless of stim)
 % - params.step_size = (inference) fraction of full update to log odds C to apply in each iteration.
 
-params = struct(params); % conver python dict to matlab structure
+params = struct(params); % convert python dict to matlab structure
 
 if ~exist('data', 'var')
     if ~isfield(params, 'seed') || isempty(params.seed)
