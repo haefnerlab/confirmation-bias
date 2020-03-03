@@ -12,33 +12,51 @@ load([dataFolder,'genDataInfo', '.mat'], 'genDataInfo');
 
 fieldsToInfer = {'prior_C', 'gamma', 'samples', 'lapse'};
 
-for i0 = 1:numel(genDataInfo.N_trials_list)
-for i1 = 1:numel(genDataInfo.prior_C_list)
-    for i2 = 1:numel(genDataInfo.gamma_list)
-        for i3 = 1:numel(genDataInfo.lapse_list)
-            for i4 = 1:numel(genDataInfo.samples_list)
-                for i5 = 1:numel(genDataInfo.p_match_list)
-                    for i6 = 1:numel(genDataInfo.var_s_list)
-                        [VP, extflag, dataName] = runVBMCInferenceFunc(dataFolder, fieldsToInfer, i0, i1, i2, i3, i4, i5, i6);
-                        save([resultsFolder,dataName],'VP','extflag','fieldsToInfer')
-                    end
-                end
-            end
-        end
+% for i0 = 1:numel(genDataInfo.N_trials_list)
+% for i1 = 1:numel(genDataInfo.prior_C_list)
+%     for i2 = 1:numel(genDataInfo.gamma_list)
+%         for i3 = 1:numel(genDataInfo.lapse_list)
+%             for i4 = 1:numel(genDataInfo.samples_list)
+%                 for i5 = 1:numel(genDataInfo.p_match_list)
+%                     for i6 = 1:numel(genDataInfo.var_s_list)
+%                         [VP, extflag, dataName] = runVBMCInferenceFunc(dataFolder, fieldsToInfer, i0, i1, i2, i3, i4, i5, i6);
+%                         parsave([resultsFolder,dataName],VP,extflag,fieldsToInfer)
+%                     end
+%                 end
+%             end
+%         end
+%     end
+% end
+% end
+A = [1, 2, 3]';
+ma = size(A, 1);
+[a,b,c, d, e, f, g]=ndgrid(1:ma,1:ma,1:ma, 1:ma, 1:ma, 1:ma, 1:ma);
+product = [A(a,:),A(b,:),A(c,:),A(d, :), A(e, :), A(f, :), A(g, :)];
+M = 40;
+parfor (i = 1:size(product, 1), M)
+    [VP, extflag, dataName] = runVBMCInferenceFunc(dataFolder, fieldsToInfer, ...
+                                product(i, 1), product(i, 2), product(i, 3), ...
+                                product(i, 4), product(i, 5), product(i, 6), ...
+                                product(i, 7));
+    parsave([resultsFolder,dataName],VP,extflag,fieldsToInfer)
+    if mod(i, 200) == 0
+        disp(["Done with: ", num2str(i/200), " samples"]);
     end
 end
-end
 
-
-[VP, extflag, dataName] = runVBMCInferenceFunc(dataFolder, fieldsToInfer, i0, i1, i2, i3, i4, i5, i6);
+% [VP, extflag, dataName] = runVBMCInferenceFunc(dataFolder, fieldsToInfer, i0, i1, i2, i3, i4, i5, i6);
 
 % Xsamp = vbmc_rnd(VP, 1e5);
 % [fig, ax] = cornerplot(Xsamp, fields, [], [LB; UB]);
 
-save([resultsFolder,dataName],'VP','extflag','fieldsToInfer')
+% save([resultsFolder,dataName],'VP','extflag','fieldsToInfer')
 
 % save the figure here?
 % save the inferred variables here
+
+function parsave(fname, VP, extflag, fieldsToInfer)
+  save(fname,'VP','extflag','fieldsToInfer');
+end
 
 
 function [VP, extflag, dataName] = runVBMCInferenceFunc(dataFolder, fieldsToInfer, ...
@@ -61,6 +79,7 @@ function [VP, extflag, dataName] = runVBMCInferenceFunc(dataFolder, fieldsToInfe
     nInner = 10;
     vbmc_options = vbmc('defaults');
     vbmc_options.UncertaintyHandling = 'yes';
+    vbmc_options.Display = 'final';
     init_model_params = Model.newModelParams('model', 'is');
     init_model_params = Fitting.sanitize(init_model_params);
     likefn_args = {init_model_params , signals, sim_results.choices,nInner};
