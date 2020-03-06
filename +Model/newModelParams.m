@@ -9,7 +9,7 @@ function params = newModelParams(varargin)
 % Param keys are
 % GENERAL CONFIGURATION
 %   save_dir      - directory to save/load precomputed results
-%   model         - one of 'is', 'vb', 'vb-czx', or 'ideal' specifying which model to use
+%   model         - one of 'is', 'vb', 'vb-czx', 'itb', or 'ideal' specifying which model to use
 % DATA GENERATION
 %   trials        - number of trials
 %   frames        - number of frames per trial
@@ -29,6 +29,7 @@ function params = newModelParams(varargin)
 %             per update (e.g. multiple independent sampling chains). Only used in IS model.
 %   step_size - What percent of the "full update" to log(q(C=+1)/q(C=-1)) to apply each step. Only
 %               used in VB model.
+%   bound   - when LPO hits +/- this value, stop integrating (in ITB model only)
 
 params = struct(...
     'save_dir', fullfile('+Model', 'saved results'), ...
@@ -48,6 +49,7 @@ params = struct(...
     'lapse', 0, ...
     'samples', 5, ...
     'importance_norm', true, ...
+    'bound', inf, ...
     'step_size', 0.1);
 
 % Parse any extra (..., 'key', value, ...) pairs passed in through

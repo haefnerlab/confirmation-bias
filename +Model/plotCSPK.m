@@ -34,7 +34,7 @@ end
 pk_fig = figure;
 pk_ax = axes(pk_fig);
 
-if nargin < 5
+if nargin < 5 || isempty(pk_colormap)
     % create pk_colormap that is dark blue -> dark red
     fade = linspace(0, 1, npts)';
     colors = [fade*170/255, zeros(size(fade)), (1-fade)*170/255];

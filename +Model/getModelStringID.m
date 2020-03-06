@@ -21,6 +21,9 @@ switch lower(params.model)
     case 'ideal'
         name = sprintf('ideal_%dx%d_cinfo%.3f_sinfo%.3f_vs%.2f_pm%.2f_pC%.2f', params.trials, params.frames, ...
             params.category_info, params.sensory_info, params.var_s, params.p_match, params.prior_C);
+    case 'itb'
+        name = sprintf('itb_%dx%d_cinfo%.3f_sinfo%.3f_vs%.2f_pm%.2f_pC%.2f_bnd%.2f_gam%.2f', params.trials, params.frames, ...
+            params.category_info, params.sensory_info, params.var_s, params.p_match, params.prior_C, params.bound, params.gamma);
     otherwise
         error('Unrecognized model type: %s', params.model);
 end
