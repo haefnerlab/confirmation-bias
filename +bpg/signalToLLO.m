@@ -41,6 +41,7 @@ kappa_mu_sig = [
 if exist('add_noise_sig', 'var')
     % Additional sensory noise is equated with added variance to the signal distribution
     kappa_mu_sig(:,3) = sqrt(kappa_mu_sig(:,3).^2 + add_noise_sig^2);
+    signal = signal + add_noise_sig * randn(size(signal));
 end
 
 %% Convert input arguments in whatever form into a prior over 'kappa' and 'p_match'
