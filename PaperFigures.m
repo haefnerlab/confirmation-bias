@@ -222,9 +222,54 @@ title('Ratio Condition');
 set(gca, 'XTick', 1:N+1, 'XTickLabel', [shortnames, {'Combined'}]);
 xtickangle(45);
 
-%% Figure 4 - model results
+%% Figure 4 - insufficiency of ITB model
 
 fig4 = figure;
+
+% Range of values for category and sensory information
+ps = 0.51:0.02:0.99;
+
+beta_range = [-.15 .15];
+
+% Case 1: no bound, no leak (aka ideal observer)
+params = Model.newModelParams('model', 'itb', 'trials', 10000, 'bound', inf, 'gamma', 0);
+sens_cat_pts = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
+[cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, flipud(sens_cat_pts));
+figureToPanel(cs_fig, fig4, 4, 3, 1, parula);
+figureToPanel(pk_fig, fig4, 4, 3, 2);
+[~,~,~,~,fig,cmap] = Model.plotCSSlopes(ps, ps, params, beta_range, THRESHOLD, flipud(sens_cat_pts));
+figureToPanel(fig, fig4, 4, 3, 3, cmap);
+
+% Case 2: bound but no leak (Kiani et al 2008)
+params = Model.newModelParams('model', 'itb', 'trials', 10000, 'bound', .8, 'gamma', 0);
+sens_cat_pts = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
+[cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, flipud(sens_cat_pts));
+figureToPanel(cs_fig, fig4, 4, 3, 4, parula);
+figureToPanel(pk_fig, fig4, 4, 3, 5);
+[~,~,~,~,fig,cmap] = Model.plotCSSlopes(ps, ps, params, beta_range, THRESHOLD, flipud(sens_cat_pts));
+figureToPanel(fig, fig4, 4, 3, 6, cmap);
+
+% Case 3: leak but no bound
+params = Model.newModelParams('model', 'itb', 'trials', 10000, 'bound', inf, 'gamma', .1);
+sens_cat_pts = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
+[cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, flipud(sens_cat_pts));
+figureToPanel(cs_fig, fig4, 4, 3, 7, parula);
+figureToPanel(pk_fig, fig4, 4, 3, 8);
+[~,~,~,~,fig,cmap] = Model.plotCSSlopes(ps, ps, params, beta_range, THRESHOLD, flipud(sens_cat_pts));
+figureToPanel(fig, fig4, 4, 3, 9, cmap);
+
+% Case 4: both leak and bound
+params = Model.newModelParams('model', 'itb', 'trials', 10000, 'bound', .8, 'gamma', .1);
+sens_cat_pts = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
+[cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, flipud(sens_cat_pts));
+figureToPanel(cs_fig, fig4, 4, 3, 10, parula);
+figureToPanel(pk_fig, fig4, 4, 3, 11);
+[~,~,~,~,fig,cmap] = Model.plotCSSlopes(ps, ps, params, beta_range, THRESHOLD, flipud(sens_cat_pts));
+figureToPanel(fig, fig4, 4, 3, 12, cmap);
+
+%% Figure 5 - model results
+
+fig5 = figure;
 
 % Range of values for category and sensory information
 ps = 0.51:0.02:0.99;
@@ -233,35 +278,35 @@ ps = 0.51:0.02:0.99;
 params = Model.newModelParams('model', 'ideal', 'trials', 10000);
 disp('Loading/Running ideal observer');
 [~, ideal_fig] = Model.plotCategorySensorySpace(ps, ps, params);
-figureToPanel(ideal_fig, fig4, 2, 4, 5, parula);
+figureToPanel(ideal_fig, fig5, 2, 4, 5, parula);
 
 % Sampling model with gamma = 0.1
 params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', 0.1, 'noise', 0, 'trials', 10000, 'updates', 5, 'samples', 1);
 beta_range = [-.32 .1]; % min and max beta expected (to get maximum use of colorbar range)
 disp('Loading/Running sampling model, getting threshold points for PKs');
-sens_cat_pts = Model.getThresholdPoints(ps, params, 0.7, 5);
+sens_cat_pts = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
 [cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, sens_cat_pts);
-figureToPanel(cs_fig, fig4, 2, 4, 2, parula);
-figureToPanel(pk_fig, fig4, 2, 4, 3);
+figureToPanel(cs_fig, fig5, 2, 4, 2, parula);
+figureToPanel(pk_fig, fig5, 2, 4, 3);
 disp('Loading/Running sampling model, gettings slopes over CS-Space');
 [~,~,~,~,fig,cmap] = Model.plotCSSlopes(ps, ps, params, beta_range, THRESHOLD, sens_cat_pts);
-figureToPanel(fig, fig4, 2, 4, 4, cmap);
+figureToPanel(fig, fig5, 2, 4, 4, cmap);
 
 % Variational model with gamma = 0.1
 params = Model.newModelParams('model', 'vb-czx', 'var_x', 0.1, 'gamma', 0.1, 'noise', 0, 'trials', 10000, 'updates', 5, 'step_size', 0.05);
 beta_range = [-.32 .1]; % min and max beta expected (to get maximum use of colorbar range)
 disp('Loading/Running variational model, getting threshold points for PKs');
-sens_cat_pts = Model.getThresholdPoints(ps, params, 0.7, 5);
+sens_cat_pts = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
 [cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, sens_cat_pts);
-figureToPanel(cs_fig, fig4, 2, 4, 6, parula);
-figureToPanel(pk_fig, fig4, 2, 4, 7);
+figureToPanel(cs_fig, fig5, 2, 4, 6, parula);
+figureToPanel(pk_fig, fig5, 2, 4, 7);
 disp('Loading/Running variational model, gettings slopes over CS-Space');
 [~,~,~,~,fig,cmap] = Model.plotCSSlopes(ps, ps, params, beta_range, THRESHOLD, sens_cat_pts);
-figureToPanel(fig, fig4, 2, 4, 8, cmap);
+figureToPanel(fig, fig5, 2, 4, 8, cmap);
 
-%% Figure 5 - model optimality figure varying 'gamma' parameter
+%% Figure 6 - model optimality figure varying 'gamma' parameter
 
-fig5 = figure;
+fig6 = figure;
 
 % Range of values for category and sensory information
 ps = 0.51:0.02:0.99;
@@ -278,34 +323,34 @@ params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', hi_gamma, 'n
 
 % First panel: percent correct with high gamma (low gamma was done in Fig 3)
 [correct_hi, cs_fig] = Model.plotCategorySensorySpace(ps, ps, params);
-figureToPanel(cs_fig, fig5, 2, 3, 1, parula);
+figureToPanel(cs_fig, fig6, 2, 3, 1, parula);
 title(sprintf('Performance (\\gamma=%.1f)', hi_gamma));
 
 % Second panel: difference in % correct
 params_lo = setfield(params, 'gamma', lo_gamma);
 [~, diff_fig] = Model.plotDeltaPerformance(ps, ps, params, params_lo);
-figureToPanel(diff_fig, fig5, 2, 3, 2, parula);
+figureToPanel(diff_fig, fig6, 2, 3, 2, parula);
 title(sprintf('\\DeltaPerformance (\\gamma=%.1f vs. \\gamma=%.1f)', hi_gamma, lo_gamma));
 
 % Third panel: optimal gamma across C-S space
 [~, opt_correct_fig, opt_gamma_fig] = Model.plotCategorySensorySpace(ps, ps, params, {'gamma'}, 21);
-figureToPanel(opt_gamma_fig, fig5, 2, 3, 3, cool);
+figureToPanel(opt_gamma_fig, fig6, 2, 3, 3, cool);
 title('Optimized value of \gamma');
 
 % Fourth panel: percent correct with optimal gamma
-figureToPanel(opt_correct_fig, fig5, 2, 3, 4, parula);
+figureToPanel(opt_correct_fig, fig6, 2, 3, 4, parula);
 title('Performance with optimal \gamma*');
 
 % Fifth panel: diff in % correct between optimized model and ideal observer
 params_ideal = setfield(params, 'model', 'ideal');
 [~, diff_fig] = Model.plotDeltaPerformance(ps, ps, params_ideal, params, {}, 0, {'gamma'}, 21);
-figureToPanel(diff_fig, fig5, 2, 3, 5, parula);
+figureToPanel(diff_fig, fig6, 2, 3, 5, parula);
 title('\DeltaPerformance (ideal vs. \gamma*)');
 
 % Sixth panel: slopes with optimal gamma
 beta_range = [-.1 .1];
 [~,~,~,~,fig,cmap] = Model.plotCSSlopes(ps, ps, params, beta_range, THRESHOLD, [], {'gamma'}, 21);
-figureToPanel(fig, fig5, 2, 3, 6, cmap);
+figureToPanel(fig, fig6, 2, 3, 6, cmap);
 title('Temporal Weight Slope \beta with \gamma*');
 
 %% Supplemental figure model results (showing effect of gamma parameter)
@@ -320,7 +365,7 @@ ps = 0.51:0.02:0.99;
 % Replicate sampling model results above (gamma = 0)
 params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', 0, 'noise', 0, 'trials', 10000, 'updates', 5, 'samples', 5);
 beta_range = [-0.4 -eps]; % min and max beta expected (to get maximum use of colorbar range)
-sens_cat_pts = Model.getThresholdPoints(ps, params, 0.7, 5);
+sens_cat_pts = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
 [cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, sens_cat_pts);
 figureToPanel(cs_fig, figModelSupp, 6, 3, 1, parula);
 figureToPanel(pk_fig, figModelSupp, 6, 3, 2);
@@ -330,7 +375,7 @@ figureToPanel(fig, figModelSupp, 6, 3, 3, cmap);
 % Same with gamma = 0.1
 params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', 0.1, 'noise', 0, 'trials', 10000, 'updates', 5, 'samples', 5);
 beta_range = [-.43 .1]; % min and max beta expected (to get maximum use of colorbar range)
-sens_cat_pts = Model.getThresholdPoints(ps, params, 0.7, 5);
+sens_cat_pts = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
 [cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, sens_cat_pts);
 figureToPanel(cs_fig, figModelSupp, 6, 3, 4, parula);
 figureToPanel(pk_fig, figModelSupp, 6, 3, 5);
@@ -340,7 +385,7 @@ figureToPanel(fig, figModelSupp, 6, 3, 6, cmap);
 % Same with gamma = 0.2
 params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', 0.2, 'noise', 0, 'trials', 10000, 'updates', 5, 'samples', 5);
 beta_range = [-.4 .23]; % min and max beta expected (to get maximum use of colorbar range)
-sens_cat_pts = Model.getThresholdPoints(ps, params, 0.7, 5);
+sens_cat_pts = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
 [cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, sens_cat_pts);
 figureToPanel(cs_fig, figModelSupp, 6, 3, 7, parula);
 figureToPanel(pk_fig, figModelSupp, 6, 3, 8);
@@ -352,7 +397,7 @@ figureToPanel(fig, figModelSupp, 6, 3, 9, cmap);
 % Replicate vb model results above (gamma = 0)
 params = Model.newModelParams('model', 'vb-czx', 'var_x', 0.1, 'gamma', 0, 'noise', 0, 'trials', 10000, 'updates', 5, 'step_size', 0.05);
 beta_range = [-0.5 -eps]; % min and max beta expected (to get maximum use of colorbar range)
-sens_cat_pts = Model.getThresholdPoints(ps, params, 0.7, 5);
+sens_cat_pts = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
 [cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, sens_cat_pts);
 figureToPanel(cs_fig, figModelSupp, 6, 3, 10, parula);
 figureToPanel(pk_fig, figModelSupp, 6, 3, 11);
@@ -362,7 +407,7 @@ figureToPanel(fig, figModelSupp, 6, 3, 12, cmap);
 % Same with gamma = 0.1
 params = Model.newModelParams('model', 'vb-czx', 'var_x', 0.1, 'gamma', 0.1, 'noise', 0, 'trials', 10000, 'updates', 5, 'step_size', 0.05);
 beta_range = [-.4 .1]; % min and max beta expected (to get maximum use of colorbar range)
-sens_cat_pts = Model.getThresholdPoints(ps, params, 0.7, 5);
+sens_cat_pts = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
 [cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, sens_cat_pts);
 figureToPanel(cs_fig, figModelSupp, 6, 3, 13, parula);
 figureToPanel(pk_fig, figModelSupp, 6, 3, 14);
@@ -372,7 +417,7 @@ figureToPanel(fig, figModelSupp, 6, 3, 15, cmap);
 % Same with gamma = 0.2
 params = Model.newModelParams('model', 'vb-czx', 'var_x', 0.1, 'gamma', 0.2, 'noise', 0, 'trials', 10000, 'updates', 5, 'step_size', 0.05);
 beta_range = [-.26 .2]; % min and max beta expected (to get maximum use of colorbar range)
-sens_cat_pts = Model.getThresholdPoints(ps, params, 0.7, 5);
+sens_cat_pts = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
 [cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, sens_cat_pts);
 figureToPanel(cs_fig, figModelSupp, 6, 3, 16, parula);
 figureToPanel(pk_fig, figModelSupp, 6, 3, 17);
