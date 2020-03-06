@@ -82,19 +82,21 @@ switch lower(params.model)
         updateFun = @Model.vbLogOddsUpdate;
     case 'vb-czx'
         updateFun = @Model.vbLogOddsUpdateCZX;
+    case 'itb'
+        updateFun = @Model.itbLogOddsUpdate;
     case 'ideal'
-        logLikeOdds = Model.logLikelihoodOdds(params, data);
-        results.lpo(:, 2:end) = results.lpo(:, 1) + cumsum(logLikeOdds, 2);
-        results.choices = sign(results.lpo(:, end));
-        return
+        % Nothing to do - use 'lpo' from above
+        updateFun = [];
     otherwise
         error('Unrecognized model type: %s', params.model);
 end
 
 %% Run model (sequentially over frames/updates, but vectorized over trials)
 
-for f=1:frames
-    results.lpo(:, f+1) = updateFun(params, data(:, f), results.lpo(:, f));
+if ~isempty(updateFun)
+    for f=1:frames
+        results.lpo(:, f+1) = updateFun(params, data(:, f), results.lpo(:, f));
+    end
 end
 
 results.choices = sign(results.lpo(:, end));
