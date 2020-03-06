@@ -1,6 +1,8 @@
 function [grid_pts, raw_pts] = getThresholdPoints(ps, params, pCorrect, nPoints)
 %% Run model to get percent correct over full category/sensory information space
 
+if nargin < 5, snap = false; end
+
 [ss, cc] = meshgrid(ps);
 
 [correct, fig] = Model.plotCategorySensorySpace(ps, ps, params);
@@ -17,9 +19,11 @@ for i=nPoints:-1:1
     c_ray = 1-t*sin(angles(i));
     
     correct_ray = interp2(ss, cc, correct, s_ray, c_ray);
-    [~, i_closest] = min(abs(correct_ray - pCorrect));
+    valid = ~isnan(correct_ray);
+
+    best_t = interp1(correct_ray(valid), t(valid), pCorrect);
     
-    raw_pts(i, :) = [s_ray(i_closest) c_ray(i_closest)];
+    raw_pts(i, :) = [1-best_t*cos(angles(i)) 1-best_t*sin(angles(i))];
 end
 
 %% Snap points to grid

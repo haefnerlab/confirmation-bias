@@ -229,42 +229,43 @@ fig4 = figure;
 % Range of values for category and sensory information
 ps = 0.51:0.02:0.99;
 
-beta_range = [-.15 .15];
+beta_range = [-0.5 .15];
+pk_hprs = [1 0 0];
 
 % Case 1: no bound, no leak (aka ideal observer)
 params = Model.newModelParams('model', 'itb', 'trials', 10000, 'bound', inf, 'gamma', 0);
-sens_cat_pts = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
-[cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, flipud(sens_cat_pts));
+[~, sens_cat_pts] = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
+[cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, pk_hprs, 'beta', beta_range, flipud(sens_cat_pts));
 figureToPanel(cs_fig, fig4, 4, 3, 1, parula);
 figureToPanel(pk_fig, fig4, 4, 3, 2);
-[~,~,~,~,fig,cmap] = Model.plotCSSlopes(ps, ps, params, beta_range, THRESHOLD, flipud(sens_cat_pts));
+[~,~,~,~,fig,cmap] = Model.plotCSSlopes(ps, ps, params, beta_range, THRESHOLD);
 figureToPanel(fig, fig4, 4, 3, 3, cmap);
 
 % Case 2: bound but no leak (Kiani et al 2008)
 params = Model.newModelParams('model', 'itb', 'trials', 10000, 'bound', .8, 'gamma', 0);
-sens_cat_pts = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
-[cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, flipud(sens_cat_pts));
+[~, sens_cat_pts] = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
+[cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, pk_hprs, 'beta', beta_range, flipud(sens_cat_pts));
 figureToPanel(cs_fig, fig4, 4, 3, 4, parula);
 figureToPanel(pk_fig, fig4, 4, 3, 5);
-[~,~,~,~,fig,cmap] = Model.plotCSSlopes(ps, ps, params, beta_range, THRESHOLD, flipud(sens_cat_pts));
+[~,~,~,~,fig,cmap] = Model.plotCSSlopes(ps, ps, params, beta_range, THRESHOLD);
 figureToPanel(fig, fig4, 4, 3, 6, cmap);
 
 % Case 3: leak but no bound
 params = Model.newModelParams('model', 'itb', 'trials', 10000, 'bound', inf, 'gamma', .1);
-sens_cat_pts = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
-[cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, flipud(sens_cat_pts));
+[~, sens_cat_pts] = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
+[cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, pk_hprs, 'beta', beta_range, flipud(sens_cat_pts));
 figureToPanel(cs_fig, fig4, 4, 3, 7, parula);
 figureToPanel(pk_fig, fig4, 4, 3, 8);
-[~,~,~,~,fig,cmap] = Model.plotCSSlopes(ps, ps, params, beta_range, THRESHOLD, flipud(sens_cat_pts));
+[~,~,~,~,fig,cmap] = Model.plotCSSlopes(ps, ps, params, beta_range, THRESHOLD);
 figureToPanel(fig, fig4, 4, 3, 9, cmap);
 
 % Case 4: both leak and bound
 params = Model.newModelParams('model', 'itb', 'trials', 10000, 'bound', .8, 'gamma', .1);
-sens_cat_pts = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
-[cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, flipud(sens_cat_pts));
+[~, sens_cat_pts] = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
+[cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, pk_hprs, 'beta', beta_range, flipud(sens_cat_pts));
 figureToPanel(cs_fig, fig4, 4, 3, 10, parula);
 figureToPanel(pk_fig, fig4, 4, 3, 11);
-[~,~,~,~,fig,cmap] = Model.plotCSSlopes(ps, ps, params, beta_range, THRESHOLD, flipud(sens_cat_pts));
+[~,~,~,~,fig,cmap] = Model.plotCSSlopes(ps, ps, params, beta_range, THRESHOLD);
 figureToPanel(fig, fig4, 4, 3, 12, cmap);
 
 %% Figure 5 - model results

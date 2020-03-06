@@ -48,7 +48,10 @@ responses = 1.0 * responses(:);
 
 compute_error = nargout > 2;
 
-init_guess = [1 0 0];
+% Initialize with expfit to unconstrained PK
+[w, ~, e] = CustomRegression.PsychophysicalKernel(data, responses==1, 1, 0, 0, 0);
+ab = CustomRegression.expFit(w(1:end-1), e(1:end-1));
+init_guess = [ab/2 0] + randn(1,3)/10;
 
 % Fit weights using 'fminunc', only computing the hessian (which is slow) if errors are requested.
 options = optimoptions('fminunc', ...
