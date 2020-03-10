@@ -11,7 +11,7 @@ resultsName = dataName;
 load([dataFolder,dataName])
 
 % fields to infer
-fields = {'prior_C', 'gamma', 'samples', 'lapse', 'sensor_noise'};
+fieldsToInfer = {'prior_C', 'gamma', 'samples', 'lapse', 'sensor_noise'};
 % upper and lower bound of each parameter
 % is this the prior? is prior uniform distribution?
 LB = [0 0 1 0 0];
@@ -31,10 +31,11 @@ likefn_args = {init_model_params , signals, sim_results.choices,nInner};
 
 
 % define likelihood function
-fun = @(x) llfun(x,fields,init_model_params,signals, sim_results.choices, nInner) ;
+
+fun = @(x) llfun(x,fieldsToInfer,init_model_params,signals, sim_results.choices, nInner) ;
 % vbmc inference
 [VP, ~, ~, extflag] = vbmc(fun,x0,LB,UB,PLB,PUB,vbmc_options);
-save([resultsFolder,resultsName],'VP','extflag')
+save([resultsFolder,resultsName],'VP','extflag','fieldsToInfer')
 
 function choiceLL = llfun(xvals,fields, model_params,signals, choices, nInner)
 for iField=1:length(fields)
