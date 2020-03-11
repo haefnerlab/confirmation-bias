@@ -1,4 +1,4 @@
-function results = runVectorized(params, dataFileName)
+function results = runVectorized(params, dataFilePath)
 %RUNVECTORIZED run the model(s) vectorized over trials. Which model to use and its parameters are
 %specified in the 'params' struct. Also see Model.newModelParams for more information. The second
 %'data' argument, if given, must be a [trials x frames] matrix of signal levels. If 'data' is not
@@ -39,7 +39,7 @@ function results = runVectorized(params, dataFileName)
 % - params.lapse = (inference) probability of "lapse" (random choice on a trial regardless of stim)
 % - params.step_size = (inference) fraction of full update to log odds C to apply in each iteration.
 
-load(dataFileName);
+load(dataFilePath)
 data = signals;
 
 prior_C = params.prior_C;
@@ -91,4 +91,5 @@ results.choices = sign(results.lpo(:, end));
 fifty_fifty = results.lpo(:,end) == 0;
 random_trials = fifty_fifty | rand(trials, 1) < lapse;
 results.choices(random_trials) = sign(rand(sum(random_trials), 1) - 0.5);
+
 end
