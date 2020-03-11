@@ -34,6 +34,10 @@ for i=1:numel(ss)
     params_copy.var_s = Model.getEvidenceVariance(ss(i));
     params_copy.p_match = cc(i);
     
+    if isfield(params, 'gamma_min') && ~isempty(params.gamma_min)
+        params.gamma = params.gamma_min + (params.gamma_max - params.gamma_min) * (1-cc(i)) * 2;
+    end
+    
     % Construct UIDs for saving/loading with disk
     results_uid = Model.getModelStringID(params_copy);
     expfit_uid = ['PK-expfit-' optim_prefix '_' results_uid];

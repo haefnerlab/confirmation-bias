@@ -52,6 +52,10 @@ for i=1:length(sens_pts)
     params.sensory_info = s;
     params.p_match = c;
     params.var_s = Model.getEvidenceVariance(s);
+    
+    if isfield(params, 'gamma_min') && ~isempty(params.gamma_min)
+        params.gamma = params.gamma_min + (params.gamma_max - params.gamma_min) * (1-c) * 2;
+    end
 
     [weights, errors, para] = Model.plotPK(params, pk_hprs, {}, [], false);
     
