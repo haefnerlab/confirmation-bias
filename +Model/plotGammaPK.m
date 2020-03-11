@@ -8,7 +8,7 @@ parfor i=1:length(gammas)
     params_copy = params;
     params_copy.gamma = gammas(i);
     
-    [weights{i}, errors{i}, fig] = Model.plotPK(params_copy);
+    [weights{i}, errors{i}, ~, fig] = Model.plotPK(params_copy);
     close(fig);
 end
 

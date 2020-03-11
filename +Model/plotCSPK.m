@@ -1,4 +1,4 @@
-function [cs_fig, pk_fig] = plotCSPK(category_infos, sensory_infos, params, pk_hprs, pk_colormap, betarange, clickpts)
+function [cs_fig, pk_fig] = plotCSPK(category_infos, sensory_infos, params, pk_hprs, pk_colormap, beta_range, clickpts)
 
 savedir = fullfile('+Model', 'figures');
 if ~exist(savedir, 'dir'), mkdir(savedir); end
@@ -47,28 +47,40 @@ end
 for i=1:length(sens_pts)
     s = sens_pts(i);
     c = cat_pts(i);
-    [~, il] = min(abs(sensory_infos - s));
-    [~, ip] = min(abs(category_infos - c));
     
     params.category_info = c;
     params.sensory_info = s;
     params.p_match = c;
     params.var_s = Model.getEvidenceVariance(s);
-    [weights, errors, tmp_fig] = Model.plotPK(params, pk_hprs);
-    close(tmp_fig);
     
-    if nargin >= 5 && isequal(pk_colormap, 'beta')
-        expfit = CustomRegression.expFit(weights(1:end-1), errors(1:end-1));
-        disp(expfit);
-        colors(i, :) = Model.betacolor(expfit(2), betarange(1) ,betarange(2));
-        weights(1:end-1) = expfit(1) * exp((0:9) * expfit(2));
-        errors(1:end-1) = nan;
+    if isfield(params, 'gamma_min') && ~isempty(params.gamma_min)
+        params.gamma = params.gamma_min + (params.gamma_max - params.gamma_min) * (1-c) * 2;
+    end
+
+    [weights, errors, para] = Model.plotPK(params, pk_hprs, {}, [], false);
+    
+    if isequal(pk_colormap, 'beta')
+        % Compute color based on weights
+        if ischar(pk_hprs) && startsWith(pk_hprs, 'exp')
+            % para is abb, we want beta
+            slope_param = para(2);
+        elseif ischar(pk_hprs) && startsWith(pk_hprs, 'lin')
+            % para is sob, we want slope
+            slope_param = para(1);
+        else
+            % Auto-coloring enabled, but all we have to go off of is actual weights. Do post-hoc exp fit.
+            ab = CustomRegression.expFit(weights(1:end-1), errors(1:end-1));
+            slope_param = ab(2);
+        end
+        colors(i, :) = Model.betacolor(slope_param, beta_range(1), beta_range(2));
     end
     
     errors = errors / mean(weights(1:end-1));
     weights = weights / mean(weights(1:end-1));
     
-    scatter(img_ax, il, ip, 50, colors(i,:), 'filled');
+    idx_s = length(sensory_infos) * (s-min(sensory_infos)) / (max(sensory_infos) - min(sensory_infos));
+    idx_c = length(category_infos) * (c-min(category_infos)) / (max(category_infos) - min(category_infos));
+    scatter(img_ax, idx_s, idx_c, 30, colors(i,:), 'filled');
     hold(pk_ax, 'on');
     errorbar(pk_ax, 1:params.frames, weights(1:end-1), errors(1:end-1), 'Color', colors(i,:), 'LineWidth', 2);
 end

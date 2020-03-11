@@ -35,6 +35,10 @@ parfor idx=1:numel(variables_grid{1}) * numel(ss)
     params_copy.var_s = Model.getEvidenceVariance(ss(cs_i));
     params_copy.p_match = cc(cs_i);
     
+    if isfield(params, 'gamma_min') && ~isempty(params.gamma_min)
+        params.gamma = params.gamma_min + (params.gamma_max - params.gamma_min) * (1-cc(cs_i)) * 2;
+    end
+    
     % Look up value for each grid-search variable based on vg_i.
     values = arrayfun(@(v) variables_grid{v}(vg_i), 1:length(variables));
     

@@ -29,7 +29,13 @@ switch lower(params.model)
 end
 
 if nargin >= 2 && drop_cs_terms
+    % Drop terms corresponding to individual points in the space..
     name = regexprep(name, '_cinfo[0-9.]+_sinfo[0-9.]+_vs[0-9.]+_pm[0-9.]+', '');
+    
+    % But maybe add a term describing how gamma changes over the space
+    if isfield(params, 'gamma_min') && ~isempty(params.gamma_min)
+        name = regexprep(name, '_gam[0-9.]+', sprintf('_gmin%.2f_gmax%.2f', params.gamma_min ,params.gamma_max));
+    end
 end
 
 end

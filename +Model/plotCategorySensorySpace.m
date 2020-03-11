@@ -39,6 +39,10 @@ for i=1:numel(ss)
     params_copy.var_s = Model.getEvidenceVariance(ss(i));
     params_copy.p_match = cc(i);
     
+    if isfield(params, 'gamma_min') && ~isempty(params.gamma_min)
+        params.gamma = params.gamma_min + (params.gamma_max - params.gamma_min) * (1-cc(i)) * 2;
+    end
+    
     % TODO - smarter setting of seed?
     params_copy.seed = randi(1000000000);
     
