@@ -4,3 +4,6 @@
 [submodule "vbmc"]
 	path = vbmc
 	url = https://github.com/lacerbi/vbmc
+[submodule "bads"]
+	path = bads
+	url = git@github.com:lacerbi/bads.git
