@@ -34,8 +34,8 @@ def ConfirmationBiasSimulator(xval,fieldstofit,params, dataPath, engine):
             paramsNew[f] = int(xval[i])
 
     
-   # sim_results = engine.Model.runVectorizedAPT(paramsNew, dataPath)
-    sim_results = engine.sqrt(float(2))
+    sim_results = engine.Model.runVectorizedAPT(paramsNew, dataPath)
+    # sim_results = engine.sqrt(float(2))
     print("Hello I am out of simulator")
     return np.asarray(sim_results['choices'])
 # define a simulator class linking to the real simulator
