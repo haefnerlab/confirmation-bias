@@ -54,7 +54,8 @@ params = struct(...
     'samples', 5, ...
     'importance_norm', true, ...
     'bound', inf, ...
-    'step_size', 0.1);
+    'step_size', 0.1, ...
+    'temperature', 0);
 
 % Parse any extra (..., 'key', value, ...) pairs passed in through
 % varargin.
@@ -71,8 +72,15 @@ end
 
 %% Sanity check
 
-if strcmp(params.model, 'ideal') && params.updates > 1
+if strcmpi(params.model, 'ideal') && params.updates > 1
     warning('Ideal observer; setting params.updates to 1');
     params.updates = 1;
+elseif strcmpi(params.model, 'itb') && params.updates > 1
+    warning('ITB model; setting params.updates to 1');
+    params.updates = 1;
+end
+
+if strcmpi(params.model, 'ideal') && params.temperature > 0
+    warning('Ideal observer; setting params.temperature to 0');
 end
 end
