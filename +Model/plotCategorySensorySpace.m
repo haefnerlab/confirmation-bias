@@ -1,4 +1,4 @@
-function [correct, fig, opt_fig] = plotCategorySensorySpace(category_infos, sensory_infos, params, optimize, optim_grid_size)
+function [correct, fig, opt_fig] = plotCategorySensorySpace(category_infos, sensory_infos, params, optimize, optim_grid_size, do_plot)
 %PLOTCATEGORYSENSORYSPACE make category_info vs sensory_info plots for the
 %given params.
 
@@ -7,6 +7,7 @@ if ~exist(savedir, 'dir'), mkdir(savedir); end
 
 if nargin < 4, optimize = {}; end
 if nargin < 5, optim_grid_size = 11; end
+if nargin < 6, do_plot = true; end
 
 if exist('optimize', 'var') && ~isempty(optimize)
     optim_prefix = Model.getOptimPrefix(optimize, optim_grid_size);
@@ -67,52 +68,47 @@ for i=1:numel(ss)
     if mod(i,10)==1, disp(i); end
 end
 
-% Plot percent correct
-fig = figure();
-imagesc(correct, [0.5 1.0]); axis image; colorbar;
-% Add contour line at threshold
-hold on; contour(imfilter(correct, smoothkernel(9), 'replicate'), [0.7 0.7], '-w', 'LineWidth', 2);
-category_tick_indices = round(linspace(1, length(category_infos), min(length(category_infos), 5)));
-sensory_tick_indices = round(linspace(1, length(sensory_infos), min(length(sensory_infos), 5)));
-set(gca, 'YTick', category_tick_indices);
-set(gca, 'XTick', sensory_tick_indices);
-set(gca, 'YTickLabel', arrayfun(@num2str, category_infos(category_tick_indices), 'UniformOutput', false));
-set(gca, 'XTickLabel', arrayfun(@num2str, sensory_infos(sensory_tick_indices), 'UniformOutput', false));
-set(gca, 'YDir', 'Normal');
-xlabel('SI');
-ylabel('CI');
-title('Percent Correct');
-
-figname = ['CSSpace_' Model.getModelStringID(params, true) '.fig'];
-
-saveas(gcf, fullfile(savedir, figname));
-
-% Plot value of optimized parameters.
-for i=length(optimize):-1:1
-    opt_fig(i) = figure();
-    
-    % Unravel optimal param values
-    opt_param_values = reshape([optim_params.(optimize{i})]', size(ss));
-    
-    imagesc(opt_param_values); axis image; colorbar; colormap cool;
-    category_tick_indices = round(linspace(1, length(category_infos), min(length(category_infos), 5)));
-    sensory_tick_indices = round(linspace(1, length(sensory_infos), min(length(sensory_infos), 5)));
-    set(gca, 'YTick', category_tick_indices);
-    set(gca, 'XTick', sensory_tick_indices);
-    set(gca, 'YTickLabel', arrayfun(@num2str, category_infos(category_tick_indices), 'UniformOutput', false));
-    set(gca, 'XTickLabel', arrayfun(@num2str, sensory_infos(sensory_tick_indices), 'UniformOutput', false));
+if do_plot
+    % Plot percent correct
+    fig = figure();
+    imagesc('XData', sensory_infos, 'YData', category_infos, 'CData', correct, [0.5 1.0]);
+    axis equal; axis image; colorbar;
+    % Add contour line at threshold
+    [~, threshold_pts] = Model.getThresholdPoints(category_infos, params, .7, 50);
+    hold on; plot(threshold_pts(:,1), threshold_pts(:,2), '-w', 'LineWidth', 2);
+    category_tick = category_infos(round(linspace(1, length(category_infos), 5)));
+    sensory_tick = sensory_infos(round(linspace(1, length(sensory_infos), 5)));
+    set(gca, 'YTick', category_tick);
+    set(gca, 'XTick', sensory_tick);
     set(gca, 'YDir', 'Normal');
     xlabel('SI');
     ylabel('CI');
-    title(['Optimized value of ' optimize{i}]);
-    figname = ['CSSpace_optim_' optimize{i} '_' Model.getModelStringID(params, true) '.fig'];
+    title('Percent Correct');
+    
+    figname = ['CSSpace_' Model.getModelStringID(params, true) '.fig'];
+    
     saveas(gcf, fullfile(savedir, figname));
+    
+    % Plot value of optimized parameters.
+    for i=length(optimize):-1:1
+        opt_fig(i) = figure();
+        
+        % Unravel optimal param values
+        opt_param_values = reshape([optim_params.(optimize{i})]', size(ss));
+        
+        imagesc(opt_param_values); axis image; colorbar; colormap cool;
+        category_tick = round(linspace(1, length(category_infos), min(length(category_infos), 5)));
+        sensory_tick = round(linspace(1, length(sensory_infos), min(length(sensory_infos), 5)));
+        set(gca, 'YTick', category_tick);
+        set(gca, 'XTick', sensory_tick);
+        set(gca, 'YTickLabel', arrayfun(@num2str, category_infos(category_tick), 'UniformOutput', false));
+        set(gca, 'XTickLabel', arrayfun(@num2str, sensory_infos(sensory_tick), 'UniformOutput', false));
+        set(gca, 'YDir', 'Normal');
+        xlabel('SI');
+        ylabel('CI');
+        title(['Optimized value of ' optimize{i}]);
+        figname = ['CSSpace_optim_' optimize{i} '_' Model.getModelStringID(params, true) '.fig'];
+        saveas(gcf, fullfile(savedir, figname));
+    end
 end
-end
-
-function kernel = smoothkernel(n)
-x = linspace(-2,2,n);
-[xx,yy] = meshgrid(x,x);
-kernel = exp(-(xx.^2 + yy.^2));
-kernel = kernel / sum(kernel(:));
 end

@@ -1,12 +1,8 @@
 function [grid_pts, raw_pts] = getThresholdPoints(ps, params, pCorrect, nPoints)
 %% Run model to get percent correct over full category/sensory information space
 
-if nargin < 5, snap = false; end
-
 [ss, cc] = meshgrid(ps);
-
-[correct, fig] = Model.plotCategorySensorySpace(ps, ps, params);
-close(fig);
+correct = Model.plotCategorySensorySpace(ps, ps, params, {}, [], false);
 
 %% Drawing rays from the top right corner of the space, find equi-angle points along the threshold correct line
 
