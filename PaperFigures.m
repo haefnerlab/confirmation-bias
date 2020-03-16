@@ -4,6 +4,7 @@ clear;
 RATIO_PHASE = 1; % aka HSLC
 NOISE_PHASE = 2; % aka LSHC
 THRESHOLD = 0.7;
+KERNEL_KAPPA = 0.16;
 DATADIR = fullfile(pwd, '..', 'PublishData');
 MEMODIR = fullfile(pwd, '..', 'Precomputed');
 
@@ -108,6 +109,30 @@ plot(ratios, avg_pm_curve, 'Color', DARK_BLUE, 'LineWidth', 2);
 xlabel('frame ratio left:right');
 ylabel('percent chose left');
 xlim([-inf inf]);
+
+%% Before computing PKs and fitting models, we need to (re)compute signal statistics per subject per condition. Slow, but only run once.
+
+figure;
+for iSubject=1:length(noiseSubjects)
+    SubjectData = LoadAllSubjectData(noiseSubjects{iSubject}, NOISE_PHASE, DATADIR);
+    sigs = LoadOrRun(@ComputeFrameSignals, {SubjectData, KERNEL_KAPPA}, ...
+        fullfile(MEMODIR, ['perFrameSignals-' noiseSubjects{iSubject} '-' num2str(KERNEL_KAPPA) '-noise.mat']));
+    subplotsquare(length(noiseSubjects), iSubject);
+    plot(SubjectData.ideal_frame_signals(:), sigs(:), '.');
+    title(noiseSubjects(iSubject));
+    axis equal; grid on;
+end
+
+figure;
+for iSubject=1:length(ratioSubjects)
+    SubjectData = LoadAllSubjectData(ratioSubjects{iSubject}, RATIO_PHASE, DATADIR);
+    sigs = LoadOrRun(@ComputeFrameSignals, {SubjectData, KERNEL_KAPPA}, ...
+        fullfile(MEMODIR, ['perFrameSignals-' ratioSubjects{iSubject} '-' num2str(KERNEL_KAPPA) '-ratio.mat']));
+    subplotsquare(length(ratioSubjects), iSubject);
+    plot(SubjectData.ideal_frame_signals(:), sigs(:), '.');
+    title(ratioSubjects(iSubject));
+    axis equal; grid on;
+end
 
 %% Supplemental PK cross-validation figure
 

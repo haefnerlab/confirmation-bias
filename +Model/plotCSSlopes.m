@@ -82,7 +82,7 @@ fig = figure(); hold on;
 % colormap(cmap);
 
 % Slopes image
-imagesc(smoothSlopes, rb_range);
+imagesc('XData', sensory_infos, 'YData', category_infos, 'CData', smoothSlopes, rb_range);
 axis image;
 set(gca, 'YDir', 'normal');
 colormap(cmap);
@@ -90,8 +90,8 @@ colorbar;
 
 if exist('contour_pc', 'var')
     hold on;
-    [ii, jj] = meshgrid(1:length(sensory_infos), 1:length(category_infos));
-    contour(ii, jj, smoothn(corrects), [0 contour_pc], 'w', 'LineWidth', 2);
+    [~, threshold_pts] = Model.getThresholdPoints(category_infos, params, contour_pc, 50);
+    plot(threshold_pts(:,1), threshold_pts(:,2), '-w', 'LineWidth', 2);
 
     if exist('contour_through_sc', 'var') && ~isempty(contour_through_sc)
         slopeVals = arrayfun(@(i) interp2(ss, cc, smoothSlopes, contour_through_sc(i,1), contour_through_sc(i,2)), ...
@@ -106,13 +106,8 @@ end
 % Labels n such
 
 % Axis labels etc
-category_tick_indices = round(linspace(1, length(category_infos), min(length(category_infos), 5)));
-sensory_tick_indices = round(linspace(1, length(sensory_infos), min(length(sensory_infos), 5)));
-set(gca, 'YTick', category_tick_indices);
-set(gca, 'XTick', sensory_tick_indices);
-set(gca, 'YTickLabel', arrayfun(@num2str, category_infos(category_tick_indices), 'UniformOutput', false));
-set(gca, 'XTickLabel', arrayfun(@num2str, sensory_infos(sensory_tick_indices), 'UniformOutput', false));
-set(gca, 'YDir', 'Normal');
+set(gca, 'YTick', category_infos(round(linspace(1, length(category_infos), 5))));
+set(gca, 'XTick', sensory_infos(round(linspace(1, length(sensory_infos), 5))));
 xlabel('Sensory Info');
 ylabel('Category Info');
 title('C-S Space: PK Slope (\beta)');
