@@ -115,7 +115,7 @@ xlim([-inf inf]);
 figure;
 for iSubject=1:length(noiseSubjects)
     SubjectData = LoadAllSubjectData(noiseSubjects{iSubject}, NOISE_PHASE, DATADIR);
-    sigs = LoadOrRun(@RegenPerFrameSignals, {SubjectData, KERNEL_KAPPA}, ...
+    sigs = LoadOrRun(@ComputeFrameSignals, {SubjectData, KERNEL_KAPPA}, ...
         fullfile(MEMODIR, ['perFrameSignals-' noiseSubjects{iSubject} '-' num2str(KERNEL_KAPPA) '-noise.mat']));
     subplotsquare(length(noiseSubjects), iSubject);
     plot(SubjectData.ideal_frame_signals(:), sigs(:), '.');
@@ -126,7 +126,7 @@ end
 figure;
 for iSubject=1:length(ratioSubjects)
     SubjectData = LoadAllSubjectData(ratioSubjects{iSubject}, RATIO_PHASE, DATADIR);
-    sigs = LoadOrRun(@RegenPerFrameSignals, {SubjectData, KERNEL_KAPPA}, ...
+    sigs = LoadOrRun(@ComputeFrameSignals, {SubjectData, KERNEL_KAPPA}, ...
         fullfile(MEMODIR, ['perFrameSignals-' ratioSubjects{iSubject} '-' num2str(KERNEL_KAPPA) '-ratio.mat']));
     subplotsquare(length(ratioSubjects), iSubject);
     plot(SubjectData.ideal_frame_signals(:), sigs(:), '.');
@@ -316,7 +316,7 @@ disp('Loading/Running ideal observer');
 figureToPanel(ideal_fig, fig5, 2, 4, 5, parula);
 
 % Sampling model with gamma = 0.1
-params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', 0.1, 'noise', 0, 'trials', 10000, 'updates', 5, 'samples', 1);
+params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', 0.1, 'temperature', 0.1, 'trials', 10000, 'updates', 5, 'samples', 5);
 beta_range = [-.32 .1]; % min and max beta expected (to get maximum use of colorbar range)
 disp('Loading/Running sampling model, getting threshold points for PKs');
 sens_cat_pts = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
@@ -328,7 +328,7 @@ disp('Loading/Running sampling model, gettings slopes over CS-Space');
 figureToPanel(fig, fig5, 2, 4, 4, cmap);
 
 % Variational model with gamma = 0.1
-params = Model.newModelParams('model', 'vb-czx', 'var_x', 0.1, 'gamma', 0.1, 'noise', 0, 'trials', 10000, 'updates', 5, 'step_size', 0.05);
+params = Model.newModelParams('model', 'vb-czx', 'var_x', 0.1, 'gamma', 0.1, 'temperature', 0.1, 'trials', 10000, 'updates', 5, 'step_size', 0.05);
 beta_range = [-.32 .1]; % min and max beta expected (to get maximum use of colorbar range)
 disp('Loading/Running variational model, getting threshold points for PKs');
 sens_cat_pts = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
@@ -349,12 +349,12 @@ ps = 0.51:0.02:0.99;
 % >> Uncomment for sampling model <<
 lo_gamma = 0.1;
 hi_gamma = 0.5;
-params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', hi_gamma, 'noise', 0, 'trials', 10000, 'updates', 5, 'samples', 5);
+params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', hi_gamma, 'temperature', 0.1, 'trials', 10000, 'updates', 5, 'samples', 5);
 
 % >> Uncomment for variational model <<
 % lo_gamma = 0.1;
 % hi_gamma = 0.5;
-% params = Model.newModelParams('model', 'vb-czx', 'var_x', 0.1, 'gamma', hi_gamma, 'noise', 0, 'trials', 10000, 'updates', 5, 'step_size', 0.05);
+% params = Model.newModelParams('model', 'vb-czx', 'var_x', 0.1, 'gamma', hi_gamma, 'temperature', 0.1, 'trials', 10000, 'updates', 5, 'step_size', 0.05);
 
 % First panel: percent correct with high gamma (low gamma was done in Fig 3)
 [correct_hi, cs_fig] = Model.plotCategorySensorySpace(ps, ps, params);
@@ -398,7 +398,7 @@ ps = 0.51:0.02:0.99;
 % --- SAMPLING ---
 
 % Replicate sampling model results above (gamma = 0)
-params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', 0, 'noise', 0, 'trials', 10000, 'updates', 5, 'samples', 5);
+params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', 0, 'temperature', 0.1, 'trials', 10000, 'updates', 5, 'samples', 5);
 beta_range = [-0.4 -eps]; % min and max beta expected (to get maximum use of colorbar range)
 sens_cat_pts = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
 [cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, sens_cat_pts);
@@ -408,7 +408,7 @@ figureToPanel(pk_fig, figModelSupp, 6, 3, 2);
 figureToPanel(fig, figModelSupp, 6, 3, 3, cmap);
 
 % Same with gamma = 0.1
-params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', 0.1, 'noise', 0, 'trials', 10000, 'updates', 5, 'samples', 5);
+params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', 0.1, 'temperature', 0.1, 'trials', 10000, 'updates', 5, 'samples', 5);
 beta_range = [-.43 .1]; % min and max beta expected (to get maximum use of colorbar range)
 sens_cat_pts = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
 [cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, sens_cat_pts);
@@ -418,7 +418,7 @@ figureToPanel(pk_fig, figModelSupp, 6, 3, 5);
 figureToPanel(fig, figModelSupp, 6, 3, 6, cmap);
 
 % Same with gamma = 0.2
-params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', 0.2, 'noise', 0, 'trials', 10000, 'updates', 5, 'samples', 5);
+params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', 0.2, 'temperature', 0.1, 'trials', 10000, 'updates', 5, 'samples', 5);
 beta_range = [-.4 .23]; % min and max beta expected (to get maximum use of colorbar range)
 sens_cat_pts = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
 [cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, sens_cat_pts);
@@ -430,7 +430,7 @@ figureToPanel(fig, figModelSupp, 6, 3, 9, cmap);
 % --- VB-CZX ---
 
 % Replicate vb model results above (gamma = 0)
-params = Model.newModelParams('model', 'vb-czx', 'var_x', 0.1, 'gamma', 0, 'noise', 0, 'trials', 10000, 'updates', 5, 'step_size', 0.05);
+params = Model.newModelParams('model', 'vb-czx', 'var_x', 0.1, 'gamma', 0, 'temperature', 0.1, 'trials', 10000, 'updates', 5, 'step_size', 0.05);
 beta_range = [-0.5 -eps]; % min and max beta expected (to get maximum use of colorbar range)
 sens_cat_pts = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
 [cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, sens_cat_pts);
@@ -440,7 +440,7 @@ figureToPanel(pk_fig, figModelSupp, 6, 3, 11);
 figureToPanel(fig, figModelSupp, 6, 3, 12, cmap);
 
 % Same with gamma = 0.1
-params = Model.newModelParams('model', 'vb-czx', 'var_x', 0.1, 'gamma', 0.1, 'noise', 0, 'trials', 10000, 'updates', 5, 'step_size', 0.05);
+params = Model.newModelParams('model', 'vb-czx', 'var_x', 0.1, 'gamma', 0.1, 'temperature', 0.1, 'trials', 10000, 'updates', 5, 'step_size', 0.05);
 beta_range = [-.4 .1]; % min and max beta expected (to get maximum use of colorbar range)
 sens_cat_pts = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
 [cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, sens_cat_pts);
@@ -450,7 +450,7 @@ figureToPanel(pk_fig, figModelSupp, 6, 3, 14);
 figureToPanel(fig, figModelSupp, 6, 3, 15, cmap);
 
 % Same with gamma = 0.2
-params = Model.newModelParams('model', 'vb-czx', 'var_x', 0.1, 'gamma', 0.2, 'noise', 0, 'trials', 10000, 'updates', 5, 'step_size', 0.05);
+params = Model.newModelParams('model', 'vb-czx', 'var_x', 0.1, 'gamma', 0.2, 'temperature', 0.1, 'trials', 10000, 'updates', 5, 'step_size', 0.05);
 beta_range = [-.26 .2]; % min and max beta expected (to get maximum use of colorbar range)
 sens_cat_pts = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
 [cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, sens_cat_pts);
@@ -458,6 +458,85 @@ figureToPanel(cs_fig, figModelSupp, 6, 3, 16, parula);
 figureToPanel(pk_fig, figModelSupp, 6, 3, 17);
 [~,~,~,~,fig,cmap] = Model.plotCSSlopes(ps, ps, params, beta_range, THRESHOLD, sens_cat_pts);
 figureToPanel(fig, figModelSupp, 6, 3, 18, cmap);
+
+%% Model fits
+
+init_model_params = Model.newModelParams('model', 'is', ...
+    'gamma', 0.1, ...
+    'samples', 5, ...
+    'updates', 2, ...
+    'lapse', 0.01);
+
+nInner = 10;
+
+fields = {'prior_C', 'gamma', 'samples', 'lapse', 'sensor_noise'};
+LB = [0 0 1 0 0];
+UB = [1 1 100 1 5];
+PLB = LB;
+PUB = UB;
+
+x0 = [.5 .1 5 .01 1];
+
+vbmc_options = vbmc('defaults');
+vbmc_options.UncertaintyHandling = 'yes';
+
+% for iSubject=1:length(noiseSubjects)
+%     memo_name = ['VBMC-noise-' noiseSubjects{iSubject} '.mat'];
+%     
+%     SubjectData = LoadAllSubjectData(noiseSubjects{iSubject}, NOISE_PHASE, DATADIR);
+%     ThresholdData = GaborThresholdTrials(SubjectData, NOISE_PHASE, 0.17, 0);
+%     likefn_args = {fields, init_model_params, ThresholdData, nInner};
+%     [VP, ~, ~, extflag] = LoadOrRun(@vbmc, ...
+%         [{@Fitting.subjectDataLogLikelihood, x0, LB, UB, PLB, PUB, vbmc_options} likefn_args], ...
+%         fullfile(MEMODIR, memo_name));
+%     
+%     savedir = fullfile('demo-fit', noiseSubjects{iSubject});
+%     if ~exist(savedir, 'dir'), mkdir(savedir); end
+%     
+%     Xsamp = vbmc_rnd(VP, 1e5);
+%     [fig, ax] = cornerplot(Xsamp, fields, [], [LB; UB]);
+%     statuses = {'not converged', 'converged'};
+%     suptitle(sprintf('%s :: %s', noiseSubjects{iSubject}, statuses{extflag+1}));
+%     saveas(fig, fullfile(savedir, 'cornerplot-noise.fig'));
+%     close(fig);
+%     
+%     fig = visModelFitPsychometric(ThresholdData, NOISE_PHASE, VP, fields, init_model_params, nInner, 10);
+%     saveas(fig, fullfile(savedir, 'psychometric-noise-subthreshold.fig'));
+%     close(fig);
+%     
+%     fig = visModelFitPsychometric(SubjectData, NOISE_PHASE, VP, fields, init_model_params, nInner, 10);
+%     saveas(fig, fullfile(savedir, 'psychometric-noise.fig'));
+%     close(fig);
+% end
+
+for iSubject=1:length(ratioSubjects)
+    memo_name = ['VBMC-ratio-' ratioSubjects{iSubject} '.mat'];
+    
+    SubjectData = LoadAllSubjectData(ratioSubjects{iSubject}, RATIO_PHASE, DATADIR);
+    ThresholdData = GaborThresholdTrials(SubjectData, RATIO_PHASE, 0.6, 0.4);
+    likefn_args = {fields, init_model_params, ThresholdData, nInner};
+    [VP, ~, ~, extflag] = LoadOrRun(@vbmc, ...
+        [{@Fitting.subjectDataLogLikelihood, x0, LB, UB, PLB, PUB, vbmc_options} likefn_args], ...
+        fullfile(MEMODIR, memo_name));
+    
+    savedir = fullfile('demo-fit', ratioSubjects{iSubject});
+    if ~exist(savedir, 'dir'), mkdir(savedir); end
+    
+    Xsamp = vbmc_rnd(VP, 1e5);
+    [fig, ax] = cornerplot(Xsamp, fields, [], [LB; UB]);
+    statuses = {'not converged', 'converged'};
+    suptitle(sprintf('%s :: %s', ratioSubjects{iSubject}, statuses{extflag+1}));
+    saveas(fig, fullfile(savedir, 'cornerplot-ratio.fig'));
+    close(fig);
+    
+    fig = visModelFitPsychometric(ThresholdData, RATIO_PHASE, VP, fields, init_model_params, nInner, 10);
+    saveas(fig, fullfile(savedir, 'psychometric-ratio-subthreshold.fig'));
+    close(fig);
+    
+    fig = visModelFitPsychometric(SubjectData, RATIO_PHASE, VP, fields, init_model_params, nInner, 10);
+    saveas(fig, fullfile(savedir, 'psychometric-ratio.fig'));
+    close(fig);
+end
 
 %% Helper function for figure layout
 
