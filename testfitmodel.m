@@ -1,5 +1,6 @@
 %% Global setup
 
+clear;
 rng('shuffle');
 true_params = Model.newModelParams('model', 'itb', ...
     'var_x', 0.1, ...
@@ -20,7 +21,7 @@ distribs = Fitting.defaultDistributions(fittable_parameters);
 data = Model.genDataWithParams(true_params);
 results = Model.runVectorized(true_params, data);
 
-Model.plotPK(true_params, [1 0 0]);
+% Model.plotPK(true_params, [1 0 0]);
 
 %% MH sample parameters from their priors and visualize
 
@@ -136,7 +137,7 @@ for iRun=10:-1:1
                 if logplot(iF)
                     histogram(BESTFIT(iRun:end, iF), logspace(log10(PLB(iF)), log10(PUB(iF)), 10));
                     plot(true_params.(fields{iF})*[1 1], [0 4], '--r');
-                    set(gca, 'XScale', 'log'); 
+                    set(gca, 'XScale', 'log');
                 else
                     histogram(BESTFIT(iRun:end, iF), linspace(PLB(iF), PUB(iF), 10));
                     plot(true_params.(fields{iF})*[1 1], [0 4], '--r');
@@ -158,112 +159,140 @@ end
 %% Inference with VBMC
 
 test_params = true_params;
-test_params.temperature = 1;
-fields = {'prior_C', 'gamma', 'temperature', 'samples'};
+fields = {'prior_C', 'gamma', 'temperature', 'bound', 'lapse'};
+logplot = [0 0 1 0 1];
+nF = length(fields);
 prior_info = struct();
-for iF=1:length(fields)
+for iF=1:nF
     prior_info.(fields{iF}) = distribs.(fields{iF});
 end
 x0 = cellfun(@(f) test_params.(f), fields);
-
+nInner = 20;
 extra_args = {@Fitting.choiceModelLogProb, test_params, fields, {prior_info, data, results.choices==+1, nInner}};
 
-LB = [0 0 0 1];
-UB = [1 1 100 100];
-PLB = LB;
-PUB = UB;
+LB = cellfun(@(f) prior_info.(f).lb, fields);
+UB = cellfun(@(f) prior_info.(f).ub, fields);
+PLB = cellfun(@(f) prior_info.(f).plb, fields);
+PUB = cellfun(@(f) prior_info.(f).pub, fields);
 
-vbmc_options = vbmc('defaults');
-vbmc_options.UncertaintyHandling = 'yes';
-[VP, ELBO, ELBO_SD, EXITFLAG] = vbmc(@loglikefn_wrapper, x0, LB, UB, PLB, PUB, vbmc_options, extra_args{:});
+opts = vbmc('defaults');
+opts.UncertaintyHandling = true;
+opts.Display = 'iter';
+[VP, ELBO, ELBO_SD, EXITFLAG] = vbmc(@loglikefn_wrapper, x0, LB, UB, PLB, PUB, opts, extra_args{:});
 
 %% VBMC plot
 
+xtrue = cellfun(@(f) test_params.(f), fields);
 Xsamp = vbmc_rnd(VP, 1e5);
-[fig, ax] = cornerplot(Xsamp, fields);
-
-%% Inspect marginal likelihoods of each parameter
-
-% fields_domains = {'var_s_per_sample',  logspace(-2, 1), true;
-%     'var_x',  logspace(-2, 1), true;
-%     'prior_C',  linspace(0, 1), false;
-%     'gamma',  linspace(0, 1), false;
-%     'updates',  1:100, false;
-%     'samples',  1:100, false;
-%     'lapse', linspace(.001, 1), false;
-
-fields_domains = {'prior_C',  linspace(0, 1), false};
-
-nInner = 100;
-
-figure;
-for i=1:size(fields_domains, 1)
-    subplotsquare(size(fields_domains, 1), i);
-    marginallogposterior(@Fitting.choiceModelLogProb, {prior_info, data, results.choices==+1, nInner}, ...
-        true_params, fields_domains{i, :});
-end
-
-%% Try fitting the model to itself on choices
-
-distributions = Fitting.defaultDistributions();
-data = Model.genDataWithParams(true_params);
-results = Model.runVectorized(true_params, data);
-
-DummySubjectData = struct(...
-    'current_trial', true_params.trials, ...
-    'ideal_frame_signals', data, ...
-    'choice', results.choices, ...
-    'noise', true_params.var_s * ones(true_params.trials, 1), ...
-    'ratio', true_params.p_match * ones(true_params.trials, 1));
-
-[samples, num_samples, fields] = Fitting.fitChoicesMH(DummySubjectData, true_params, distributions, 1000, 10);
-
-[~, Ax] = plotmatrix(samples);
-for i=1:length(fields)
-    title(Ax(i, i), fields{i});
-end
+[fig, ax] = cornerplot(Xsamp, fields, xtrue);
 
 %% Try fitting a subject
 
+% Uppercase constants copied from @PaperFigures
+RATIO_PHASE = 1; % aka HSLC
+NOISE_PHASE = 2; % aka LSHC
+THRESHOLD = 0.7;
+DATADIR = fullfile(pwd, '..', 'PublishData');
+MEMODIR = fullfile(pwd, '..', 'Precomputed');
+
+suffix = 'noise';
 kernel_kappa = 0.16;
+sensor_noise = 0; % TODO - for noise > 0 some non-arbitrary decisions still need to be made, such as whether to literally add internal noise, adjust signals' CDF, etc.
 subjectId = 'BPGTask-subject07';
+
 SubjectData = LoadAllSubjectData(subjectId, NOISE_PHASE, DATADIR);
 sigs = LoadOrRun(@ComputeFrameSignals, {SubjectData, kernel_kappa}, ...
     fullfile(MEMODIR, ['perFrameSignals-' subjectId '-' num2str(kernel_kappa) '-noise.mat']));
 
-base_model = Model.newModelParams('model', 'itb');
-[params_set, stim_set, choice_set] = SubjectDataToModelParams(SubjectData, sigs, kernel_kappa, 1, base_model);
+base_params = true_params;
+[params_set, stim_set, choice_set, trial_set] = SubjectDataToModelParams(SubjectData, sigs, kernel_kappa, sensor_noise, base_params);
 nonempty = ~cellfun(@isempty, choice_set);
 params_set = params_set(nonempty);
 stim_set   = stim_set(nonempty);
 choice_set = choice_set(nonempty);
+trial_set = trial_set(nonempty);
 
-fields = {'bound', 'gamma', 'temperature', 'log_noise', 'log_lapse'};
-lb = [0 0 0 -12 -12];
-ub = [10 1 10 2 log10(.5)];
-plb = [1 0 .3 -6 -3];
-pub = [5 .5 1 -1 -1];
-
-init_vals = rand(size(plb)).*(pub-plb) + plb;
-bestfit = bads(@(x) -loglikefn_wrapper(x, @Fitting.choiceModelLogProb, params_set, fields, {stim_set, choice_set, 10}), ...
-    init_vals, lb, ub, plb, pub);
-
-% Plot PK for fit model (low sig only)
-eval_params = params_set(1);
-eval_params.trials = 10000;
-for i=1:length(fields)
-    if startsWith(fields{i}, 'log_')
-        eval_params.(fields{i}(5:end)) = 10.^bestfit(i);
+% Visualize transformation of signals from subject data.. set 'signed=true' to view bimodals, or
+% signed=false to view just positive lobes.
+signed = true;
+for iSet=1:length(params_set)
+    subplotsquare(length(params_set), iSet); cla; hold on;
+    this_sigs = sigs(trial_set{iSet}, :);
+    if signed
+        this_sgn = +1;
     else
-        eval_params.(fields{i}) = bestfit(i);
+        this_sgn = sign(SubjectData.frame_categories(trial_set{iSet}, :));
     end
+    plot(this_sigs .* this_sgn, stim_set{iSet} .* this_sgn, '.', 'Color', [0 0 0 .25]);
+    xl = xlim;
+    yl = ylim;
+    [f_old, x_old] = ksdensity(this_sigs(:)  .* this_sgn(:));
+    [f_new, x_new] = ksdensity(stim_set{iSet}(:) .* this_sgn(:));
+    if signed
+        f_new_ideal = mog.pdf(x_new(:), mog.create([-1 +1], sqrt(params_set(iSet).var_s)*[1 1], [.5 .5]));
+    else
+        f_new_ideal = normpdf(x_new, +1, sqrt(params_set(iSet).var_s));
+    end
+    plot(x_old, yl(1) + f_old / max(f_old) * diff(yl) / 4, '-r');
+    plot(xl(1) + f_new / max(f_new) * diff(xl) / 4, x_new, '-b');
+    plot(xl(1) + f_new_ideal / max(f_new_ideal) * diff(xl) / 4, x_new, '-g');
+    title(sprintf('SI=%.2f  CI=%.2f', params_set(iSet).sensory_info, params_set(iSet).category_info));
 end
-Model.plotPK(eval_params, [1 0 100]);
+sgtitle('Debug Fig: red = sig distrib; blue = transformed distrib; green = target of transformation');
 
-% Plot PK for subject
-[pk, ~, pk_err] = CustomRegression.PsychophysicalKernel(vertcat(stim_set{1:4}), horzcat(choice_set{1:4}) == +1, 1, 0, 100, 1);
-hold on;
-errorbar(pk, pk_err);
+% Prepare model fields, priors, etc for fitting
+fields = {'prior_C', 'gamma', 'noise', 'bound', 'lapse'};
+logplot = [0 1 0 1];
+nF = length(fields);
+prior_info = struct();
+for iF=1:nF
+    prior_info.(fields{iF}) = distribs.(fields{iF});
+end
+nInner = 20;
+extra_args = {@Fitting.choiceModelLogProb, params_set, fields, {prior_info, stim_set, choice_set, nInner}};
+
+LB  = cellfun(@(f) prior_info.(f).lb,  fields);
+UB  = cellfun(@(f) prior_info.(f).ub,  fields);
+PLB = cellfun(@(f) prior_info.(f).plb, fields);
+PUB = cellfun(@(f) prior_info.(f).pub, fields);
+
+opts = vbmc('defaults');
+opts.UncertaintyHandling = true;
+opts.Display = 'final';
+for iRun=5:-1:1
+    trunstart = tic;
+    [VP{iRun}, ELBO(iRun), ELBO_SD(iRun), EXITFLAG(iRun)] = vbmc(@loglikefn_wrapper, [], LB, UB, PLB, PUB, opts, extra_args{:});
+    toc(trunstart);
+end
+
+[flag, VP_bestfit, best_idx, stats] = vbmc_diagnostics(VP);
+
+%% VBMC plot posteriors
+Xsamp = vbmc_rnd(VP{best_idx}, 1e5);
+[fig, ax] = cornerplot(Xsamp, fields);
+
+%% VBMC vsualize LPO integration
+figure;
+bestfit = vbmc_mode(VP{best_idx});
+for iSet=1:length(params_set)
+    for iF=1:nF
+        params_set(iSet).(fields{iF}) = bestfit(iF);
+    end
+    res = Model.runVectorized(params_set(iSet), stim_set{iSet});
+    
+    subplotsquare(length(params_set), iSet); hold on;
+    % Plot LPO trajectory
+    plot(res.lpo', 'Color', [0 0 0 .25]);
+    chosepos = choice_set{iSet} == +1;
+    % Overlay markers on endpoints according to subject's actual choice
+    plot(11*ones(sum(chosepos), 1), res.lpo(chosepos, end), 'og');
+    plot(11*ones(sum(~chosepos), 1), res.lpo(~chosepos, end), 'xr');
+    % Show bounds as dashed black lines
+    plot([1 11], +params_set(iSet).bound*[1 1], '--k');
+    plot([1 11], -params_set(iSet).bound*[1 1], '--k');
+    % Title according to SI and CI of this group
+    title(sprintf('SI=%.2f  CI=%.2f', params_set(iSet).sensory_info, params_set(iSet).category_info));
+end
 
 %% Helper functions
 
@@ -275,11 +304,7 @@ end
 function [val] = loglikefn_wrapper(xval, loglikefn, params, fields, args, sgn)
 for iPara=1:length(params)
     for i=1:length(fields)
-        if startsWith(fields{i}, 'log_')
-            params(iPara).(fields{i}(5:end)) = 10.^xval(i);
-        else
-            params(iPara).(fields{i}) = xval(i);
-        end
+        params(iPara).(fields{i}) = xval(i);
     end
 end
 if ~exist('sgn', 'var'), sgn = +1; end
