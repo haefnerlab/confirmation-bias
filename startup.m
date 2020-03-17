@@ -3,6 +3,7 @@ if exist('smoothn', 'file')~=2, addpath('smoothn'); end
 if exist('fadecolors', 'file')~=2, addpath('tools'); end
 if exist('advancedcolormap', 'file')~=2, addpath('AdvancedColorMap'); end
 if exist('vbmc', 'file')~=2, addpath(genpath('vbmc')); end
+if exist('bads', 'file')~=2, addpath(genpath('bads')); end
 if exist('boundedline', 'file')~=2
     D = dir(fullfile('tools', 'boundedline-pkg'));
     for i=1:length(D)

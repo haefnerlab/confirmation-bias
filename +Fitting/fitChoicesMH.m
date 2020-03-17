@@ -1,4 +1,4 @@
-function [params_samples, samples, fields] = fitChoicesMH(SubjectData, params, distributions, nSamples, nInner)
+function [params_samples, samples, fields] = fitChoicesMH(SubjectData, params, distributions, nSamples, nInner, plotEvery)
 
 fields = fieldnames(distributions);
 
@@ -59,14 +59,16 @@ end
 %% Run sampler
 
 initial_values = cellfun(@(f) params.(f), fields);
-diagnoseEvery = 10;
-nBatches = nSamples / diagnoseEvery;
+if nargin < 6
+    plotEvery = 100;
+end
+nBatches = nSamples / plotEvery;
 lastSample = initial_values(:)';
 samples = [];
 for iBatch=1:nBatches
     fprintf('batch %d/%d\t', iBatch, nBatches);
     tic;
-    samples(end+1:end+diagnoseEvery,:) = mhsample(lastSample, diagnoseEvery, 'logpdf', ...
+    samples(end+1:end+plotEvery,:) = mhsample(lastSample, plotEvery, 'logpdf', ...
         @logpostpdf, 'logproppdf', @logproppdf, 'proprnd', @propose);
     toc;
     lastSample = samples(end, :);
