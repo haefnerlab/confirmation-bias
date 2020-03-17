@@ -16,9 +16,7 @@ if all(cellfun(@isempty, signals)), return; end
 
 for iSet=1:length(params)
     thisParams = Fitting.sanitize(params(iSet));
-    
-    thisParams.var_s = thisParams.var_s_per_sample * thisParams.samples;
-    
+        
     % TODO - smarter setting of seed?
     thisParams.seed = randi(1000000000);
     
@@ -41,7 +39,7 @@ for iSet=1:length(params)
     likelihood_samples{iSet}(choseNeg, :) = thisParams.lapse/2 + (1-thisParams.lapse) * (1-prob_choice(choseNeg, :));
     
     log_likelihood_per_trial{iSet} = log(nanmean(likelihood_samples{iSet}, 2));
-    log_likelihood = log_likelihood + nanmean(log_likelihood_per_trial{iSet}) * nTrials;
+    log_likelihood = log_likelihood + sum(log_likelihood_per_trial{iSet});
 end    
 
 end
