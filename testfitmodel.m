@@ -66,6 +66,7 @@ end
 field = 'prior_C';
 domain = linspace(0, 1);
 islog = false;
+prior_info = struct(field, distribs.(field));
 
 inners = [1 10 20];
 repeats = 3;
@@ -75,20 +76,19 @@ test_params = true_params;
 figure;
 for i=1:length(inners)
     for j=1:repeats
-        log_like = marginalloglikelihood(@Fitting.choiceModelLogLikelihood, ...
-            {data, results.choices==+1, inners(i)}, test_params, field, domain);
-        log_pri = distribs.(field).logpriorpdf(domain);
-        post_prob = exp(log_like + log_pri)/sum(exp(log_like + log_pri));
+        log_post = marginallogposterior(@Fitting.choiceModelLogProb, ...
+            {prior_info, data, results.choices==+1, inners(i)}, test_params, field, domain);
+        post_prob = exp(log_post)/sum(exp(log_post));
         
         subplot(2, length(inners), i); hold on;
-        plot(domain, log_like, 'LineWidth', 2);
+        plot(domain, log_post, 'LineWidth', 2);
         if islog, set(gca, 'XScale', 'log'); end
         xlim([min(domain) max(domain)]);
         yl = ylim;
         if j == 1
             plot([test_params.(field) test_params.(field)], yl, '--r');
         end
-        title([field ' LL n_{inner}=' num2str(inners(i))]);
+        title([field ' log post n_{inner}=' num2str(inners(i))]);
         
         subplot(2, length(inners), i+length(inners)); hold on;
         plot(domain, post_prob, 'LineWidth', 2);
@@ -106,27 +106,67 @@ sgtitle(strrep(Model.getModelStringID(true_params), '_', ' '));
 %% MAP inference with BADS
 
 test_params = true_params;
-test_params.temperature = 1;
-fields = {'prior_C', 'gamma', 'temperature', 'samples', 'lapse'};
+fields = {'prior_C', 'gamma', 'temperature', 'bound', 'lapse'};
+logplot = [0 0 1 0 1];
+nF = length(fields);
+prior_info = struct();
+for iF=1:nF
+    prior_info.(fields{iF}) = distribs.(fields{iF});
+end
 x0 = cellfun(@(f) test_params.(f), fields);
+nInner = 20;
+ll_to_nll = -1;
+extra_args = {@Fitting.choiceModelLogProb, test_params, fields, {prior_info, data, results.choices==+1, nInner}, ll_to_nll};
 
-extra_args = {@Fitting.choiceModelLogLikelihood, test_params, fields, {data, results.choices==+1, inners(i)}};
+LB = cellfun(@(f) prior_info.(f).lb, fields);
+UB = cellfun(@(f) prior_info.(f).ub, fields);
+PLB = cellfun(@(f) prior_info.(f).plb, fields);
+PUB = cellfun(@(f) prior_info.(f).pub, fields);
 
-LB = [0 0 0 1 0];
-UB = [1 1 100 1000 .5];
-PLB = [.3 0 .5 1 1e-6];
-PUB = [.7 .5 10 100 .3];
-
-[BESTFIT, ~, EXITFLAG] = bads(@loglikefn_wrapper, [], LB, UB, PLB, PUB, [], extra_args{:});
+opts = bads('defaults');
+opts.UncertaintyHandling = true;
+opts.Display = 'final';
+for iRun=10:-1:1
+    x0 = PLB + rand(size(PLB)) .* (PUB - PLB);
+    [BESTFIT(iRun,:), ~, EXITFLAG(iRun)] = bads(@loglikefn_wrapper, x0, LB, UB, PLB, PUB, [], opts, extra_args{:});
+    for iF=1:nF
+        for jF=iF:nF
+            subplot(nF, nF, nF*(jF-1)+iF); cla; hold on;
+            if iF == jF
+                if logplot(iF)
+                    histogram(BESTFIT(iRun:end, iF), logspace(log10(PLB(iF)), log10(PUB(iF)), 10));
+                    plot(true_params.(fields{iF})*[1 1], [0 4], '--r');
+                    set(gca, 'XScale', 'log'); 
+                else
+                    histogram(BESTFIT(iRun:end, iF), linspace(PLB(iF), PUB(iF), 10));
+                    plot(true_params.(fields{iF})*[1 1], [0 4], '--r');
+                end
+                title(fields{iF});
+            else
+                plot(BESTFIT(iRun:end, iF), BESTFIT(iRun:end, jF), 'xk');
+                plot(true_params.(fields{iF}), true_params.(fields{jF}), 'or');
+                % xlim([PLB(iF), PUB(iF)]);
+                % ylim([PLB(jF), PUB(jF)]);
+                if logplot(iF), set(gca, 'XScale', 'log'); end
+                if logplot(jF), set(gca, 'YScale', 'log'); end
+            end
+        end
+    end
+    drawnow;
+end
 
 %% Inference with VBMC
 
 test_params = true_params;
 test_params.temperature = 1;
 fields = {'prior_C', 'gamma', 'temperature', 'samples'};
+prior_info = struct();
+for iF=1:length(fields)
+    prior_info.(fields{iF}) = distribs.(fields{iF});
+end
 x0 = cellfun(@(f) test_params.(f), fields);
 
-extra_args = {@Fitting.choiceModelLogLikelihood, test_params, fields, {data, results.choices==+1, inners(i)}};
+extra_args = {@Fitting.choiceModelLogProb, test_params, fields, {prior_info, data, results.choices==+1, nInner}};
 
 LB = [0 0 0 1];
 UB = [1 1 100 100];
@@ -159,7 +199,7 @@ nInner = 100;
 figure;
 for i=1:size(fields_domains, 1)
     subplotsquare(size(fields_domains, 1), i);
-    marginalloglikelihood(@Fitting.choiceModelLogLikelihood, {data, results.choices==+1, nInner}, ...
+    marginallogposterior(@Fitting.choiceModelLogProb, {prior_info, data, results.choices==+1, nInner}, ...
         true_params, fields_domains{i, :});
 end
 
@@ -205,7 +245,7 @@ plb = [1 0 .3 -6 -3];
 pub = [5 .5 1 -1 -1];
 
 init_vals = rand(size(plb)).*(pub-plb) + plb;
-bestfit = bads(@(x) -loglikefn_wrapper(x, @Fitting.choiceModelLogLikelihood, params_set, fields, {stim_set, choice_set, 10}), ...
+bestfit = bads(@(x) -loglikefn_wrapper(x, @Fitting.choiceModelLogProb, params_set, fields, {stim_set, choice_set, 10}), ...
     init_vals, lb, ub, plb, pub);
 
 % Plot PK for fit model (low sig only)
@@ -227,12 +267,12 @@ errorbar(pk, pk_err);
 
 %% Helper functions
 
-function [log_likes] = marginalloglikelihood(loglikefn, args, params, fieldname, values)
-log_likes = arrayfun(@(v) loglikefn(setfield(params, fieldname, v), args{:}), values);
-log_likes = log_likes - max(log_likes);
+function [log_posts] = marginallogposterior(loglikefn, args, params, fieldname, values)
+log_posts = arrayfun(@(v) loglikefn(setfield(params, fieldname, v), args{:}), values);
+log_posts = log_posts - max(log_posts);
 end
 
-function [val] = loglikefn_wrapper(xval, loglikefn, params, fields, args)
+function [val] = loglikefn_wrapper(xval, loglikefn, params, fields, args, sgn)
 for iPara=1:length(params)
     for i=1:length(fields)
         if startsWith(fields{i}, 'log_')
@@ -242,5 +282,6 @@ for iPara=1:length(params)
         end
     end
 end
-val = loglikefn(params, args{:});
+if ~exist('sgn', 'var'), sgn = +1; end
+val = sgn * loglikefn(params, args{:});
 end

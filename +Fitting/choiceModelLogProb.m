@@ -1,4 +1,4 @@
-function [log_likelihood, log_likelihood_per_trial, likelihood_samples] = choiceModelLogLikelihood(params, signals, choices, nInner)
+function [log_post, log_prior, log_lh_per_trial, likelihood_samples] = choiceModelLogProb(params, prior_info, signals, choices, nInner)
 
 if ~iscell(signals)
     signals = {signals};
@@ -9,11 +9,25 @@ assert(length(params) == length(signals));
 assert(length(params) == length(choices));
 
 likelihood_samples = cell(size(params));
-log_likelihood_per_trial = cell(size(params));
-log_likelihood = 0;
+log_lh_per_trial = cell(size(params));
 
 if all(cellfun(@isempty, signals)), return; end
 
+%% Evaluate prior
+log_prior = 0;
+prior_fields = fieldnames(prior_info);
+for iF=1:length(prior_fields)
+    field = prior_fields{iF};
+    val = params.(field);
+    if isfield(prior_info.(field), 'logpriorpdf')
+        log_prior = log_prior + prior_info.(field).logpriorpdf(val);
+    else
+        log_prior = log_prior + log(prior_info.(field).priorpdf(val));
+    end
+end
+
+%% Evaluate likelihood
+log_lh = 0;
 for iSet=1:length(params)
     thisParams = Fitting.sanitize(params(iSet));
         
@@ -38,8 +52,11 @@ for iSet=1:length(params)
     likelihood_samples{iSet}(chosePos, :) = thisParams.lapse/2 + (1-thisParams.lapse) * prob_choice(chosePos, :);
     likelihood_samples{iSet}(choseNeg, :) = thisParams.lapse/2 + (1-thisParams.lapse) * (1-prob_choice(choseNeg, :));
     
-    log_likelihood_per_trial{iSet} = log(nanmean(likelihood_samples{iSet}, 2));
-    log_likelihood = log_likelihood + sum(log_likelihood_per_trial{iSet});
-end    
+    log_lh_per_trial{iSet} = log(nanmean(likelihood_samples{iSet}, 2));
+    log_lh = log_lh + sum(log_lh_per_trial{iSet});
+end
+
+%% Combine prior and likelihood
+log_post = log_prior + log_lh;
 
 end
