@@ -92,6 +92,7 @@ for sBin=nBins:-1:1
         si_trials = est_si > si_ci_bin_edges(sBin) & est_si <= si_ci_bin_edges(sBin+1);
         tr = ci_trials & si_trials;
         
+        param_set(cBin, sBin).trials = sum(tr);
         trial_set{cBin, sBin} = tr;
         
         if ~any(tr), continue; end
