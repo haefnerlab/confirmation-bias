@@ -12,6 +12,9 @@ function results = runVectorized(params, data)
 % - params.p_match = (inference) category info
 % - params.var_s + params.var_x = (inference) sensory info (see @Model.getEvidenceVariance)
 % - params.prior_C = (inference) prior probability that C=+1
+% - params.lapse = (inference) probability of "lapse" (random choice on a trial regardless of stim)
+% - params.temperature = (decision) if > 0, choices are based on raising categorical prob at the end
+%   of a trial to 1/temperature. If 0, choices are argmax.
 %
 %To run the sampling model:
 % - params.model = 'is' for "importance sampling"

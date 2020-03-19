@@ -13,7 +13,7 @@ end
 
 if ngrid > 0
     % Create grid of param values to search over.
-    variables_values = cellfun(@(v) linspace(lower_bound(v), upper_bound(v), ngrid), variables, 'UniformOutput', false);
+    variables_values = cellfun(@(v) linspace(lower_bound(v, params.allow_gamma_neg), upper_bound(v), ngrid), variables, 'UniformOutput', false);
     variables_grid = cell(size(variables));
     [variables_grid{:}] = ndgrid(variables_values{:});
     % Search over all grid points and compute percent correct (really, percent
@@ -35,7 +35,7 @@ if ngrid > 0
     optim_vars = zeros(size(variables));
     for v=1:length(variables)
         hi = upper_bound(variables{v});
-        lo = lower_bound(variables{v});
+        lo = lower_bound(variables{v}, params.allow_gamma_neg);
         % p is the fraction of the range [lo, hi] where the optimal value resides. Must subract 1 in
         % numerator and denominator because matlab is 1-indexed =(
         p = (max_subs{v} - 1) / (ngrid_fine - 1);
@@ -82,12 +82,14 @@ results = LoadOrRun(@Model.runVectorized, {params}, fullfile(params.save_dir, re
 correct = mean(results.choices == results.ideal_choices);
 end
 
-function lb = lower_bound(variable)
+function lb = lower_bound(variable, allow_gamma_neg)
 if strcmpi(variable, 'p_match')
     lb = 0.5;
 elseif strcmpi(variable, 'var_s')
     lb = 0;
-elseif strcmpi(variable, 'gamma')
+elseif strcmpi(variable, 'gamma') && allow_gamma_neg
+    lb = -1;
+elseif strcmpi(variable, 'gamma') && ~allow_gamma_neg
     lb = 0;
 elseif strcmpi(variable, 'prior_C')
     lb = 0;
