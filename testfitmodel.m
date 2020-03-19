@@ -64,7 +64,7 @@ for iF=1:length(fittable_parameters)
 end
 
 nSamples = 5000;
-[~, samples, fields] = Fitting.fitChoicesMH(EmptyData, emptyParams, distribs, nSamples, 1, nSamples);
+[~, samples, fields] = Fitting.fitChoicesMH(EmptyData, emptyParams, distribs, nSamples, 1e3, 1, nSamples);
 
 figure;
 nlag = 300;
@@ -88,45 +88,52 @@ for i=1:length(fittable_parameters)
     ylim([0 1]);
 end
 
-%% Investigate effect of # inner-loop iterations on the likelihood
+%% Investigate effect of max K iterations on the likelihood
 
 field = 'prior_C';
-domain = linspace(0, 1);
+domain = linspace(.2, .8);
 islog = false;
 prior_info = struct(field, distribs.(field));
 
-inners = [1 10 20];
+maxKs = [10 100 1000];
 repeats = 3;
 
 test_params = true_params;
 
 figure;
-for i=1:length(inners)
+for i=1:length(maxKs)
     for j=1:repeats
-        log_post = marginallogposterior(@Fitting.choiceModelLogProb, ...
-            {prior_info, data, results.choices==+1, inners(i)}, test_params, field, domain);
-        post_prob = exp(log_post)/sum(exp(log_post));
+        log_post(:,j) = marginallogposterior(@Fitting.choiceModelLogProb, ...
+            {prior_info, data, results.choices, maxKs(i)}, test_params, field, domain);
+        post_prob(:,j) = exp(log_post(:,j))/sum(exp(log_post(:,j)));
         
-        subplot(2, length(inners), i); hold on;
-        plot(domain, log_post, 'LineWidth', 2);
+        subplot(2, length(maxKs), i); hold on;
+        plot(domain, log_post(:,j), 'LineWidth', 2);
         if islog, set(gca, 'XScale', 'log'); end
         xlim([min(domain) max(domain)]);
         yl = ylim;
-        if j == 1
-            plot([test_params.(field) test_params.(field)], yl, '--r');
+        if j == repeats
         end
-        title([field ' log post n_{inner}=' num2str(inners(i))]);
+        title([field ' log post K_{max}=' num2str(maxKs(i))]);
         
-        subplot(2, length(inners), i+length(inners)); hold on;
-        plot(domain, post_prob, 'LineWidth', 2);
+        subplot(2, length(maxKs), i+length(maxKs)); hold on;
+        plot(domain, post_prob(:,j), 'LineWidth', 2);
         if islog, set(gca, 'XScale', 'log'); end
         xlim([min(domain) max(domain)]);
-        if j == 1
-            plot([test_params.(field) test_params.(field)], [0 max(post_prob)], '--r');
+        if j == repeats
         end
-        title([field ' posteriors n_{inner}=' num2str(inners(i))]);
+        title([field ' posteriors K_{max}=' num2str(maxKs(i))]);
         drawnow;
     end
+    best_log_post = smooth(mean(log_post, 2), 7, 'rloess');
+    subplot(2, length(maxKs), i); hold on;
+    plot(domain, best_log_post, '-', 'Color', [0 0 0 .75], 'LineWidth', 2);
+    plot([test_params.(field) test_params.(field)], ylim, '--r');
+    subplot(2, length(maxKs), i+length(maxKs)); hold on;
+    best_post = exp(best_log_post-max(best_log_post));
+    plot(domain, best_post/sum(best_post), '-', 'Color', [0 0 0 .75], 'LineWidth', 2);
+    plot([test_params.(field) test_params.(field)], ylim, '--r');
+    drawnow;
 end
 sgtitle(strrep(Model.getModelStringID(true_params), '_', ' '));
 
@@ -141,9 +148,9 @@ for iF=1:nF
     prior_info.(fields{iF}) = distribs.(fields{iF});
 end
 x0 = cellfun(@(f) test_params.(f), fields);
-nInner = 20;
+maxK = 1e3;
 ll_to_nll = -1;
-extra_args = {@Fitting.choiceModelLogProb, test_params, fields, {prior_info, data, results.choices==+1, nInner}, ll_to_nll};
+extra_args = {@Fitting.choiceModelLogProb, test_params, fields, {prior_info, data, results.choices, maxK}, ll_to_nll};
 
 LB = cellfun(@(f) prior_info.(f).lb, fields);
 UB = cellfun(@(f) prior_info.(f).ub, fields);
@@ -193,8 +200,8 @@ for iF=1:nF
     prior_info.(fields{iF}) = distribs.(fields{iF});
 end
 x0 = cellfun(@(f) test_params.(f), fields);
-nInner = 20;
-extra_args = {@Fitting.choiceModelLogProb, test_params, fields, {prior_info, data, results.choices==+1, nInner}};
+maxK = 1e3;
+extra_args = {@Fitting.choiceModelLogProb, test_params, fields, {prior_info, data, results.choices, maxK}};
 
 LB = cellfun(@(f) prior_info.(f).lb, fields);
 UB = cellfun(@(f) prior_info.(f).ub, fields);
@@ -276,7 +283,7 @@ prior_info = struct(); % Use this to get log posterior
 for iF=1:nF
     prior_info.(fields{iF}) = distribs.(fields{iF});
 end
-nInner = 20;
+maxK = 1e3;
 
 LB  = cellfun(@(f) prior_info.(f).lb,  fields);
 UB  = cellfun(@(f) prior_info.(f).ub,  fields);
@@ -291,7 +298,7 @@ for iT=length(temps):-1:1
     for iSet=1:length(params_set)
         ideal_params(iSet).temperature = temps(iT);
     end
-    ideal_ll(iT) = Fitting.choiceModelLogProb(ideal_params, empty_prior, stim_set, choice_set, nInner);
+    ideal_ll(iT) = Fitting.choiceModelLogProb(ideal_params, empty_prior, stim_set, choice_set, maxK);
 end
 
 [~,imax] = max(ideal_ll);
@@ -323,7 +330,7 @@ for iSet=1:length(params_set)
     vbmc_params_set(iSet).temperature = ideal_params(iSet).temperature;
 end
 % Arguments # 2..end to pass to @logprobfn_wrapper
-extra_args = {@Fitting.choiceModelLogProb, vbmc_params_set, fields, {prior_info, stim_set, choice_set, nInner}};
+extra_args = {@Fitting.choiceModelLogProb, vbmc_params_set, fields, {prior_info, stim_set, choice_set, maxK}};
 
 opts = vbmc('defaults');
 opts.UncertaintyHandling = true;
@@ -368,7 +375,7 @@ for iSet=1:length(vbmc_params_set)
     % Title according to SI and CI of this group
     title(sprintf('SI=%.2f  CI=%.2f', vbmc_params_set(iSet).sensory_info, vbmc_params_set(iSet).category_info));
 end
-vbmc_ll = Fitting.choiceModelLogProb(params_set, empty_prior, stim_set, choice_set, nInner);
+vbmc_ll = Fitting.choiceModelLogProb(params_set, empty_prior, stim_set, choice_set, maxK);
 sgtitle({['ITB [VBMC-MAP] behavior on ' subjectId '-translated data'], ['Choice-model LL = ' num2str(vbmc_ll)]});
 
 %% Try fitting subject with BADS
@@ -379,12 +386,12 @@ for iSet=1:length(params_set)
     bads_params_set(iSet).temperature = ideal_params(iSet).temperature;
 end
 % Arguments # 2..end to pass to @logprobfn_wrapper
-extra_args = {@Fitting.choiceModelLogProb, bads_params_set, fields, {prior_info, stim_set, choice_set, nInner}};
+extra_args = {@Fitting.choiceModelLogProb, bads_params_set, fields, {prior_info, stim_set, choice_set, maxK}};
 
 opts = bads('defaults');
 opts.UncertaintyHandling = true;
 opts.Display = 'iter';
-% Flip sign of LL --> NLL (bads is a *minimization* tool). Passed as 'sgn' arg to @logprobfn_wrapper 
+% Flip sign of LL --> NLL (bads is a *minimization* tool). Passed as 'sgn' arg to @logprobfn_wrapper
 bads_args = extra_args;
 bads_args{end+1} = -1;
 % Run 10 times with random restarts.. keep the best one.
@@ -428,9 +435,9 @@ for iF=1:nF
                     plot(BESTFIT(iRun, iF), BESTFIT(iRun, jF), 'o', 'Color', cols(icol,:), 'MarkerFaceColor', [1 1 1]);
                 end
             end
-%             plot(BESTFIT(bestRun,iF), BESTFIT(bestRun,jF), 'xk');
-%             xlim([PLB(iF), PUB(iF)]);
-%             ylim([PLB(jF), PUB(jF)]);
+            %             plot(BESTFIT(bestRun,iF), BESTFIT(bestRun,jF), 'xk');
+            %             xlim([PLB(iF), PUB(iF)]);
+            %             ylim([PLB(jF), PUB(jF)]);
             if logplot(iF), set(gca, 'XScale', 'log'); end
             if logplot(jF), set(gca, 'YScale', 'log'); end
         end
@@ -469,8 +476,8 @@ for iSet=1:length(params_set)
     % Title according to SI and CI of this group
     title(sprintf('SI=%.2f  CI=%.2f', bads_params_set(iSet).sensory_info, bads_params_set(iSet).category_info));
 end
-bads_loglike = Fitting.choiceModelLogProb(bads_params_set, empty_prior, stim_set, choice_set, nInner);
-bads_logpost = Fitting.choiceModelLogProb(bads_params_set, prior_info, stim_set, choice_set, nInner);
+bads_loglike = Fitting.choiceModelLogProb(bads_params_set, empty_prior, stim_set, choice_set, maxK);
+bads_logpost = Fitting.choiceModelLogProb(bads_params_set, prior_info, stim_set, choice_set, maxK);
 sgtitle({['ITB behavior on ' subjectId '-translated data'], ['Choice-model LL = ' num2str(bads_loglike) ', LPo = ' num2str(bads_logpost) ', LPri = ' num2str(bads_logpost-bads_loglike)]});
 
 %% Helper functions

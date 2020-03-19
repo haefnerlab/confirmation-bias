@@ -1,4 +1,4 @@
-function [params_samples, samples, fields] = fitChoicesMH(SubjectData, params, distributions, nSamples, nInner, plotEvery)
+function [params_samples, samples, fields] = fitChoicesMH(SubjectData, params, distributions, nSamples, maxK, nInner, plotEvery)
 
 fields = fieldnames(distributions);
 
@@ -24,23 +24,11 @@ for iKappa=1:length(uKappas)
 end
 
     function log_post = logpostpdf(smpl)
-        %% prior
-        log_prior = 0;
-        for jField=1:length(fields)
-            % Sum the log priors for each parameter
-            log_prior = log_prior + distributions.(fields{jField}).logpriorpdf(smpl(jField));
-            
-            % Also set each field in 'params' to the current sample value
-            params.(fields{jField}) = smpl(jField);
+        % Fitting.choiceModelLogProb is a stochastic estimator of the log posterior.. average over a few runs
+        for i=nInner:-1:1
+            log_post(i) = Fitting.choiceModelLogProb(params, distributions, expt_signals, expt_choices, maxK);
         end
-        
-        params.var_s = params.var_s_per_sample * params.samples;
-        
-        %% likelihood
-        [log_likelihood, ~, ~] = Fitting.choiceModelLogLikelihood(params, expt_signals, expt_choices, nInner);
-        
-        %% Combine to get posterior
-        log_post = log_prior + log_likelihood;
+        log_post = mean(log_post);
     end
 
     function x = propose(x)
