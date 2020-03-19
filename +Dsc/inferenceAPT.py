@@ -22,7 +22,7 @@ from mat4py import loadmat
 #%%
 def ConfirmationBiasSimulator(xval,fieldstofit,params, dataPath, engine):
     # run matlab code run.vectorized and read results
-    print("Hello I am in Simulator")
+   # print("Hello I am in Simulator")
 
     paramsNew = copy.deepcopy(params)
     for i,f in enumerate(fieldstofit):
@@ -33,12 +33,13 @@ def ConfirmationBiasSimulator(xval,fieldstofit,params, dataPath, engine):
 
 
     sim_results = engine.Model.runVectorizedAPT(paramsNew, dataPath)
-    print("Hello I am out of simulator")
+    #print("Hello I am out of simulator")
     
-    choice = np.asarray(sim_results['choices'])
-    print(choice.shape)
+    sim_choice = np.squeeze(np.asarray(sim_results['choices']))
 
-    return choice
+
+
+    return sim_choice
 # define a simulator class linking to the real simulator
 
 class ConfirmationBias(BaseSimulator):
@@ -64,82 +65,86 @@ class ConfirmationBiasStats(BaseSummaryStats):
         self.n_summary = 1
     def calc(self,choice):
         stats = choice
+
+     
         return stats
 #%%
 # load the MATLAB engine
-engine = matlab.engine.start_matlab()
+if __name__ == "__main__":
+    engine = matlab.engine.start_matlab()
+    
+    datafolder = '../dscData'
+    filename = 'syntheticData_priorC5.mat'
+    dataPath = os.path.join(datafolder,filename)
+    syntheticData = loadmat(dataPath)
+    # load data
+    choice = np.squeeze(np.asarray(syntheticData['sim_results']['choices']))
 
-datafolder = '../dscData'
-filename = 'syntheticData_priorC5.mat'
-dataPath = os.path.join(datafolder,filename)
-syntheticData = loadmat(dataPath)
-# load data
-choice = np.asarray(syntheticData['sim_results']['choices'])
-params = syntheticData['params']
-
-# define prior over model parameters
-fieldstofit = ['prior_C','gamma','samples','lapse']
-seed_p = 2
-prior_min = np.array([0,0,1,0])
-prior_max = np.array([1,1,100,1])
-prior =  dd.Uniform(lower = prior_min , upper = prior_max,seed = seed_p)
-
-
-#sim_resultsTest = ConfirmationBiasSimulator([0.5,0.01,5,0,0],fieldstofit,params, dataPath, engine)
-
-
-# inference parameters
-seed_inf = 1
-
-pilot_samples = 2000
-
-# training schedule
-n_train = 2000
-n_rounds = 1
-
-# fitting setup
-minibatch = 100
-epochs = 100
-val_frac = 0.05
-
-# network setup
-n_hiddens = [50,50]
-
-# convenience
-prior_norm = True
-
-# MAF parameters
-density = 'maf'
-n_mades = 5         # number of MADES
-
-
-# define generator class
-s = ConfirmationBiasStats()
-# use multiple processes of simulators
-n_processes = 1
-seeds_m = np.arange(1,n_processes+1,1)
-m = ConfirmationBias(dataPath, fieldstofit,params,engine, seeds_m[0])
-
-g = dg.Default(model=m, prior=prior, summary=s)
-#%%
-# do inference
-# inference object
-res = infer.SNPEC(g,
-                obs=choice,
-                n_hiddens=n_hiddens,
-                seed=seed_inf,
-                pilot_samples=pilot_samples,
-                n_mades=n_mades,
-                prior_norm=prior_norm,
-                density=density)
-
-# train
-log, _, posterior = res.run(
-                    n_train=n_train,
-                    n_rounds=n_rounds,
-                    minibatch=minibatch,
-                epochs=epochs,
-                silent_fail=False,
-                proposal='prior',
-                val_frac=val_frac,
-                verbose=True,)
+    params = syntheticData['params']
+    
+    # define prior over model parameters
+    fieldstofit = ['prior_C','gamma','samples','lapse']
+    seed_p = 2
+    prior_min = np.array([0,0,1,0])
+    prior_max = np.array([1,1,100,1])
+    prior =  dd.Uniform(lower = prior_min , upper = prior_max,seed = seed_p)
+    
+    
+    #sim_resultsTest = ConfirmationBiasSimulator([0.5,0.01,5,0,0],fieldstofit,params, dataPath, engine)
+    
+    
+    # inference parameters
+    seed_inf = 1
+    
+    pilot_samples = 2000
+    
+    # training schedule
+    n_train = 2000
+    n_rounds = 1
+    
+    # fitting setup
+    minibatch = 100
+    epochs = 100
+    val_frac = 0.05
+    
+    # network setup
+    n_hiddens = [50,50]
+    
+    # convenience
+    prior_norm = True
+    
+    # MAF parameters
+    density = 'maf'
+    n_mades = 5         # number of MADES
+    
+    
+    # define generator class
+    s = ConfirmationBiasStats()
+    # use multiple processes of simulators
+    n_processes = 1
+    seeds_m = np.arange(1,n_processes+1,1)
+    m = ConfirmationBias(dataPath, fieldstofit,params,engine, seeds_m[0])
+    
+    g = dg.Default(model=m, prior=prior, summary=s)
+    #%%
+    # do inference
+    # inference object
+    res = infer.SNPEC(g,
+                    obs=choice,
+                    n_hiddens=n_hiddens,
+                    seed=seed_inf,
+                    pilot_samples=pilot_samples,
+                    n_mades=n_mades,
+                    prior_norm=prior_norm,
+                    density=density)
+    
+    # train
+    log, _, posterior = res.run(
+                        n_train=n_train,
+                        n_rounds=n_rounds,
+                        minibatch=minibatch,
+                    epochs=epochs,
+                    silent_fail=False,
+                    proposal='prior',
+                    val_frac=val_frac,
+                    verbose=True,)
