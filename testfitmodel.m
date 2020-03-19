@@ -14,7 +14,7 @@ true_params = Model.newModelParams('model', 'itb', ...
     'temperature', .1, ...
     'lapse', 1e-3, ...
     'seed', randi(1e9));
-fittable_parameters = {'prior_C', 'lapse', 'gamma', 'sensor_noise', 'var_x', 'noise', 'temperature', 'bound', 'updates', 'samples'};
+fittable_parameters = {'prior_C', 'lapse', 'gamma', 'neggamma', 'sensor_noise', 'var_x', 'noise', 'temperature', 'bound', 'updates', 'samples'};
 distribs = Fitting.defaultDistributions(fittable_parameters);
 
 % Simulate ground-truth results
@@ -22,6 +22,32 @@ data = Model.genDataWithParams(true_params);
 results = Model.runVectorized(true_params, data);
 
 % Model.plotPK(true_params, [1 0 0]);
+
+%% Plot priors over each parameter
+
+for iPara=1:length(fittable_parameters)
+    d = distribs.(fittable_parameters{iPara});
+    xs = linspace(d.lb, d.ub, 1001);
+    log_ps = d.logpriorpdf(xs);
+    ps = exp(log_ps - max(log_ps));
+    ps = ps / sum(ps);
+    
+    checkps = d.priorpdf(xs);
+    checkps = checkps / sum(checkps);
+    
+    subplotsquare(length(fittable_parameters), iPara); hold on;
+    plot(xs, ps, '-k', 'LineWidth', 2);
+    plot(xs, checkps, '--r', 'LineWidth', 1);
+    plot(d.plb*[1 1], ylim, '--b');
+    plot(d.pub*[1 1], ylim, '--g');
+    title([fittable_parameters{iPara} ' prior']);
+    
+    if iPara == length(fittable_parameters)
+        legend({'exp(logpriorpdf)', 'priorpdf'}, 'location', 'best');
+    end
+end
+
+clear iPara d xs ps log_ps checkps
 
 %% MH sample parameters from their priors and visualize
 
