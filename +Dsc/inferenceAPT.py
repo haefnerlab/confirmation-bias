@@ -23,9 +23,7 @@ from mat4py import loadmat
 def ConfirmationBiasSimulator(xval,fieldstofit,params, dataPath, engine):
     # run matlab code run.vectorized and read results
     print("Hello I am in Simulator")
-    # print(type(signals))
-    # print(type(params[0]))
-   # print(engine.workspace)
+
     paramsNew = copy.deepcopy(params)
     for i,f in enumerate(fieldstofit):
         if type(params[f]) is float:
@@ -33,11 +31,14 @@ def ConfirmationBiasSimulator(xval,fieldstofit,params, dataPath, engine):
         elif type(params[f]) is int:
             paramsNew[f] = int(xval[i])
 
-    
+
     sim_results = engine.Model.runVectorizedAPT(paramsNew, dataPath)
-    # sim_results = engine.sqrt(float(2))
     print("Hello I am out of simulator")
-    return np.asarray(sim_results['choices'])
+    
+    choice = np.asarray(sim_results['choices'])
+    print(choice.shape)
+
+    return choice
 # define a simulator class linking to the real simulator
 
 class ConfirmationBias(BaseSimulator):
@@ -59,10 +60,10 @@ class ConfirmationBias(BaseSimulator):
 #%%
 
 class ConfirmationBiasStats(BaseSummaryStats):
-    def __init__(self,choice):
-        self.choice = choice
-    def calc(self):
-        stats = self.choice
+    def __init__(self):
+        self.n_summary = 1
+    def calc(self,choice):
+        stats = choice
         return stats
 #%%
 # load the MATLAB engine
@@ -113,14 +114,13 @@ n_mades = 5         # number of MADES
 
 
 # define generator class
-s = ConfirmationBiasStats(choice)
+s = ConfirmationBiasStats()
 # use multiple processes of simulators
 n_processes = 1
 seeds_m = np.arange(1,n_processes+1,1)
-m = []
-for i in range(n_processes):
-    m.append(ConfirmationBias(dataPath, fieldstofit,params,engine, seeds_m[i]))
-g = dg.MPGenerator(models=m, prior=prior, summary=s)
+m = ConfirmationBias(dataPath, fieldstofit,params,engine, seeds_m[0])
+
+g = dg.Default(model=m, prior=prior, summary=s)
 #%%
 # do inference
 # inference object
