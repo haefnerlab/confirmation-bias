@@ -5,17 +5,29 @@ rng('shuffle');
 true_params = Model.newModelParams('model', 'itb', ...
     'var_x', 0.1, ...
     'gamma', .05, ...
+    'allow_gamma_neg', false, ...
     'save_dir', 'tmp', ...
     'trials', 800, ...
-    'updates', 5, ...
+    'updates', 1, ...
     'step_size', 0.01, ...
     'bound', 1, ...
     'noise', .01, ...
     'temperature', .1, ...
     'lapse', 1e-3, ...
     'seed', randi(1e9));
-fittable_parameters = {'prior_C', 'lapse', 'gamma', 'neggamma', 'sensor_noise', 'var_x', 'noise', 'temperature', 'bound', 'updates', 'samples'};
-distribs = Fitting.defaultDistributions(fittable_parameters);
+
+% Get default distributions over all fittable parameters (priors and bounds plotted in the next
+% block). 3rd argument to defaultDistributions is whether gamma may be negative.
+fittable_parameters = {'prior_C', 'lapse', 'gamma', 'sensor_noise', 'var_x', 'noise', ...
+    'temperature', 'bound', 'updates', 'samples'};
+distribs = Fitting.defaultDistributions(fittable_parameters, [], false);
+
+% The next lines demonstrate that log(x) can be fit instead of x. The semantics of the prior change
+% depending on whether we're doing MAP fitting (e.g. with BADS) or full posterior fitting (e.g. with
+% VBMC)
+log_fittable_parameters = {'log_lapse', 'log_noise', 'log_temperature', 'log_bound'};
+log_distribs_map = Fitting.defaultDistributions(fittable_parameters, true);
+log_distribs_bayes = Fitting.defaultDistributions(log_fittable_parameters, false);
 
 % Simulate ground-truth results
 data = Model.genDataWithParams(true_params);
@@ -25,9 +37,10 @@ results = Model.runVectorized(true_params, data);
 
 %% Plot priors over each parameter
 
+figure;
 for iPara=1:length(fittable_parameters)
     d = distribs.(fittable_parameters{iPara});
-    xs = linspace(d.lb, d.ub, 1001);
+    xs = linspace(d.plb, d.pub, 1001);
     log_ps = d.logpriorpdf(xs);
     ps = exp(log_ps - max(log_ps));
     ps = ps / sum(ps);
@@ -40,7 +53,7 @@ for iPara=1:length(fittable_parameters)
     plot(xs, checkps, '--r', 'LineWidth', 1);
     plot(d.plb*[1 1], ylim, '--b');
     plot(d.pub*[1 1], ylim, '--g');
-    title([fittable_parameters{iPara} ' prior']);
+    title([strrep(fittable_parameters{iPara}, '_', ' ') ' prior']);
     
     if iPara == length(fittable_parameters)
         legend({'exp(logpriorpdf)', 'priorpdf'}, 'location', 'best');
@@ -50,6 +63,8 @@ end
 clear iPara d xs ps log_ps checkps
 
 %% MH sample parameters from their priors and visualize
+
+error('this block needs updating');
 
 % Sample from the prior by passing empty data
 EmptyData = struct('choice', [], 'ideal_frame_signals', [], 'noise', [], 'params', []);
@@ -90,12 +105,11 @@ end
 
 %% Investigate effect of max K iterations on the likelihood
 
-field = 'prior_C';
-domain = linspace(.2, .8);
-islog = false;
-prior_info = struct(field, distribs.(field));
+field = 'log_temperature';
+prior_info = Fitting.defaultDistributions({field}, false);
+domain = linspace(prior_info.(field).plb, prior_info.(field).pub);
 
-maxKs = [10 100 1000];
+maxKs = [10 100 200];
 repeats = 3;
 
 test_params = true_params;
@@ -103,36 +117,31 @@ test_params = true_params;
 figure;
 for i=1:length(maxKs)
     for j=1:repeats
-        log_post(:,j) = marginallogposterior(@Fitting.choiceModelLogProb, ...
-            {prior_info, data, results.choices, maxKs(i)}, test_params, field, domain);
-        post_prob(:,j) = exp(log_post(:,j))/sum(exp(log_post(:,j)));
+        log_post(:,j) = arrayfun(...
+            @(x) Fitting.choiceModelLogProb(Fitting.setParamsFields(test_params, field, x), prior_info, data, results.choices, maxKs(i)), ...
+            domain);
+        post_prob(:,j) = log2prob(log_post(:,j));
         
         subplot(2, length(maxKs), i); hold on;
         plot(domain, log_post(:,j), 'LineWidth', 2);
-        if islog, set(gca, 'XScale', 'log'); end
         xlim([min(domain) max(domain)]);
         yl = ylim;
-        if j == repeats
-        end
         title([field ' log post K_{max}=' num2str(maxKs(i))]);
         
         subplot(2, length(maxKs), i+length(maxKs)); hold on;
         plot(domain, post_prob(:,j), 'LineWidth', 2);
-        if islog, set(gca, 'XScale', 'log'); end
         xlim([min(domain) max(domain)]);
-        if j == repeats
-        end
         title([field ' posteriors K_{max}=' num2str(maxKs(i))]);
         drawnow;
     end
     best_log_post = smooth(mean(log_post, 2), 7, 'rloess');
     subplot(2, length(maxKs), i); hold on;
     plot(domain, best_log_post, '-', 'Color', [0 0 0 .75], 'LineWidth', 2);
-    plot([test_params.(field) test_params.(field)], ylim, '--r');
+    plot(Fitting.getParamsFields(test_params, field)*[1 1], ylim, '--r');
     subplot(2, length(maxKs), i+length(maxKs)); hold on;
-    best_post = exp(best_log_post-max(best_log_post));
+    best_post = log2prob(best_log_post);
     plot(domain, best_post/sum(best_post), '-', 'Color', [0 0 0 .75], 'LineWidth', 2);
-    plot([test_params.(field) test_params.(field)], ylim, '--r');
+    plot(Fitting.getParamsFields(test_params, field)*[1 1], ylim, '--r');
     drawnow;
 end
 sgtitle(strrep(Model.getModelStringID(true_params), '_', ' '));
@@ -140,17 +149,10 @@ sgtitle(strrep(Model.getModelStringID(true_params), '_', ' '));
 %% MAP inference fitting model to itself with BADS
 
 test_params = true_params;
-fields = {'prior_C', 'gamma', 'temperature', 'bound', 'lapse'};
-logplot = [0 0 1 0 1];
+fields = {'prior_C', 'gamma', 'log_temperature', 'log_bound', 'log_lapse'};
 nF = length(fields);
-prior_info = struct();
-for iF=1:nF
-    prior_info.(fields{iF}) = distribs.(fields{iF});
-end
-x0 = cellfun(@(f) test_params.(f), fields);
-maxK = 1e3;
-ll_to_nll = -1;
-extra_args = {@Fitting.choiceModelLogProb, test_params, fields, {prior_info, data, results.choices, maxK}, ll_to_nll};
+prior_info = Fitting.defaultDistributions(fields, true, true_params.allow_gamma_neg);
+maxK = 200;
 
 LB = cellfun(@(f) prior_info.(f).lb, fields);
 UB = cellfun(@(f) prior_info.(f).ub, fields);
@@ -162,27 +164,19 @@ opts.UncertaintyHandling = true;
 opts.Display = 'final';
 for iRun=10:-1:1
     x0 = PLB + rand(size(PLB)) .* (PUB - PLB);
-    [BESTFIT(iRun,:), ~, EXITFLAG(iRun)] = bads(@logprobfn_wrapper, x0, LB, UB, PLB, PUB, [], opts, extra_args{:});
+    [BESTFIT(iRun,:), ~, EXITFLAG(iRun)] = bads(...
+        @(x) -Fitting.choiceModelLogProb(Fitting.setParamsFields(test_params, fields, x), prior_info, data, results.choices, maxK), ...
+        x0, LB, UB, PLB, PUB, [], opts);
     for iF=1:nF
         for jF=iF:nF
             subplot(nF, nF, nF*(jF-1)+iF); cla; hold on;
             if iF == jF
-                if logplot(iF)
-                    histogram(BESTFIT(iRun:end, iF), logspace(log10(PLB(iF)), log10(PUB(iF)), 10));
-                    plot(true_params.(fields{iF})*[1 1], [0 4], '--r');
-                    set(gca, 'XScale', 'log');
-                else
-                    histogram(BESTFIT(iRun:end, iF), linspace(PLB(iF), PUB(iF), 10));
-                    plot(true_params.(fields{iF})*[1 1], [0 4], '--r');
-                end
-                title(fields{iF});
+                histogram(BESTFIT(iRun:end, iF), linspace(PLB(iF), PUB(iF), 10));
+                plot(Fitting.getParamsFields(true_params, fields{iF})*[1 1], [0 4], '--r');
+                title(strrep(fields{iF}, '_', ' '));
             else
                 plot(BESTFIT(iRun:end, iF), BESTFIT(iRun:end, jF), 'xk');
-                plot(true_params.(fields{iF}), true_params.(fields{jF}), 'or');
-                % xlim([PLB(iF), PUB(iF)]);
-                % ylim([PLB(jF), PUB(jF)]);
-                if logplot(iF), set(gca, 'XScale', 'log'); end
-                if logplot(jF), set(gca, 'YScale', 'log'); end
+                plot(Fitting.getParamsFields(true_params, fields{iF}), Fitting.getParamsFields(true_params, fields{jF}), 'or');
             end
         end
     end
@@ -193,7 +187,6 @@ end
 
 test_params = true_params;
 fields = {'prior_C', 'gamma', 'temperature', 'bound', 'lapse'};
-logplot = [0 0 1 0 1];
 nF = length(fields);
 prior_info = struct();
 for iF=1:nF
@@ -276,7 +269,6 @@ sgtitle('Debug Fig: red = sig distrib; blue = transformed distrib; green = targe
 
 % Prepare model fields, priors, etc for fitting
 fields = {'prior_C', 'gamma', 'noise', 'temperature', 'bound', 'lapse'};
-logplot = [0 0 1 1 0 1];
 nF = length(fields);
 empty_prior = struct(); % Use this when just evaluating log likelihood
 prior_info = struct(); % Use this to get log posterior
@@ -416,12 +408,7 @@ for iF=1:nF
     for jF=iF:nF
         subplot(nF, nF, nF*(jF-1)+iF); cla; hold on;
         if iF == jF
-            if logplot(iF)
-                histogram(BESTFIT(:, iF), logspace(log10(PLB(iF)), log10(PUB(iF)), 10));
-                set(gca, 'XScale', 'log');
-            else
-                histogram(BESTFIT(:, iF), linspace(PLB(iF), PUB(iF), 10));
-            end
+            histogram(BESTFIT(:, iF), linspace(PLB(iF), PUB(iF), 10));
             title(fields{iF});
             plot(BESTFIT(bestRun,iF)*[1 1], ylim, '--r');
         else
@@ -438,8 +425,6 @@ for iF=1:nF
             %             plot(BESTFIT(bestRun,iF), BESTFIT(bestRun,jF), 'xk');
             %             xlim([PLB(iF), PUB(iF)]);
             %             ylim([PLB(jF), PUB(jF)]);
-            if logplot(iF), set(gca, 'XScale', 'log'); end
-            if logplot(jF), set(gca, 'YScale', 'log'); end
         end
     end
 end
@@ -480,19 +465,16 @@ bads_loglike = Fitting.choiceModelLogProb(bads_params_set, empty_prior, stim_set
 bads_logpost = Fitting.choiceModelLogProb(bads_params_set, prior_info, stim_set, choice_set, maxK);
 sgtitle({['ITB behavior on ' subjectId '-translated data'], ['Choice-model LL = ' num2str(bads_loglike) ', LPo = ' num2str(bads_logpost) ', LPri = ' num2str(bads_logpost-bads_loglike)]});
 
-%% Helper functions
+%% Helpers
 
-function [log_posts] = marginallogposterior(logprobfn, args, params, fieldname, values)
-log_posts = arrayfun(@(v) logprobfn(setfield(params, fieldname, v), args{:}), values);
-log_posts = log_posts - max(log_posts);
-end
-
-function [val] = logprobfn_wrapper(xval, logprobfn, params, fields, args, sgn)
-for iPara=1:length(params)
-    for i=1:length(fields)
-        params(iPara).(fields{i}) = xval(i);
+function p = log2prob(logp, dim)
+if nargin < 2
+    if size(logp, 1) == 1
+        dim = 2;
+    else
+        dim = 1;
     end
 end
-if ~exist('sgn', 'var'), sgn = +1; end
-val = sgn * logprobfn(params, args{:});
+p = exp(logp-max(logp, [], dim));
+p = p ./ sum(p, dim);
 end
