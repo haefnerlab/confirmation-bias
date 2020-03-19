@@ -1,9 +1,8 @@
-function distributions = defaultDistributions(fields)
+function distributions = defaultDistributions(fields, is_map, allow_gamma_neg)
 distributions = struct(...
     'prior_C', betavar(2, 2, 50), ...
     'lapse', betavar(1, 10, 50), ...
     'gamma', uniform(0, 1, .05), ...
-    'neggamma', uniform(-1, 1, .05), ...
     'sensor_noise', gammavar(1, 3, 10), ...
     'var_x', gammavar(1, 1/10, 10), ...
     'noise', gammavar(1, 1/4, 10), ...
@@ -12,11 +11,69 @@ distributions = struct(...
     'updates', integers(5, 10), ...
     'samples', integers(5, 100));
 
+if nargin >= 3 && allow_gamma_neg
+    distributions.gamma = uniform(-1, 1, .05);
+end
+
 if nargin >= 1
     defaultFields = fieldnames(distributions);
+
+    % Handle case where a field is prefixed with 'log_'
+    islog = cellfun(@(f) startsWith(f, 'log_'), fields);
+    fields = cellfun(@(f) strrep(f, 'log_', ''), fields, 'UniformOutput', false);
+
+    % Warn about unrecognized fields and remove them
+    unrecognized = setdiff(fields, defaultFields);
+    if ~isempty(unrecognized)
+        warning('The following fields are not recognized and have no default distributions: %s', strjoin(unrecognized, ', '));
+        fields = setdiff(fields, unrecognized);
+    end
+
+    % Return default distributions
     toRemove = setdiff(defaultFields, fields);
     for iRemove=1:length(toRemove)
         distributions = rmfield(distributions, toRemove{iRemove});
+    end
+
+    % For each log_ fields, wrap its anonymous functions in another layer of log transformations.
+    if nargin < 2, is_map = true; end
+    for iF=1:length(fields)
+        if islog(iF)
+            olddistrib = distributions.(fields{iF});
+            newdistrib = olddistrib;
+            % Adjust proposal random and bounds
+            newdistrib.proprnd = @(logx) log(olddistrib.proprnd(exp(logx)));
+            newdistrib.lb  = log(olddistrib.lb);
+            newdistrib.ub  = log(olddistrib.ub);
+            newdistrib.plb = log(olddistrib.plb);
+            newdistrib.pub = log(olddistrib.pub);
+            % Adjust densities... Note that for true Bayesian inference, this must include a
+            % change-of-variables adjustment |dx/dlogx|. However, for MAP inference we don't
+            % want to change the location of the maximum through this adjustment. By default, assume
+            % the MAP version. Let y=log(x). The change-of-variables adjustment is such that
+            % P(y)dy=P(x)dx, so P(y)=P(e^y)dx/dy, or dx/dy=P(e^y) e^y
+
+            if is_map
+                % Simply transform logx --> x with no further density adjustments
+                newdistrib.priorpdf = @(logx) olddistrib.priorpdf(exp(logx));
+                newdistrib.proppdf = @(logx) olddistrib.proppdf(exp(logx));
+                newdistrib.logpriorpdf = @(logx) olddistrib.logpriorpdf(exp(logx));
+                if isfield(newdistrib, 'logproppdf')
+                    newdistrib.logproppdf = @(logx) olddistrib.logproppdf(exp(logx));
+                end
+            else
+                newdistrib.priorpdf = @(logx) olddistrib.priorpdf(exp(logx)).*exp(logx);
+                newdistrib.proppdf = @(logx) olddistrib.proppdf(exp(logx)).*exp(logx);
+                newdistrib.logpriorpdf = @(logx) olddistrib.logpriorpdf(exp(logx)) + logx;
+                if isfield(newdistrib, 'logproppdf')
+                    newdistrib.logproppdf = @(logx) olddistrib.logproppdf(exp(logx)) + logx;
+                end
+            end
+            
+            % Replace field with log_field
+            distributions = rmfield(distributions, fields{iF});
+            distributions.(['log_' fields{iF}]) = newdistrib;
+        end
     end
 end
 

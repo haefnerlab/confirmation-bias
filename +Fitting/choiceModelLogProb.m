@@ -30,7 +30,7 @@ log_prior = 0;
 prior_fields = fieldnames(prior_info);
 for iF=1:length(prior_fields)
     field = prior_fields{iF};
-    val = params.(field);
+    val = Fitting.getParamsFields(params(1), field);
     if isfield(prior_info.(field), 'logpriorpdf')
         log_prior = log_prior + prior_info.(field).logpriorpdf(val);
     else
@@ -46,8 +46,6 @@ rng('shuffle');
 
 log_lh = 0;
 for iSet=length(params):-1:1
-    thisParams = Fitting.sanitize(params(iSet));
-    
     nTrials = length(choices{iSet});
     assert(all(ismember(choices{iSet}, [-1 +1])));
 
@@ -62,7 +60,7 @@ for iSet=length(params):-1:1
     k = 1;
     while ~isempty(unmatched) && k < maxK
         % Run the model on unmatched trials
-        sim_results = Model.runVectorized(thisParams, signals{iSet}(unmatched, :));
+        sim_results = Model.runVectorized(params(iSet), signals{iSet}(unmatched, :));
 
         % For all that now match... record 'k' and remove those trials
         matching_subset = sim_results.choices == choices{iSet}(unmatched);
