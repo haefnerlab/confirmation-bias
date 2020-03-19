@@ -12,8 +12,12 @@ params.prior_C = clip(params.prior_C, 0, 1);
 params.lapse = clip(params.lapse, 1e-9, 1-1e-9);
 params.noise = clip(params.noise, 1e-9, inf);
 params.temperature = clip(params.temperature, 1e-9, inf);
-% Optimization may or may not choose to bound gamma in [0 1]. We *always* enforce [-1 1]
-params.gamma = clip(params.gamma, -1, 1);
+% If using the 'neggamma' parameter, clip gamma between [-1 1]. If using 'gamma', clip between [0 1]
+if isfield(params, 'neggamma')
+    params.gamma = clip(params.neggamma, -1, 1);
+else
+    params.gamma = clip(params.gamma, 0, 1);
+end
 % During fitting of IS model, var_s and samples are highly correlated, so we reparameterize var_s as
 % variance per sample.
 if isfield(params, 'var_s_per_sample')
