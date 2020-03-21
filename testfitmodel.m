@@ -13,7 +13,7 @@ true_params = Model.newModelParams('model', 'itb', ...
     'bound', 1, ...
     'noise', .01, ...
     'temperature', .1, ...
-    'lapse', 1e-3, ...
+    'lapse', 1e-2, ...
     'seed', randi(1e9));
 
 % Get default distributions over all fittable parameters (priors and bounds plotted in the next
@@ -103,56 +103,57 @@ for i=1:length(fittable_parameters)
     ylim([0 1]);
 end
 
-%% Investigate effect of max K iterations on the likelihood
+%% Visualize some (log) posterior marginal slices from the true model
 
-field = 'log_temperature';
+field = 'log_bound';
 prior_info = Fitting.defaultDistributions({field}, false);
 domain = linspace(prior_info.(field).plb, prior_info.(field).pub);
 
-maxKs = [10 100 200];
 repeats = 3;
 
 test_params = true_params;
 
+lower_bound = -true_params.trials*log(2);
+
 figure;
-for i=1:length(maxKs)
-    for j=1:repeats
-        log_post(:,j) = arrayfun(...
-            @(x) Fitting.choiceModelLogProb(Fitting.setParamsFields(test_params, field, x), prior_info, data, results.choices, maxKs(i)), ...
-            domain);
-        post_prob(:,j) = log2prob(log_post(:,j));
-        
-        subplot(2, length(maxKs), i); hold on;
-        plot(domain, log_post(:,j), 'LineWidth', 2);
-        xlim([min(domain) max(domain)]);
-        yl = ylim;
-        title([field ' log post K_{max}=' num2str(maxKs(i))]);
-        
-        subplot(2, length(maxKs), i+length(maxKs)); hold on;
-        plot(domain, post_prob(:,j), 'LineWidth', 2);
-        xlim([min(domain) max(domain)]);
-        title([field ' posteriors K_{max}=' num2str(maxKs(i))]);
-        drawnow;
-    end
-    best_log_post = smooth(mean(log_post, 2), 7, 'rloess');
-    subplot(2, length(maxKs), i); hold on;
-    plot(domain, best_log_post, '-', 'Color', [0 0 0 .75], 'LineWidth', 2);
-    plot(Fitting.getParamsFields(test_params, field)*[1 1], ylim, '--r');
-    subplot(2, length(maxKs), i+length(maxKs)); hold on;
-    best_post = log2prob(best_log_post);
-    plot(domain, best_post/sum(best_post), '-', 'Color', [0 0 0 .75], 'LineWidth', 2);
-    plot(Fitting.getParamsFields(test_params, field)*[1 1], ylim, '--r');
+for j=1:repeats
+    log_post(:,j) = arrayfun(...
+        @(x) Fitting.choiceModelLogProb(Fitting.setParamsFields(test_params, field, x), prior_info, data, results.choices), ...
+        domain);
+    post_prob(:,j) = log2prob(log_post(:,j));
+
+    subplot(1,2,1); hold on;
+    plot(domain, log_post(:,j), 'LineWidth', 2);
+    xlim([min(domain) max(domain)]);
+
+    subplot(1,2,2); hold on;
+    plot(domain, post_prob(:,j), 'LineWidth', 2);
+    xlim([min(domain) max(domain)]);
     drawnow;
 end
+
+subplot(1,2,1);
+best_log_post = smooth(mean(log_post, 2), 7, 'rloess');
+plot(domain, best_log_post, '-', 'Color', [0 0 0 .75], 'LineWidth', 2);
+plot(Fitting.getParamsFields(test_params, field)*[1 1], ylim, '--r');
+plot([min(domain) max(domain)], lower_bound*[1 1], '--k');
+title([field ' log posts']);
+
+subplot(1,2,2);
+title([field ' posteriors']);
+best_post = log2prob(best_log_post);
+plot(domain, best_post/sum(best_post), '-', 'Color', [0 0 0 .75], 'LineWidth', 2);
+plot(Fitting.getParamsFields(test_params, field)*[1 1], ylim, '--r');
+
 sgtitle(strrep(Model.getModelStringID(true_params), '_', ' '));
 
 %% MAP inference fitting model to itself with BADS
 
 test_params = true_params;
+test_params.allow_gamma_neg = true;
 fields = {'prior_C', 'gamma', 'log_temperature', 'log_bound', 'log_lapse'};
 nF = length(fields);
-prior_info = Fitting.defaultDistributions(fields, true, true_params.allow_gamma_neg);
-maxK = 200;
+prior_info = Fitting.defaultDistributions(fields, true, test_params.allow_gamma_neg);
 
 LB = cellfun(@(f) prior_info.(f).lb, fields);
 UB = cellfun(@(f) prior_info.(f).ub, fields);
@@ -161,11 +162,11 @@ PUB = cellfun(@(f) prior_info.(f).pub, fields);
 
 opts = bads('defaults');
 opts.UncertaintyHandling = true;
-opts.Display = 'final';
+opts.Display = 'iter';
 for iRun=10:-1:1
     x0 = PLB + rand(size(PLB)) .* (PUB - PLB);
-    [BESTFIT(iRun,:), ~, EXITFLAG(iRun)] = bads(...
-        @(x) -Fitting.choiceModelLogProb(Fitting.setParamsFields(test_params, fields, x), prior_info, data, results.choices, maxK), ...
+    [BESTFIT(iRun,:), NLL(iRun), EXITFLAG(iRun)] = bads(...
+        @(x) -Fitting.choiceModelLogProb(Fitting.setParamsFields(test_params, fields, x), prior_info, data, results.choices), ...
         x0, LB, UB, PLB, PUB, [], opts);
     for iF=1:nF
         for jF=iF:nF
@@ -174,9 +175,12 @@ for iRun=10:-1:1
                 histogram(BESTFIT(iRun:end, iF), linspace(PLB(iF), PUB(iF), 10));
                 plot(Fitting.getParamsFields(true_params, fields{iF})*[1 1], [0 4], '--r');
                 title(strrep(fields{iF}, '_', ' '));
+                xlim([PLB(iF) PUB(iF)]);
             else
                 plot(BESTFIT(iRun:end, iF), BESTFIT(iRun:end, jF), 'xk');
                 plot(Fitting.getParamsFields(true_params, fields{iF}), Fitting.getParamsFields(true_params, fields{jF}), 'or');
+                xlim([PLB(iF) PUB(iF)]);
+                ylim([PLB(jF) PUB(jF)]);
             end
         end
     end
@@ -186,15 +190,10 @@ end
 %% Inference fitting model to itself with VBMC
 
 test_params = true_params;
-fields = {'prior_C', 'gamma', 'temperature', 'bound', 'lapse'};
+fields = {'prior_C', 'gamma', 'log_temperature', 'log_bound', 'log_lapse'};
 nF = length(fields);
-prior_info = struct();
-for iF=1:nF
-    prior_info.(fields{iF}) = distribs.(fields{iF});
-end
-x0 = cellfun(@(f) test_params.(f), fields);
-maxK = 1e3;
-extra_args = {@Fitting.choiceModelLogProb, test_params, fields, {prior_info, data, results.choices, maxK}};
+prior_info = Fitting.defaultDistributions(fields, false, true_params.allow_gamma_neg);
+x0 = Fitting.getParamsFields(true_params, fields);
 
 LB = cellfun(@(f) prior_info.(f).lb, fields);
 UB = cellfun(@(f) prior_info.(f).ub, fields);
@@ -204,15 +203,17 @@ PUB = cellfun(@(f) prior_info.(f).pub, fields);
 opts = vbmc('defaults');
 opts.UncertaintyHandling = true;
 opts.Display = 'iter';
-[VP, ELBO, ELBO_SD, EXITFLAG] = vbmc(@logprobfn_wrapper, x0, LB, UB, PLB, PUB, opts, extra_args{:});
+[VP, ELBO, ELBO_SD, EXITFLAG] = vbmc(...
+    @(x) Fitting.choiceModelLogProb(Fitting.setParamsFields(test_params, fields, x), prior_info, data, results.choices), ...
+    x0, LB, UB, PLB, PUB, opts);
 
 %% Fit model to self VBMC plot
 
-xtrue = cellfun(@(f) test_params.(f), fields);
+xtrue = Fitting.getParamsFields(true_params, fields);
 Xsamp = vbmc_rnd(VP, 1e5);
-[fig, ax] = cornerplot(Xsamp, fields, xtrue);
+[fig, ax] = cornerplot(Xsamp, fields, xtrue, [PLB; PUB]);
 
-%% Load subject data and convert to model space
+%% Load subject data and visualize conversion to model space
 
 % Uppercase constants copied from @PaperFigures
 RATIO_PHASE = 1; % aka HSLC
@@ -221,20 +222,17 @@ THRESHOLD = 0.7;
 DATADIR = fullfile(pwd, '..', 'PublishData');
 MEMODIR = fullfile(pwd, '..', 'Precomputed');
 
-suffix = 'noise';
-kernel_kappa = 0.16;
-sensor_noise = 0; % TODO - for noise > 0 some non-arbitrary decisions still need to be made, such as whether to literally add internal noise, adjust signals' CDF, etc.
 subjectId = 'BPGTask-subject07';
-
 SubjectData = LoadAllSubjectData(subjectId, NOISE_PHASE, DATADIR);
-sigs = LoadOrRun(@ComputeFrameSignals, {SubjectData, kernel_kappa}, ...
-    fullfile(MEMODIR, ['perFrameSignals-' subjectId '-' num2str(kernel_kappa) '-noise.mat']));
+kernel_kappa = 0.16;
+uid = [subjectId '-' num2str(kernel_kappa) '-' SubjectData.phase];
+signals = LoadOrRun(@ComputeFrameSignals, {SubjectData, kernel_kappa}, ...
+    fullfile('../Precomputed', ['perFrameSignals-' uid '.mat']));
 
-base_params = Model.newModelParams('model', 'itb', 'gamma', .1, 'noise', .01, 'temperature', .01, 'bound', 3);
-[params_set, stim_set, choice_set, trial_set] = SubjectDataToModelParams(SubjectData, sigs, kernel_kappa, sensor_noise, base_params);
+[params_set, stim_set, choice_set, trial_set] = SubjectDataToModelParams(SubjectData, signals, kernel_kappa, 0);
 nonempty = ~cellfun(@isempty, choice_set);
 params_set = params_set(nonempty);
-stim_set   = stim_set(nonempty);
+stim_set = stim_set(nonempty);
 choice_set = choice_set(nonempty);
 trial_set = trial_set(nonempty);
 
@@ -244,7 +242,7 @@ figure;
 signed = true;
 for iSet=1:length(params_set)
     subplotsquare(length(params_set), iSet); cla; hold on;
-    this_sigs = sigs(trial_set{iSet}, :);
+    this_sigs = signals(trial_set{iSet}, :);
     if signed
         this_sgn = +1;
     else
@@ -267,35 +265,27 @@ for iSet=1:length(params_set)
 end
 sgtitle('Debug Fig: red = sig distrib; blue = transformed distrib; green = target of transformation');
 
-% Prepare model fields, priors, etc for fitting
-fields = {'prior_C', 'gamma', 'noise', 'temperature', 'bound', 'lapse'};
-nF = length(fields);
-empty_prior = struct(); % Use this when just evaluating log likelihood
-prior_info = struct(); % Use this to get log posterior
-for iF=1:nF
-    prior_info.(fields{iF}) = distribs.(fields{iF});
-end
-maxK = 1e3;
-
-LB  = cellfun(@(f) prior_info.(f).lb,  fields);
-UB  = cellfun(@(f) prior_info.(f).ub,  fields);
-PLB = cellfun(@(f) prior_info.(f).plb, fields);
-PUB = cellfun(@(f) prior_info.(f).pub, fields);
-
 %% Baseline: evaluate subject w.r.t. ideal observer model, fitting only temperature param
 
 ideal_params = arrayfun(@(p) setfield(p, 'model', 'ideal'), params_set);
-temps = 0:.1:10;
-for iT=length(temps):-1:1
-    for iSet=1:length(params_set)
-        ideal_params(iSet).temperature = temps(iT);
-    end
-    ideal_ll(iT) = Fitting.choiceModelLogProb(ideal_params, empty_prior, stim_set, choice_set, maxK);
-end
+ideal_fields = {'log_temperature', 'log_lapse'};
+ideal_prior_info = Fitting.defaultDistributions(ideal_fields);
 
-[~,imax] = max(ideal_ll);
-% Set to optimal temperature
-ideal_params = arrayfun(@(p) setfield(p, 'temperature', temps(imax)), ideal_params);
+LB  = cellfun(@(f) ideal_prior_info.(f).lb,  ideal_fields);
+UB  = cellfun(@(f) ideal_prior_info.(f).ub,  ideal_fields);
+PLB = cellfun(@(f) ideal_prior_info.(f).plb, ideal_fields);
+PUB = cellfun(@(f) ideal_prior_info.(f).pub, ideal_fields);
+
+% Find optimal temperature for the otherwise-ideal model
+opts = bads('defaults');
+opts.UncertaintyHandling = true;
+ideal_bestfit = bads(...
+    @(x) -Fitting.choiceModelLogProb(Fitting.setParamsFields(ideal_params, ideal_fields, x), ideal_prior_info, stim_set, choice_set), ...
+    [log(5) log(.05)], LB, UB, PLB, PUB, [], opts);
+ideal_params = Fitting.setParamsFields(ideal_params, ideal_fields, ideal_bestfit);
+
+% Evaluate log likelihood of the ideal observer model
+[~, ideal_ll, var_ideal_ll] = Fitting.choiceModelLogProb(ideal_params, ideal_prior_info, stim_set, choice_set, inf);
 
 % Plot ideal observer behavior on subject data
 figure;
@@ -312,9 +302,19 @@ for iSet=1:length(ideal_params)
     % Title according to SI and CI of this group
     title(sprintf('SI=%.2f  CI=%.2f', ideal_params(iSet).sensory_info, ideal_params(iSet).category_info));
 end
-sgtitle({['Ideal Observer behavior on ' subjectId '-translated data'], ['Choice-model LL = ' num2str(ideal_ll(imax))]});
+sgtitle({['Ideal Observer behavior on ' subjectId '-translated data'], sprintf('LL=%.2f +/- %.2f', ideal_ll, sqrt(var_ideal_ll))});
 
 %% Try fitting subject with VBMC
+
+% Prepare model fields, priors, etc for fitting
+fields_to_fit = {'prior_C', 'gamma', 'log_temperature', 'log_bound', 'log_lapse'};
+nF = length(fields_to_fit);
+prior_info = Fitting.defaultDistributions(fields_to_fit, false, false);
+
+LB  = cellfun(@(f) prior_info.(f).lb,  fields_to_fit);
+UB  = cellfun(@(f) prior_info.(f).ub,  fields_to_fit);
+PLB = cellfun(@(f) prior_info.(f).plb, fields_to_fit);
+PUB = cellfun(@(f) prior_info.(f).pub, fields_to_fit);
 
 % First, copy best-fit 'temperature' parameter from the ideal observer model.
 vbmc_params_set = params_set;
@@ -322,7 +322,7 @@ for iSet=1:length(params_set)
     vbmc_params_set(iSet).temperature = ideal_params(iSet).temperature;
 end
 % Arguments # 2..end to pass to @logprobfn_wrapper
-extra_args = {@Fitting.choiceModelLogProb, vbmc_params_set, fields, {prior_info, stim_set, choice_set, maxK}};
+extra_args = {@Fitting.choiceModelLogProb, vbmc_params_set, fields, {prior_info, stim_set, choice_set}};
 
 opts = vbmc('defaults');
 opts.UncertaintyHandling = true;
@@ -367,30 +367,31 @@ for iSet=1:length(vbmc_params_set)
     % Title according to SI and CI of this group
     title(sprintf('SI=%.2f  CI=%.2f', vbmc_params_set(iSet).sensory_info, vbmc_params_set(iSet).category_info));
 end
-vbmc_ll = Fitting.choiceModelLogProb(params_set, empty_prior, stim_set, choice_set, maxK);
+vbmc_ll = Fitting.choiceModelLogProb(params_set, empty_prior, stim_set, choice_set);
 sgtitle({['ITB [VBMC-MAP] behavior on ' subjectId '-translated data'], ['Choice-model LL = ' num2str(vbmc_ll)]});
 
 %% Try fitting subject with BADS
 
-% First, copy best-fit 'temperature' parameter from the ideal observer model.
-bads_params_set = params_set;
-for iSet=1:length(params_set)
-    bads_params_set(iSet).temperature = ideal_params(iSet).temperature;
-end
-% Arguments # 2..end to pass to @logprobfn_wrapper
-extra_args = {@Fitting.choiceModelLogProb, bads_params_set, fields, {prior_info, stim_set, choice_set, maxK}};
+% Prepare model fields, priors, etc for fitting
+fields_to_fit = {'prior_C', 'gamma', 'log_temperature', 'log_bound', 'log_lapse'};
+nF = length(fields_to_fit);
+prior_info = Fitting.defaultDistributions(fields_to_fit, true, false);
+
+LB  = cellfun(@(f) prior_info.(f).lb,  fields_to_fit);
+UB  = cellfun(@(f) prior_info.(f).ub,  fields_to_fit);
+PLB = cellfun(@(f) prior_info.(f).plb, fields_to_fit);
+PUB = cellfun(@(f) prior_info.(f).pub, fields_to_fit);
 
 opts = bads('defaults');
 opts.UncertaintyHandling = true;
 opts.Display = 'iter';
-% Flip sign of LL --> NLL (bads is a *minimization* tool). Passed as 'sgn' arg to @logprobfn_wrapper
-bads_args = extra_args;
-bads_args{end+1} = -1;
 % Run 10 times with random restarts.. keep the best one.
 for iRun=10:-1:1
     trunstart = tic;
     x0 = PLB + rand(size(PLB)).*(PUB-PLB);
-    [BESTFIT(iRun,:), NLL(iRun), EXITFLAG(iRun)]  = bads(@logprobfn_wrapper, x0, LB, UB, PLB, PUB, opts, bads_args{:});
+    [BESTFIT(iRun,:), NLL(iRun), EXITFLAG(iRun)]  = bads(...
+        @(x) -Fitting.choiceModelLogProb(Fitting.setParamsFields(params_set, fields_to_fit, x), prior_info, stim_set, choice_set), ...
+        x0, LB, UB, PLB, PUB, [], opts);
     toc(trunstart);
 end
 
@@ -409,13 +410,13 @@ for iF=1:nF
         subplot(nF, nF, nF*(jF-1)+iF); cla; hold on;
         if iF == jF
             histogram(BESTFIT(:, iF), linspace(PLB(iF), PUB(iF), 10));
-            title(fields{iF});
+            title(fields_to_fit{iF});
             plot(BESTFIT(bestRun,iF)*[1 1], ylim, '--r');
         else
             for iRun=1:length(NLL)
                 fcol = 1-(NLL(iRun)-min(NLL)+eps)/(max(NLL)-min(NLL)+eps+1);
                 icol = ceil(size(cols,1)*fcol);
-                % valid = colored, invalid = white
+                % Only best pt is filled in, rest are white
                 if iRun == bestRun
                     plot(BESTFIT(iRun, iF), BESTFIT(iRun, jF), 'o', 'Color', cols(icol,:), 'MarkerFaceColor', cols(icol, :));
                 else
@@ -432,18 +433,16 @@ end
 %% BADS :: visualize best model's LPO integration
 figure;
 MANUALFIT = BESTFIT(bestRun, :);
-MANUALFIT(:, strcmpi(fields, 'prior_C')) = .5;
-MANUALFIT(:, strcmpi(fields, 'gamma')) = 0;
-MANUALFIT(:, strcmpi(fields, 'noise')) = 0;
-MANUALFIT(:, strcmpi(fields, 'temperature')) = ideal_params.temperature;
-MANUALFIT(:, strcmpi(fields, 'bound')) = 40;
-MANUALFIT(:, strcmpi(fields, 'lapse')) = 0;
-disp(fields);
+% MANUALFIT(:, strcmpi(fields, 'prior_C')) = .5;
+% MANUALFIT(:, strcmpi(fields, 'gamma')) = 0;
+% MANUALFIT(:, strcmpi(fields, 'noise')) = 0;
+% MANUALFIT(:, strcmpi(fields, 'log_temperature')) = log(ideal_params.temperature);
+% MANUALFIT(:, strcmpi(fields, 'log_bound')) = 40;
+% MANUALFIT(:, strcmpi(fields, 'log_lapse')) = log(1e-3);
+disp(fields_to_fit);
 disp(MANUALFIT);
+bads_params_set = Fitting.setParamsFields(params_set, fields_to_fit, MANUALFIT);
 for iSet=1:length(params_set)
-    for iF=1:nF
-        bads_params_set(iSet).(fields{iF}) = MANUALFIT(iF);
-    end
     res = Model.runVectorized(bads_params_set(iSet), stim_set{iSet});
     
     subplotsquare(length(bads_params_set), iSet); hold on;
@@ -461,8 +460,8 @@ for iSet=1:length(params_set)
     % Title according to SI and CI of this group
     title(sprintf('SI=%.2f  CI=%.2f', bads_params_set(iSet).sensory_info, bads_params_set(iSet).category_info));
 end
-bads_loglike = Fitting.choiceModelLogProb(bads_params_set, empty_prior, stim_set, choice_set, maxK);
-bads_logpost = Fitting.choiceModelLogProb(bads_params_set, prior_info, stim_set, choice_set, maxK);
+bads_loglike = Fitting.choiceModelLogProb(bads_params_set, empty_prior, stim_set, choice_set);
+bads_logpost = Fitting.choiceModelLogProb(bads_params_set, prior_info, stim_set, choice_set);
 sgtitle({['ITB behavior on ' subjectId '-translated data'], ['Choice-model LL = ' num2str(bads_loglike) ', LPo = ' num2str(bads_logpost) ', LPri = ' num2str(bads_logpost-bads_loglike)]});
 
 %% Helpers
