@@ -32,15 +32,21 @@ A = [1, 2, 3]';
 ma = size(A, 1);
 [a,b,c, d, e, f, g]=ndgrid(1:ma,1:ma,1:ma, 1:ma, 1:ma, 1:ma, 1:ma);
 product = [A(a,:),A(b,:),A(c,:),A(d, :), A(e, :), A(f, :), A(g, :)];
-M = 40;
-parfor (i = 1:size(product, 1), M)
+parfor (i = 1:size(product, 1))
     [VP, extflag, dataName] = runVBMCInferenceFunc(dataFolder, fieldsToInfer, ...
                                 product(i, 1), product(i, 2), product(i, 3), ...
                                 product(i, 4), product(i, 5), product(i, 6), ...
                                 product(i, 7));
     parsave([resultsFolder,dataName],VP,extflag,fieldsToInfer)
-    if mod(i, 200) == 0
-        disp(["Done with: ", num2str(i/200), " samples"]);
+    if mod(i, 10) == 0
+        try
+            fid = fopen('output_file.txt', 'at+');
+            fprintf(fid, "Done with: %d samples", i/10);
+            fclose(fid);
+            disp(["Done with, ", num2str(i/10), " samples"]);
+        catch
+            disp("That didn't work");
+        end
     end
 end
 
