@@ -9,5 +9,5 @@ for iF=1:length(fields)
 	    params(iP).(fields{iF}) = values(iF);
 	end
 end
-params = Fitting.sanitize(params);
+params = arrayfun(@Fitting.sanitize, params);
 end
