@@ -51,6 +51,7 @@ PUB = cellfun(@(f) distribs.(f).pub, fit_fields);
 %% Do MAP fitting
 bads_options = bads('defaults');
 bads_options.UncertaintyHandling = 'yes';
+bads_options.NonlinearScaling = false;
 
 for iRun=10:-1:1
     % Initialize randomly on each iteration

@@ -23,6 +23,7 @@ PUB = cellfun(@(f) distribs.(f).pub, fields);
 options = bads('defaults');
 options.Display = 'iter';
 options.UncertaintyHandling = true;
+options.NonlinearScaling = false;
 
 init_vals = rand(size(LB)) .* (PUB - PLB) + PLB;
 [fit_vals, nll, exitflag] = bads(...
