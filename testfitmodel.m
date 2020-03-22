@@ -121,6 +121,7 @@ PUB = cellfun(@(f) prior_info.(f).pub, fields);
 
 opts = bads('defaults');
 opts.UncertaintyHandling = true;
+opts.NonlinearScaling = false;
 opts.Display = 'iter';
 for iRun=10:-1:1
     x0 = PLB + rand(size(PLB)) .* (PUB - PLB);
@@ -155,7 +156,7 @@ THRESHOLD = 0.7;
 DATADIR = fullfile(pwd, '..', 'PublishData');
 MEMODIR = fullfile(pwd, '..', 'Precomputed');
 
-subjectId = 'BPGTask-subject07';
+subjectId = 'BPGTask-subject01';
 SubjectData = LoadAllSubjectData(subjectId, NOISE_PHASE, DATADIR);
 kernel_kappa = 0.16;
 uid = [subjectId '-' num2str(kernel_kappa) '-' SubjectData.phase];
@@ -209,15 +210,16 @@ UB  = cellfun(@(f) ideal_prior_info.(f).ub,  ideal_fields);
 PLB = cellfun(@(f) ideal_prior_info.(f).plb, ideal_fields);
 PUB = cellfun(@(f) ideal_prior_info.(f).pub, ideal_fields);
 
-% Find optimal temperature for the otherwise-ideal model
+% Find best-fit prior, temperature, and lapse rate for the otherwise-ideal model
 opts = bads('defaults');
 opts.UncertaintyHandling = true;
+opts.NonlinearScaling = false;
 ideal_bestfit = bads(...
     @(x) -Fitting.choiceModelLogProb(Fitting.setParamsFields(ideal_params, ideal_fields, x), ideal_prior_info, stim_set, choice_set), ...
     [log(5) log(.05)], LB, UB, PLB, PUB, [], opts);
 ideal_params = Fitting.setParamsFields(ideal_params, ideal_fields, ideal_bestfit);
 
-% Evaluate log likelihood of the ideal observer model
+%% Evaluate log likelihood of the ideal observer model
 [~, ideal_ll, var_ideal_ll] = Fitting.choiceModelLogProb(ideal_params, ideal_prior_info, stim_set, choice_set);
 
 % Plot ideal observer behavior on subject data
@@ -237,6 +239,30 @@ for iSet=1:length(ideal_params)
 end
 sgtitle({['Ideal Observer behavior on ' subjectId '-translated data'], sprintf('LL=%.2f +/- %.2f', ideal_ll, sqrt(var_ideal_ll))});
 
+%% Plot marginal posterior and marginal likelihood slices for each parameter
+figure;
+for iPara=1:length(ideal_fields)
+    subplot(1, length(ideal_fields), iPara); hold on;
+    f = ideal_fields{iPara};
+    domain = linspace(ideal_prior_info.(f).lb, ideal_prior_info.(f).ub, 31);
+    for iX=length(domain):-1:1
+        for iRep=10:-1:1
+            [logpost(iX, iRep), loglike(iX, iRep), logvar(iX, iRep), lb] = Fitting.choiceModelLogProb(...
+                Fitting.setParamsFields(ideal_params, {f}, domain(iX)), ideal_prior_info, stim_set, choice_set);
+        end
+    end
+    errorbar(domain, mean(logpost, 2), sqrt(mean(logvar, 2))/sqrt(size(logvar,2)));
+    errorbar(domain, mean(loglike, 2), sqrt(mean(logvar, 2))/sqrt(size(logvar,2)));
+    plot(domain, ideal_prior_info.(f).logpriorpdf(domain), '-k');
+    xl = xlim; yl = ylim;
+    plot(xl, lb*[1 1], '--k');
+    plot(Fitting.getParamsFields(ideal_params(1), f)*[1 1], yl, '--b');
+    xlim(xl); ylim(yl);
+    legend('log posterior', 'log likelihood', 'log prior', 'lower bound');
+    title(strrep(f, '_', ' '));
+    drawnow;
+end
+
 %% Try fitting subject with BADS
 
 % Prepare model fields, priors, etc for fitting
@@ -251,6 +277,7 @@ PUB = cellfun(@(f) prior_info.(f).pub, fields_to_fit);
 
 opts = bads('defaults');
 opts.UncertaintyHandling = true;
+opts.NonlinearScaling = false;
 opts.Display = 'iter';
 % Run 10 times with random restarts.. keep the best one.
 for iRun=10:-1:1
