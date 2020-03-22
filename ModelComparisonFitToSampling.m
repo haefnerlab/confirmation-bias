@@ -1,69 +1,95 @@
-clear;
-
+function ModelComparisonFitToSampling(which_base, which_phase)
 ps = 0.51:0.02:0.99;
-true_params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', 0, 'noise', 0, 'temperature', 0.1, 'trials', 1600, 'updates', 5, 'samples', 5);
-true_params.save_dir = fullfile(pwd, 'tmp');
-[~, sens_cat_pts] = Model.getThresholdPoints(ps, true_params, .7, 5);
-rng('shuffle');
-true_params.seed = randi(1e9);
 
-lshc_params = true_params;
-lshc_params.sensory_info = sens_cat_pts(1,1);
-lshc_params.var_s = Model.getEvidenceVariance(sens_cat_pts(1,1));
-lshc_params.category_info = sens_cat_pts(1,2);
-lshc_params.p_match = sens_cat_pts(1,2);
+switch which_base
+    case 'is'
+        % Run with IS as true model
+        params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', .1, 'temperature', 0.1, 'trials', 1600, 'updates', 5, 'samples', 5);
+    case 'itb'
+        % Run with ITB as true model
+        params = Model.newModelParams('model', 'itb', 'var_x', 0.1, 'gamma', .1, 'temperature', 0.4, 'bound', 1, 'trials', 1600, 'updates', 1);
+end
 
-hslc_params = true_params;
-hslc_params.sensory_info = sens_cat_pts(end,1);
-hslc_params.var_s = Model.getEvidenceVariance(sens_cat_pts(end,1));
-hslc_params.category_info = sens_cat_pts(end,2);
-hslc_params.p_match = sens_cat_pts(end,2);
+[~, sens_cat_pts] = Model.getThresholdPoints(ps, params, .7, 5);
+params.seed = 1376289;
 
-%% Get best-fit ideal integrator.. just temperature, lapse, and prior fit
-ideal_fit = fit_helper(lshc_params, 'ideal', {'log_temperature', 'log_lapse', 'prior_C'}, false);
+switch which_phase
+    case 'lshc'
+        % Use LSHC as reference, fit other models to it
+        true_params = params;
+        true_params.sensory_info = sens_cat_pts(1,1);
+        true_params.var_s = Model.getEvidenceVariance(sens_cat_pts(1,1));
+        true_params.category_info = sens_cat_pts(1,2);
+        true_params.p_match = sens_cat_pts(1,2);
+        
+    case 'hslc'
+        % Use HSLC as reference, fit other models to it
+        true_params = params;
+        true_params.sensory_info = sens_cat_pts(end,1);
+        true_params.var_s = Model.getEvidenceVariance(sens_cat_pts(end,1));
+        true_params.category_info = sens_cat_pts(end,2);
+        true_params.p_match = sens_cat_pts(end,2);
+end
 
-%% Get best-fit bounded integrator
-itb_fit = fit_helper(lshc_params, 'itb', {'log_temperature', 'log_lapse', 'prior_C', 'bound'}, false);
+%% Plot PK of the true model and print some diagnostics
 
-%% Get best-fit ITB-like integrator with CB term
-cb_fit = fit_helper(lshc_params, 'itb', {'log_temperature', 'log_lapse', 'prior_C', 'gamma'}, true);
+Model.plotPK(true_params, [1 0 0]);
+title('PK of true model');
 
-%% Get best-fit sampling model to itself
-is_fit = fit_helper(lshc_params, 'is', {'log_temperature', 'log_lapse', 'prior_C', 'gamma', 'samples'}, true);
+[data, true_cat] = Model.genDataWithParams(true_params);
+res = Model.runVectorized(true_params, data);
+fprintf('=== True Model [%s] Stats ===\n', upper(true_params.model));
+fprintf('\t%d trials x %d frames\n', true_params.trials, true_params.frames);
+fprintf('\tsensory info = %.2f\n', true_params.sensory_info);
+fprintf('\tcategory info = %.2f\n', true_params.category_info);
+fprintf('\tpercent correct = %.1f%%\n', 100*mean(res.choices == true_cat));
+
+%% Fit other models to the reference model
+
+nModels = 4;
+model_names = {'IS', 'gamma', 'ITB', 'ideal'};
+% 'model_args' are arguments passed to @fit_helper below
+model_args(1,:) = {'is',    {'log_temperature', 'log_lapse', 'prior_C', 'gamma', 'samples'}, true};
+model_args(2,:) = {'ITB',   {'log_temperature', 'log_lapse', 'prior_C', 'gamma'},            true};
+model_args(3,:) = {'ITB',   {'log_temperature', 'log_lapse', 'prior_C', 'gamma', 'bound'},   false};
+model_args(4,:) = {'ideal', {'log_temperature', 'log_lapse', 'prior_C'},                     false};
+
+for iModel=1:nModels
+    fprintf('=== Fitting %s ===\n', model_names{iModel});
+    bestfit{iModel} = fit_helper(true_params, model_args{iModel, :});
+end
 
 %% Model-comparison diagnostics
 
 nReRuns = 100;
-ll = zeros(5, nReRuns);
-var_ll = zeros(5, nReRuns);
+% ll(end,:) will be ll under true params
+ll = zeros(nModels+1, nReRuns);
+var_ll = zeros(nModels+1, nReRuns);
 empty_prior = struct();
 
 for iRun=nReRuns:-1:1
-    disp(iRun);
+    fprintf('\tLL eval %d/%d\n', iRun, nReRuns);
     % Regenerate new random data
-    lshc_params.seed = randi(1e9);
-    data = Model.genDataWithParams(lshc_params);
+    true_params.seed = randi(1e9);
+    data = Model.genDataWithParams(true_params);
     
     % Run true model and estimate its log likelihood on itself
-    true_res = Model.runVectorized(lshc_params, data);
-    [~, ll(1,iRun), var_ll(1,iRun)] = Fitting.choiceModelLogProb(lshc_params, empty_prior, data, true_res.choices);
-    % Likewise for model that was fit from the 'correct' model family
-    [~, ll(2,iRun), var_ll(2,iRun)] = Fitting.choiceModelLogProb(is_fit, empty_prior, data, true_res.choices);
-    % Likewise for CB-like model
-    [~, ll(3,iRun), var_ll(3,iRun)] = Fitting.choiceModelLogProb(cb_fit, empty_prior, data, true_res.choices);
-    % Estimate log likelihood under ideal model
-    [~, ll(4,iRun), var_ll(4,iRun)] = Fitting.choiceModelLogProb(ideal_fit, empty_prior, data, true_res.choices);
-    % Likewise for ITB
-    [~, ll(5,iRun), var_ll(5,iRun)] = Fitting.choiceModelLogProb(itb_fit, empty_prior, data, true_res.choices);
+    true_res = Model.runVectorized(true_params, data);
+    [~, ll(end,iRun), var_ll(end,iRun)] = ...
+        Fitting.choiceModelLogProb(true_params, empty_prior, data, true_res.choices);
+    
+    % Likewise for each of the other models
+    for iModel=1:nModels
+        [~, ll(iModel,iRun), var_ll(iModel,iRun)] = ...
+            Fitting.choiceModelLogProb(bestfit{iModel}, empty_prior, data, true_res.choices);
+    end
 end
 
-est_ll = mean(ll, 2);
-est_ll_sem = mean(var_ll, 2) / sqrt(nReRuns);
+%% Compute LL _differences_ across reruns
 
-% Compute difference in LL per run; each model saw the same data every time so their LLs are
-% correlated across runs. The per-datum difference is more informative than the difference of
-% overall performance.
-ll_diff = ll - ll(1, :);
+% Each model saw the same data every time so their LLs are correlated across runs. The per-datum
+% difference is more informative than the difference of overall performance.
+ll_diff = ll - ll(end,:);
 est_ll_diff = mean(ll_diff, 2);
 sem_ll_diff = std(ll_diff, [], 2) ./ sqrt(nReRuns);
 
@@ -72,12 +98,15 @@ ll_null = -true_params.trials*log(2);
 
 %% Plot result
 figure; hold on;
-bar(1:5, est_ll_diff);
-errorbar(1:5, est_ll_diff, sem_ll_diff, 'ok');
+bar(1:nModels, est_ll_diff(1:end-1));
+errorbar(1:nModels, est_ll_diff(1:end-1), sem_ll_diff(1:end-1), 'ok');
 % plot([1 5], ll_null-mean(ll(:,1)), '--k');
 % text(1.5, ll_null-mean(ll(:,1))+5, 'random model');
-set(gca, 'XTick', 1:5, 'XTickLabel', {'true model', 'IS fit', 'CB', 'ideal', 'ITB'});
-ylabel('log likelihood');
+set(gca, 'XTick', 1:nModels, 'XTickLabel', model_names);
+grid on;
+ylabel('\Delta LL from true model');
+
+end
 
 %% Helper function to get fit
 
@@ -101,7 +130,7 @@ bestfit_params = fit_params(bestidx);
 %         subplot(5,5,(i-1)*5+j); hold on;
 %         plot(fit_vals(:,j),fit_vals(:,i), 'xk');
 %         plot(Fitting.getParamsFields(true_params, fields{j}), Fitting.getParamsFields(true_params, fields{i}), 'or');
-%         
+%
 %         if j==1
 %             ylabel(fields{i});
 %         end
