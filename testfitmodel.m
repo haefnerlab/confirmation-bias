@@ -62,47 +62,6 @@ end
 
 clear iPara d xs ps log_ps checkps
 
-%% MH sample parameters from their priors and visualize
-
-error('this block needs updating');
-
-% Sample from the prior by passing empty data
-EmptyData = struct('choice', [], 'ideal_frame_signals', [], 'noise', [], 'params', []);
-emptyParams = Model.newModelParams('bound', 5, 'lapse', 1e-2, 'gamma', .1, 'var_x', .1, 'noise', .1, 'temperature', .1, 'bound', .5, 'updates', 5, 'samples', 5);
-emptyParams = Fitting.sanitize(emptyParams);
-emptyParams.sensor_noise = 0.5;
-
-for iF=1:length(fittable_parameters)
-    f = fittable_parameters{iF};
-    fprintf('%s: begin @ %.1e with logprior %.1e\n', f, emptyParams.(f), ...
-        distribs.(f).logpriorpdf(emptyParams.(f)));
-end
-
-nSamples = 5000;
-[~, samples, fields] = Fitting.fitChoicesMH(EmptyData, emptyParams, distribs, nSamples, 1e3, 1, nSamples);
-
-figure;
-nlag = 300;
-for i=1:length(fittable_parameters)
-    subplot(length(fittable_parameters), 3, 3*(i-1)+[1 2]); hold on;
-    plot(samples(:, i));
-    yl = ylim;
-    plot([1 nSamples], distribs.(fittable_parameters{i}).lb*[1 1], '-r');
-    plot([1 nSamples], distribs.(fittable_parameters{i}).ub*[1 1], '-r');
-    plot([1 nSamples], distribs.(fittable_parameters{i}).plb*[1 1], '--r');
-    plot([1 nSamples], distribs.(fittable_parameters{i}).pub*[1 1], '--r');
-    ylim(yl);
-    ylabel(fields{i});
-    axis tight;
-    for j=1:nlag
-        lag = j-1;
-        acf(j) = corr(samples(1:end-nlag+1, i), samples(1+lag:end-nlag+1+lag, i));
-    end
-    subplot(length(fittable_parameters), 3, 3*(i-1)+3);
-    plot(0:nlag-1, acf);
-    ylim([0 1]);
-end
-
 %% Visualize some (log) posterior marginal slices from the true model
 
 field = 'log_bound';
@@ -186,32 +145,6 @@ for iRun=10:-1:1
     end
     drawnow;
 end
-
-%% Inference fitting model to itself with VBMC
-
-test_params = true_params;
-fields = {'prior_C', 'gamma', 'log_temperature', 'log_bound', 'log_lapse'};
-nF = length(fields);
-prior_info = Fitting.defaultDistributions(fields, false, true_params.allow_gamma_neg);
-x0 = Fitting.getParamsFields(true_params, fields);
-
-LB = cellfun(@(f) prior_info.(f).lb, fields);
-UB = cellfun(@(f) prior_info.(f).ub, fields);
-PLB = cellfun(@(f) prior_info.(f).plb, fields);
-PUB = cellfun(@(f) prior_info.(f).pub, fields);
-
-opts = vbmc('defaults');
-opts.UncertaintyHandling = true;
-opts.Display = 'iter';
-[VP, ELBO, ELBO_SD, EXITFLAG] = vbmc(...
-    @(x) Fitting.choiceModelLogProb(Fitting.setParamsFields(test_params, fields, x), prior_info, data, results.choices), ...
-    x0, LB, UB, PLB, PUB, opts);
-
-%% Fit model to self VBMC plot
-
-xtrue = Fitting.getParamsFields(true_params, fields);
-Xsamp = vbmc_rnd(VP, 1e5);
-[fig, ax] = cornerplot(Xsamp, fields, xtrue, [PLB; PUB]);
 
 %% Load subject data and visualize conversion to model space
 
