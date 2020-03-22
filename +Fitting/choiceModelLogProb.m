@@ -44,6 +44,10 @@ for iSet=1:nSets
     iNextStart = iNextStart+length(choices{iSet});
 end
 
+% Stack data vertically now that all 'sets' information has been processed
+signals = vertcat(signals{:});
+choices = vertcat(choices{:});
+
 %% Evaluate prior
 log_prior = 0;
 prior_fields = fieldnames(prior_info);
@@ -81,10 +85,10 @@ while ~all(matched) && L_hat_upper_bound > lower_bound
         if all(matched(setIdx(:,iSet))), continue; end
         
         % Run the model only on unmatched trials within this set
-        sim_results = Model.runVectorized(params(iSet), signals{iSet}(~matched & setIdx(:,iSet), :));
+        sim_results = Model.runVectorized(params(iSet), signals(~matched & setIdx(:,iSet), :));
         
         % For all that now match... record 'k' and mark those trials as complete
-        matching_subset = sim_results.choices == choices{iSet}(~matched & setIdx(:,iSet));
+        matching_subset = sim_results.choices == choices(~matched & setIdx(:,iSet));
         if any(matching_subset)
             % Work out the indices out of 1:nTotalTrials that we just matched
             sim_idxs = find(~matched & setIdx(:,iSet));
@@ -114,7 +118,7 @@ log_lh_per_trial = psi(0,1) - psi(0,nSamplesToMatch);
 
 % See eq. 16 in reference [1]; psi(1,x) is the trigamma function of x, i.e. the second
 % derivative of log(gamma(x))
-var_ll_per_trial{iSet} = psi(1,1) - psi(1,nSamplesToMatch);
+var_ll_per_trial = psi(1,1) - psi(1,nSamplesToMatch);
 
 rng(randstate);
 
@@ -125,6 +129,5 @@ log_like = sum(log_lh_per_trial);
 log_post = log_prior + log_like;
 
 % Estimate of the variance in log_post
-all_ll_var = vertcat(var_ll_per_trial{:});
-est_variance = sum(all_ll_var);
+est_variance = sum(var_ll_per_trial);
 end
