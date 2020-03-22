@@ -285,7 +285,7 @@ ideal_bestfit = bads(...
 ideal_params = Fitting.setParamsFields(ideal_params, ideal_fields, ideal_bestfit);
 
 % Evaluate log likelihood of the ideal observer model
-[~, ideal_ll, var_ideal_ll] = Fitting.choiceModelLogProb(ideal_params, ideal_prior_info, stim_set, choice_set, inf);
+[~, ideal_ll, var_ideal_ll] = Fitting.choiceModelLogProb(ideal_params, ideal_prior_info, stim_set, choice_set);
 
 % Plot ideal observer behavior on subject data
 figure;
@@ -303,72 +303,6 @@ for iSet=1:length(ideal_params)
     title(sprintf('SI=%.2f  CI=%.2f', ideal_params(iSet).sensory_info, ideal_params(iSet).category_info));
 end
 sgtitle({['Ideal Observer behavior on ' subjectId '-translated data'], sprintf('LL=%.2f +/- %.2f', ideal_ll, sqrt(var_ideal_ll))});
-
-%% Try fitting subject with VBMC
-
-% Prepare model fields, priors, etc for fitting
-fields_to_fit = {'prior_C', 'gamma', 'log_temperature', 'log_bound', 'log_lapse'};
-nF = length(fields_to_fit);
-prior_info = Fitting.defaultDistributions(fields_to_fit, false, false);
-
-LB  = cellfun(@(f) prior_info.(f).lb,  fields_to_fit);
-UB  = cellfun(@(f) prior_info.(f).ub,  fields_to_fit);
-PLB = cellfun(@(f) prior_info.(f).plb, fields_to_fit);
-PUB = cellfun(@(f) prior_info.(f).pub, fields_to_fit);
-
-% First, copy best-fit 'temperature' parameter from the ideal observer model.
-vbmc_params_set = params_set;
-for iSet=1:length(params_set)
-    vbmc_params_set(iSet).temperature = ideal_params(iSet).temperature;
-end
-% Arguments # 2..end to pass to @logprobfn_wrapper
-extra_args = {@Fitting.choiceModelLogProb, vbmc_params_set, fields, {prior_info, stim_set, choice_set}};
-
-opts = vbmc('defaults');
-opts.UncertaintyHandling = true;
-opts.Display = 'final';
-iRun = 1;
-flag = -1;
-% Fit a minimum of 5 models... then keep going until the vbmc_diagnostics function is satisfied with
-% convergence.
-while iRun < 5 || flag <= 0
-    trunstart = tic;
-    [VP{iRun}, ELBO(iRun), ELBO_SD(iRun)] = vbmc(@logprobfn_wrapper, [], LB, UB, PLB, PUB, opts, extra_args{:});
-    toc(trunstart);
-    if iRun >= 5
-        [flag, VP_bestfit, bestRun, stats] = vbmc_diagnostics(VP);
-    end
-    iRun = iRun+1;
-end
-
-%% VBMC :: plot best posteriors
-Xsamp = vbmc_rnd(VP{bestRun}, 1e5);
-[fig, ax] = cornerplot(Xsamp, fields, [], [LB; UB]);
-
-%% VBMC :: visualize best model's LPO integration
-figure;
-bestfit = vbmc_mode(VP{bestRun});
-for iSet=1:length(vbmc_params_set)
-    for iF=1:nF
-        vbmc_params_set(iSet).(fields{iF}) = bestfit(iF);
-    end
-    res = Model.runVectorized(vbmc_params_set(iSet), stim_set{iSet});
-    
-    subplotsquare(length(vbmc_params_set), iSet); hold on;
-    % Plot LPO trajectory
-    plot(res.lpo', 'Color', [0 0 0 .25]);
-    chosepos = choice_set{iSet} == +1;
-    % Overlay markers on endpoints according to subject's actual choice
-    plot(11*ones(sum(chosepos), 1), res.lpo(chosepos, end), 'og');
-    plot(11*ones(sum(~chosepos), 1), res.lpo(~chosepos, end), 'xr');
-    % Show bounds as dashed black lines
-    plot([1 11], +vbmc_params_set(iSet).bound*[1 1], '--k');
-    plot([1 11], -vbmc_params_set(iSet).bound*[1 1], '--k');
-    % Title according to SI and CI of this group
-    title(sprintf('SI=%.2f  CI=%.2f', vbmc_params_set(iSet).sensory_info, vbmc_params_set(iSet).category_info));
-end
-vbmc_ll = Fitting.choiceModelLogProb(params_set, empty_prior, stim_set, choice_set);
-sgtitle({['ITB [VBMC-MAP] behavior on ' subjectId '-translated data'], ['Choice-model LL = ' num2str(vbmc_ll)]});
 
 %% Try fitting subject with BADS
 
