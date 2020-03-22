@@ -1,4 +1,4 @@
-function [param_set, stim_set, choice_set, trial_set] = SubjectDataToModelParams(SubjectData, sigs, kernel_kappa, sensory_noise, base_params, si_ci_bin_edges)
+function [param_set, stim_set, choice_set, trial_set] = SubjectDataToModelParams(SubjectData, sigs, kernel_kappa, sensor_noise, base_params, si_ci_bin_edges)
 
 if ~exist('base_params', 'var')
     base_params = Model.newModelParams('model', 'is', 'frames', SubjectData.number_of_images, ...
@@ -34,7 +34,7 @@ for iStim=size(unqStim,1):-1:1
     % % Set kappa_prior to peak around the true value
     % kappa_prior(:,2) = exp(-abs(stim_gen.kappa - kappa_prior(:,1))/.04);
     [s_hat(trials, :), est_si(trials), kappa_post(trials, :), mu_s_hat] = ...
-        bpg.standardizeSignal(sigs(trials, :) .* sig_sign, kernel_kappa, stim_gen, kappa_prior, sensory_noise, false);
+        bpg.standardizeSignal(sigs(trials, :) .* sig_sign, kernel_kappa, stim_gen, kappa_prior, sensor_noise, false);
     s_hat(trials, :) = s_hat(trials, :) .* sig_sign;
 
     % Debugging  figure option 1: figure showing true and predicted CDF of s_hat for this set of stimuli
@@ -55,7 +55,7 @@ end
 
 % Debugging only: figure showing inferred sensory information vs raw signal level
 % figure(2); hold on;
-% plot(mean(sigs .* sign(SubjectData.frame_categories), 2), est_si, '.', 'DisplayName', ['\sigma^2_{int} = ' num2str(sensory_noise)]);
+% plot(mean(sigs .* sign(SubjectData.frame_categories), 2), est_si, '.', 'DisplayName', ['\sigma^2_{int} = ' num2str(sensor_noise)]);
 % xlabel({'un-adjusted sig each trial', '(output of bpg.getSignal())'});
 % ylabel('effective sensory info');
 % legend;
@@ -97,8 +97,11 @@ for sBin=nBins:-1:1
         
         if ~any(tr), continue; end
 
-        % Record all choices the subject made on these trials
-        choice_set{cBin, sBin} = SubjectData.choice(tr);
+        % Record all choices the subject made on these trials, using [-1,+1] convention rather than
+        % [0,1].
+        choice_set{cBin, sBin} = sign(double(SubjectData.choice(tr)) - 0.5);
+        % By convention, the model expects a column vector of choices
+        choice_set{cBin, sBin} = choice_set{cBin, sBin}(:);
 
         % Recording stimuli is less straightforward... whereas 's_hat' all have approximately the
         % same variance per difficulty level with changing means, the model is expecting signals
