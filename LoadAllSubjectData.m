@@ -62,6 +62,10 @@ if ~isfield(GaborData, 'flag_use_old_stimulus_code')
     GaborData.flag_use_old_stimulus_code = false;
 end
 
+% Add a bit of metadata
+GaborData.subjectID = subjectID;
+GaborData.phase = lower(expt_type);
+
 %% Compute +/- 1 category means for each signal level and normalize per-frame signals accordingly
 
 % [uKappas, ~, idxKappas] = unique(GaborData.noise);
