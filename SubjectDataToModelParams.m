@@ -1,4 +1,4 @@
-function [param_set, stim_set, choice_set, trial_set] = SubjectDataToModelParams(SubjectData, sigs, kernel_kappa, sensor_noise, base_params, si_ci_bin_edges)
+function [param_set, stim_set, choice_set, trial_set] = SubjectDataToModelParams(SubjectData, sigs, kernel_kappa, sensor_noise, base_params)
 
 if ~exist('base_params', 'var')
     base_params = Model.newModelParams('model', 'is', 'frames', SubjectData.number_of_images, ...
@@ -9,13 +9,13 @@ end
 
 unsigned_ratio = max(SubjectData.true_ratio, 1-SubjectData.true_ratio);
 allStimParameters = [SubjectData.noise(:) unsigned_ratio(:) SubjectData.contrast(:)];
-unqStim = unique(allStimParameters, 'rows');
+[unqStim, ~, idxBwd] = unique(allStimParameters, 'rows');
+nUnqStim = size(unqStim, 1);
 
-% Place an exponential prior on kappa with mean 0.16 (which is approximately the threshold level for
-% most subjects)
-unqKappas = 0:0.04:0.8;
-kappaProbs = exp(-unqKappas / 0.16);
-kappa_prior = [unqKappas(:) kappaProbs(:)/sum(kappaProbs)];
+% Prior on kappa will be a Laplace distribution centered on the true value, as if subjects have some
+% but not total information about the true kappa each trial.
+unqKappas = (0:0.04:0.8)';
+kappaPriorTau = .04;
 
 stim_gen = struct('kappa', SubjectData.noise(1), 'stim_size', SubjectData.stim_size, 'frames', SubjectData.number_of_images, ...
     'stim_sp_freq_cpp', SubjectData.stim_sp_freq_cpp, 'stim_std_sp_freq_cpp', SubjectData.stim_std_sp_freq_cpp, ...
@@ -24,15 +24,15 @@ stim_gen = struct('kappa', SubjectData.noise(1), 'stim_size', SubjectData.stim_s
 % Debugging only
 % figure(1); clf; hold on;
 % cols = jet(size(unqStim,1));
-for iStim=size(unqStim,1):-1:1
+for iStim=nUnqStim:-1:1
     trials = all(allStimParameters == unqStim(iStim, :), 2);
     
     sig_sign = sign(SubjectData.frame_categories(trials, :));
     
     stim_gen.contrast = unqStim(iStim, 3);
     stim_gen.kappa = unqStim(iStim, 1);
-    % % Set kappa_prior to peak around the true value
-    % kappa_prior(:,2) = exp(-abs(stim_gen.kappa - kappa_prior(:,1))/.04);
+    % Set kappa_prior to peak around the true value
+    kappa_prior = [unqKappas, exp(-abs(stim_gen.kappa - unqKappas)/kappaPriorTau)];
     [s_hat(trials, :), est_si(trials), kappa_post(trials, :), mu_s_hat] = ...
         bpg.standardizeSignal(sigs(trials, :) .* sig_sign, kernel_kappa, stim_gen, kappa_prior, sensor_noise, false);
     s_hat(trials, :) = s_hat(trials, :) .* sig_sign;
@@ -60,73 +60,56 @@ end
 % ylabel('effective sensory info');
 % legend;
 
-%% Group trials by similar sensory/category info
+%% Construct model params and group trial together per unique stimulus combination
 
-if ~exist('si_ci_bin_edges', 'var'), si_ci_bin_edges = .5:.05:1; end
+param_set  = repmat(base_params, nUnqStim, 1);
+stim_set   = cell(size(param_set));
+choice_set = cell(size(param_set));
+trial_set  = cell(size(param_set));
 
-bin_centers = (si_ci_bin_edges(1:end-1) + si_ci_bin_edges(2:end))/2;
-[ss, cc] = meshgrid(bin_centers);
+for iStim=nUnqStim:-1:1
+    tr = idxBwd == iStim;
 
-% Adjust edge bins so that lo < val <= high inequalities capture all expected data
-si_ci_bin_edges(1) = si_ci_bin_edges(1)-eps;
+    param_set(iStim).trials = sum(tr);
+    trial_set{iStim} = tr;
+    
+    % Record all choices the subject made on these trials, using [-1,+1] convention rather than [0,1].
+    choice_set{iStim} = sign(double(SubjectData.choice(tr)) - 0.5);
+    % By convention, the model expects a column vector of choices
+    choice_set{iStim} = choice_set{iStim}(:);
 
-% Round estimated sensory info to the nearest 1/1000th to deal with some numerical stability issues
-est_si = round(est_si * 1000) / 1000;
+    % Record effective sensory and category information for this set of trials
+    param_set(iStim).sensory_info = max(.51, min(.99, mean(est_si(tr))));
+    param_set(iStim).var_s = Model.getEvidenceVariance(param_set(iStim).sensory_info);
+    param_set(iStim).category_info = max(.51, min(.99, unqStim(iStim, 2)));
+    param_set(iStim).p_match = param_set(iStim).category_info;
+    % Add other Subject's stimulus parameters to the model params for debugging - has no effect on
+    % the model behavior
+    param_set(iStim).kappa = unqStim(iStim, 1);
+    param_set(iStim).contrast = unqStim(iStim, 3);
 
-nBins = length(si_ci_bin_edges) - 1;
-stim_set = cell(nBins, nBins);
-choice_set = cell(nBins, nBins);
-trial_set = cell(nBins, nBins);
+    % Recording stimuli is less straightforward... whereas 's_hat' all have approximately the
+    % same variance per difficulty level with changing means, the model is expecting signals
+    % drawn from a gaussian with mean +/- 1 and variance that depends on the sensory info. s_hat
+    % is the pseudo-zscored signal, meaning it has variance 1 (adjusted for internal noise) and
+    % mean given by mu_s_hat.
+    bin_s_hat = s_hat(tr, :);
+    bin_sign_s_hat = sign(SubjectData.frame_categories(tr, :));
+    bin_kappa_post = kappa_post(tr, :);
 
-for sBin=nBins:-1:1
-    for cBin=nBins:-1:1
-        param_set(cBin, sBin) = base_params;
-        param_set(cBin, sBin).sensory_info = ss(cBin, sBin);
-        param_set(cBin, sBin).var_s = Model.getEvidenceVariance(ss(cBin, sBin));
-        param_set(cBin, sBin).category_info = cc(cBin, sBin);
-        param_set(cBin, sBin).p_match = cc(cBin, sBin);
-        
-        % Find all trials where the ratio was in this 'category info' bin and all inferred/empirical
-        % sensory infos are in their corresponding bin.
-        ci_trials = SubjectData.ratio > si_ci_bin_edges(cBin) & SubjectData.ratio <= si_ci_bin_edges(cBin+1);
-        si_trials = est_si > si_ci_bin_edges(sBin) & est_si <= si_ci_bin_edges(sBin+1);
-        tr = ci_trials & si_trials;
-        
-        param_set(cBin, sBin).trials = sum(tr);
-        trial_set{cBin, sBin} = tr;
-        
-        if ~any(tr), continue; end
-
-        % Record all choices the subject made on these trials, using [-1,+1] convention rather than
-        % [0,1].
-        choice_set{cBin, sBin} = sign(double(SubjectData.choice(tr)) - 0.5);
-        % By convention, the model expects a column vector of choices
-        choice_set{cBin, sBin} = choice_set{cBin, sBin}(:);
-
-        % Recording stimuli is less straightforward... whereas 's_hat' all have approximately the
-        % same variance per difficulty level with changing means, the model is expecting signals
-        % drawn from a gaussian with mean +/- 1 and variance that depends on the sensory info. s_hat
-        % is the pseudo-zscored signal, meaning it has variance 1 (adjusted for internal noise) and
-        % mean given by mu_s_hat.
-        bin_s_hat = s_hat(tr, :);
-        bin_sign_s_hat = sign(SubjectData.frame_categories(tr, :));
-        bin_kappa_post = kappa_post(tr, :);
-
-        % Each trial, convert signals to model distribution by 'pseudo z-scoring', i.e. (i)
-        % subtracting the mean, (ii) dividing by standard deviation, (iii) multiplying back in
-        % expected standard deviation from the model, and (iv) setting mean to +/- 1 as expected by
-        % the model.
-        for i=sum(tr):-1:1
-            % Each s_hat is assumed to be drawn from a mixture of gaussians (mog), one per kappa,
-            % weighted by the inferred posterior over kappa. Thanks to standardization done by
-            % bpg.standardizeSignals() above, the 'effective' variance of each mode is 1.
-            s_hat_mog = mog.create(mu_s_hat, ones(size(mu_s_hat)), bin_kappa_post(i, :));
-            unsigned_centered_s_hat = bin_s_hat(i,:).*bin_sign_s_hat(i,:) - mog.mean(s_hat_mog);
-            zscored_s_hat = unsigned_centered_s_hat / sqrt(mog.var(s_hat_mog));
-            % Whether the new mean is +/- 1 depends on the *known* category for each frame.
-            new_mean = bin_sign_s_hat(i,:);
-            stim_set{cBin, sBin}(i,:) = new_mean + bin_sign_s_hat(i,:).*zscored_s_hat.*sqrt(param_set(cBin, sBin).var_s);
-        end
+    % Each trial, convert signals to model distribution by (i) subtracting the mean, (ii) dividing
+    % by standard deviation, (iii) multiplying back in expected standard deviation from the model,
+    % and (iv) setting mean to +/- 1 as expected by the model.
+    for i=sum(tr):-1:1
+        % Each s_hat is assumed to be drawn from a mixture of gaussians (mog), one per kappa,
+        % weighted by the inferred posterior over kappa. Thanks to standardization done by
+        % bpg.standardizeSignals() above, the 'effective' variance of each mode is 1.
+        s_hat_mog = mog.create(mu_s_hat, ones(size(mu_s_hat)), bin_kappa_post(i, :));
+        unsigned_centered_s_hat = bin_s_hat(i,:).*bin_sign_s_hat(i,:) - mog.mean(s_hat_mog);
+        zscored_s_hat = unsigned_centered_s_hat / sqrt(mog.var(s_hat_mog));
+        % Whether the new mean is +/- 1 depends on the *known* category for each frame.
+        new_mean = bin_sign_s_hat(i,:);
+        stim_set{iStim}(i,:) = new_mean + bin_sign_s_hat(i,:).*zscored_s_hat.*sqrt(param_set(iStim).var_s);
     end
 end
 
