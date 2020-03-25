@@ -1,4 +1,4 @@
-function [params_samples, samples, fields] = fitChoicesMH(SubjectData, params, distributions, nSamples, maxK, nInner, plotEvery)
+function [params_samples, samples, fields] = fitChoicesMH(SubjectData, signals, params, distributions, nSamples, nRepeat, plotEvery)
 
 fields = fieldnames(distributions);
 
@@ -25,8 +25,8 @@ end
 
     function log_post = logpostpdf(smpl)
         % Fitting.choiceModelLogProb is a stochastic estimator of the log posterior.. average over a few runs
-        for i=nInner:-1:1
-            log_post(i) = Fitting.choiceModelLogProb(params, distributions, expt_signals, expt_choices, maxK);
+        for i=nRepeat:-1:1
+            log_post(i) = Fitting.choiceModelLogProb(Fitting.setParamsFields(params, fields, smpl), distributions, expt_signals, expt_choices);
         end
         log_post = mean(log_post);
     end
