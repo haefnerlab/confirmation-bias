@@ -1,4 +1,4 @@
-function ModelComparisonFitToSampling(which_base, which_phase)
+function ModelComparisonFitToModel(which_base, which_phase)
 ps = 0.51:0.02:0.99;
 
 switch which_base
@@ -11,7 +11,7 @@ switch which_base
 end
 
 [~, sens_cat_pts] = Model.getThresholdPoints(ps, params, .7, 5);
-params.seed = 1376289;
+params.seed = 24781390;
 
 switch which_phase
     case 'lshc'
@@ -46,7 +46,6 @@ fprintf('\tpercent correct = %.1f%%\n', 100*mean(res.choices == true_cat));
 
 %% Fit other models to the reference model
 
-nModels = 4;
 model_names = {'IS', 'gamma', 'ITB', 'ideal'};
 % 'model_args' are arguments passed to @fit_helper below
 model_args(1,:) = {'is',    {'log_temperature', 'log_lapse', 'prior_C', 'gamma', 'samples'}, true};
@@ -54,31 +53,35 @@ model_args(2,:) = {'ITB',   {'log_temperature', 'log_lapse', 'prior_C', 'gamma'}
 model_args(3,:) = {'ITB',   {'log_temperature', 'log_lapse', 'prior_C', 'gamma', 'bound'},   false};
 model_args(4,:) = {'ideal', {'log_temperature', 'log_lapse', 'prior_C'},                     false};
 
-for iModel=1:nModels
+nModels = size(model_args, 1);
+for iModel=nModels:-1:1
     fprintf('=== Fitting %s ===\n', model_names{iModel});
     bestfit{iModel} = fit_helper(true_params, model_args{iModel, :});
 end
+
+% Append 'true' model
+nModels=nModels+1;
+bestfit{nModels} = true_params;
+model_names{nModels} = ['Ground Truth (' upper(which_base) ')'];
 
 %% Model-comparison diagnostics
 
 nReRuns = 100;
 % ll(end,:) will be ll under true params
-ll = zeros(nModels+1, nReRuns);
-var_ll = zeros(nModels+1, nReRuns);
+ll = zeros(nModels, nReRuns);
+var_ll = zeros(nModels, nReRuns);
 empty_prior = struct();
 
-for iRun=nReRuns:-1:1
+parfor iRun=1:nReRuns
     fprintf('\tLL eval %d/%d\n', iRun, nReRuns);
-    % Regenerate new random data
-    true_params.seed = randi(1e9);
-    data = Model.genDataWithParams(true_params);
     
-    % Run true model and estimate its log likelihood on itself
-    true_res = Model.runVectorized(true_params, data);
-    [~, ll(end,iRun), var_ll(end,iRun)] = ...
-        Fitting.choiceModelLogProb(true_params, empty_prior, data, true_res.choices);
+    % Run true model on new random data
+    tmp_params = true_params;
+    tmp_params.seed = randi(1e9);
+    data = Model.genDataWithParams(tmp_params);
+    true_res = Model.runVectorized(tmp_params, data);
     
-    % Likewise for each of the other models
+    % Estimate log likelihood of each model
     for iModel=1:nModels
         [~, ll(iModel,iRun), var_ll(iModel,iRun)] = ...
             Fitting.choiceModelLogProb(bestfit{iModel}, empty_prior, data, true_res.choices);
@@ -98,13 +101,14 @@ ll_null = -true_params.trials*log(2);
 
 %% Plot result
 figure; hold on;
-bar(1:nModels, est_ll_diff(1:end-1));
-errorbar(1:nModels, est_ll_diff(1:end-1), sem_ll_diff(1:end-1), 'ok');
-% plot([1 5], ll_null-mean(ll(:,1)), '--k');
-% text(1.5, ll_null-mean(ll(:,1))+5, 'random model');
+bar(1:nModels, est_ll_diff);
+errorbar(1:nModels, est_ll_diff, sem_ll_diff, 'ok');
+plot([1 5], ll_null-mean(ll(:,1)), '--k');
+text(1.5, ll_null-mean(ll(:,1))+5, 'random model');
 set(gca, 'XTick', 1:nModels, 'XTickLabel', model_names);
 grid on;
 ylabel('\Delta LL from true model');
+title(sprintf('Model fits to %s [%s]', upper(which_base), upper(which_phase)));
 
 end
 
@@ -114,7 +118,7 @@ function bestfit_params = fit_helper(true_params, model, fields, allow_gamma_neg
 uid = Model.getModelStringID(true_params);
 fields_uid = strjoin(fields, '-');
 
-for iRep=10:-1:1
+parfor iRep=1:10
     memo_file = fullfile(true_params.save_dir, ['bestfit-' model '-' uid '-' fields_uid '-' num2str(allow_gamma_neg) '-rep' num2str(iRep) '.mat']);
     [fit_params(iRep), fit_vals(iRep, :), nll(iRep), exitflag(iRep)] = LoadOrRun(@Model.fitModelToModel, ...
         {true_params, model, fields, allow_gamma_neg}, memo_file);
@@ -124,19 +128,26 @@ nll(exitflag <= 0) = inf;
 [~, bestidx] = min(nll);
 bestfit_params = fit_params(bestidx);
 
-% figure;
-% for i=1:5
-%     for j=1:i
-%         subplot(5,5,(i-1)*5+j); hold on;
-%         plot(fit_vals(:,j),fit_vals(:,i), 'xk');
-%         plot(Fitting.getParamsFields(true_params, fields{j}), Fitting.getParamsFields(true_params, fields{i}), 'or');
-%
-%         if j==1
-%             ylabel(fields{i});
-%         end
-%         if i==5
-%             xlabel(fields{j});
-%         end
-%     end
-% end
+figure;
+colors = jet;
+ll = -nll;
+icolor = ceil(64*(ll-min(ll)+1e-3)/(max(ll)-min(ll)+1e-3));
+for i=1:length(fields)
+    for j=1:i
+        subplot(length(fields),length(fields),(i-1)*length(fields)+j); hold on;
+        for iRep=1:size(fit_vals, 1)
+            plot(fit_vals(iRep,j),fit_vals(iRep,i), 'o', 'Color', colors(icolor(iRep),:), 'MarkerFaceColor', colors(icolor(iRep),:));
+        end
+        
+        plot(Fitting.getParamsFields(true_params, fields{j}), Fitting.getParamsFields(true_params, fields{i}), 'xk');
+
+        if j==1
+            ylabel(fields{i});
+        end
+        if i==length(fields)
+            xlabel(fields{j});
+        end
+    end
+end
+suptitle(sprintf('Fit %s to %s', model, true_params.model));
 end

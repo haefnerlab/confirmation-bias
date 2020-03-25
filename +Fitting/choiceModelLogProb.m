@@ -23,7 +23,7 @@ assert(nSets == length(choices));
 if all(cellfun(@isempty, signals)), return; end
 
 nTotalTrials = sum(cellfun(@length, choices));
-if nargin < 5
+if nargin < 5 || isempty(lower_bound)
     % By default, the lower bound assumes a uniform distribution over the two choices each trial.
     lower_bound = -nTotalTrials * log(2);
 end
