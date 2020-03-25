@@ -13,42 +13,51 @@ UB = cellfun(@(f) distribs.(f).ub, fields);
 PLB = cellfun(@(f) distribs.(f).plb, fields);
 PUB = cellfun(@(f) distribs.(f).pub, fields);
 
-% % DEBUG FIG
-% figure;
-% subplot(1,2,2); hold on;
-% baseline_llo = Model.logLikelihoodOdds(true_params, data);
-% baseline_pk = CustomRegression.PsychophysicalKernel(baseline_llo, true_res.choices == +1, 1, 0, 0, 0);
-% plot(baseline_pk, '-k', 'LineWidth', 2); yl = ylim;
-
 options = bads('defaults');
 options.Display = 'iter';
 options.UncertaintyHandling = true;
 options.NonlinearScaling = false;
 
-init_vals = rand(size(LB)) .* (PUB - PLB) + PLB;
-[fit_vals, nll, exitflag] = bads(...
+%% Round 0: evaluate draws from the prior and choose best draw as initialization
+
+% Draw a batch of initial values from the prior and evaluate them
+nInitDraw = 100;
+for iField=length(fields):-1:1
+    init_draw(:,iField) = distribs.(fields{iField}).priorrnd([nInitDraw 1]);
+end
+
+for iDraw=nInitDraw:-1:1
+    [init_post(iDraw), ~, init_var(iDraw)] = Fitting.choiceModelLogProb(Fitting.setParamsFields(base_params, fields, init_draw(iDraw, :)), ...
+        distribs, data, true_res.choices);
+end
+init_upper_conf = init_post + 3*sqrt(init_var);
+
+[~, best_init] = max(init_upper_conf);
+init_vals = init_draw(best_init, :);
+
+%% Round 1: run BADS from best initialization using appropriate noise size
+
+% Estimate size of noise at that initial value and inflate it for stability of fit
+[~,~,est_var] = Fitting.choiceModelLogProb(Fitting.setParamsFields(base_params, fields, init_vals), ...
+    distribs, data, true_res.choices);
+options.NoiseSize = sqrt(2*est_var);
+
+% Run optimization
+[fit_vals, ~, ~] = bads(...
     @(x) -Fitting.choiceModelLogProb(Fitting.setParamsFields(base_params, fields, x), distribs, data, true_res.choices), ...
     init_vals, LB, UB, PLB, PUB, [], options);
 
-fit_params = Fitting.setParamsFields(base_params, fields, fit_vals);
+%% Round 2: re-estimate noise and run again from the best point
 
-% % DEBUG FIG
-% plot_params = Fitting.setParamsFields(base_params, fields, fit_vals);
-% for iF=1:length(fields)
-%     for jF=iF:length(fields)
-%         subplot(length(fields), 2*length(fields), (jF-1)*2*length(fields)+iF); hold on;
-%         scatter(fit_vals(rep, iF), fit_vals(rep, jF), 15, 'filled');
-%         % xlim([lb(iF) ub(iF)]);
-%         % ylim([lb(jF) ub(jF)]);
-%         if iF == 1, ylabel(strrep(fields{jF}, '_', ' ')); end
-%         if jF == length(fields), xlabel(strrep(fields{iF}, '_', ' ')); end
-%         grid on;
-%     end
-% end
-% res = Model.runVectorized(plot_params, data);
-% subplot(1,2,2);
-% [pk, ~, pk_err] = CustomRegression.PsychophysicalKernel(baseline_llo, res.choices == +1, 1, 0, 0, 0);
-% errorbar(pk, pk_err);
-% ylim(yl);
-% drawnow;
+[~,~,est_var] = Fitting.choiceModelLogProb(Fitting.setParamsFields(base_params, fields, fit_vals), ...
+    distribs, data, true_res.choices);
+options.NoiseSize = sqrt(est_var);
+
+% Re-run optimization starting from best point in round 1
+[fit_vals, nll, exitflag] = bads(...
+    @(x) -Fitting.choiceModelLogProb(Fitting.setParamsFields(base_params, fields, x), distribs, data, true_res.choices), ...
+    fit_vals, LB, UB, PLB, PUB, [], options);
+
+%% Return best fit
+fit_params = Fitting.setParamsFields(base_params, fields, fit_vals);
 end
