@@ -22,6 +22,12 @@ if nargin >= 1
     islog = cellfun(@(f) startsWith(f, 'log_'), fields);
     fields = cellfun(@(f) strrep(f, 'log_', ''), fields, 'UniformOutput', false);
 
+    % Handle case where a field is suffixed with a number like  '_1' or '_2' (e.g. multiple lapses)
+    hassuffix = cellfun(@(f) ~isempty(regexpi(f, '_\d+$')), fields);
+    suffixes = cellfun(@(f) regexprep(f, '.*(?=_\d+$)', ''), fields, 'UniformOutput', false);
+    suffixes(~hassuffix) = {''};
+    fields = cellfun(@(f) regexprep(f, '_\d+$', ''), fields, 'UniformOutput', false);
+
     % Warn about unrecognized fields and remove them
     unrecognized = setdiff(fields, defaultFields);
     if ~isempty(unrecognized)
@@ -29,53 +35,57 @@ if nargin >= 1
         fields = setdiff(fields, unrecognized);
     end
 
-    % Return default distributions
-    toRemove = setdiff(defaultFields, fields);
-    for iRemove=1:length(toRemove)
-        distributions = rmfield(distributions, toRemove{iRemove});
-    end
+    % Output struct will be built up one field at a time in the loop over fields below
+    out_distribs = struct();
 
-    % For each log_ fields, wrap its anonymous functions in another layer of log transformations.
+    % Post-process fields of the distributions struct with log transformations and name suffixes
     if nargin < 2, is_map = true; end
     for iF=1:length(fields)
+        distrib = distributions.(fields{iF});
+        full_name = fields{iF};
         if islog(iF)
-            olddistrib = distributions.(fields{iF});
-            newdistrib = olddistrib;
+            full_name = ['log_' full_name];
+            olddistrib = distrib;
+
             % Adjust proposal random and bounds
-            newdistrib.proprnd = @(logx) log(olddistrib.proprnd(exp(logx)));
-            newdistrib.priorrnd = @(sz) log(olddistrib.priorrnd(sz));
-            newdistrib.lb  = log(olddistrib.lb);
-            newdistrib.ub  = log(olddistrib.ub);
-            newdistrib.plb = log(olddistrib.plb);
-            newdistrib.pub = log(olddistrib.pub);
+            distrib.proprnd = @(logx) log(olddistrib.proprnd(exp(logx)));
+            distrib.priorrnd = @(sz) log(olddistrib.priorrnd(sz));
+            distrib.lb  = log(olddistrib.lb);
+            distrib.ub  = log(olddistrib.ub);
+            distrib.plb = log(olddistrib.plb);
+            distrib.pub = log(olddistrib.pub);
+
             % Adjust densities... Note that for true Bayesian inference, this must include a
             % change-of-variables adjustment |dx/dlogx|. However, for MAP inference we don't
             % want to change the location of the maximum through this adjustment. By default, assume
             % the MAP version. Let y=log(x). The change-of-variables adjustment is such that
             % P(y)dy=P(x)dx, so P(y)=P(e^y)dx/dy, or dx/dy=P(e^y) e^y
-
             if is_map
                 % Simply transform logx --> x with no further density adjustments
-                newdistrib.priorpdf = @(logx) olddistrib.priorpdf(exp(logx));
-                newdistrib.proppdf = @(logx) olddistrib.proppdf(exp(logx));
-                newdistrib.logpriorpdf = @(logx) olddistrib.logpriorpdf(exp(logx));
-                if isfield(newdistrib, 'logproppdf')
-                    newdistrib.logproppdf = @(logx) olddistrib.logproppdf(exp(logx));
+                distrib.priorpdf = @(logx) olddistrib.priorpdf(exp(logx));
+                distrib.proppdf = @(logx) olddistrib.proppdf(exp(logx));
+                distrib.logpriorpdf = @(logx) olddistrib.logpriorpdf(exp(logx));
+                if isfield(distrib, 'logproppdf')
+                    distrib.logproppdf = @(logx) olddistrib.logproppdf(exp(logx));
                 end
             else
-                newdistrib.priorpdf = @(logx) olddistrib.priorpdf(exp(logx)).*exp(logx);
-                newdistrib.proppdf = @(logx) olddistrib.proppdf(exp(logx)).*exp(logx);
-                newdistrib.logpriorpdf = @(logx) olddistrib.logpriorpdf(exp(logx)) + logx;
-                if isfield(newdistrib, 'logproppdf')
-                    newdistrib.logproppdf = @(logx) olddistrib.logproppdf(exp(logx)) + logx;
+                distrib.priorpdf = @(logx) olddistrib.priorpdf(exp(logx)).*exp(logx);
+                distrib.proppdf = @(logx) olddistrib.proppdf(exp(logx)).*exp(logx);
+                distrib.logpriorpdf = @(logx) olddistrib.logpriorpdf(exp(logx)) + logx;
+                if isfield(distrib, 'logproppdf')
+                    distrib.logproppdf = @(logx) olddistrib.logproppdf(exp(logx)) + logx;
                 end
             end
-            
-            % Replace field with log_field
-            distributions = rmfield(distributions, fields{iF});
-            distributions.(['log_' fields{iF}]) = newdistrib;
         end
+
+        if hassuffix(iF)
+            full_name = [full_name suffixes{iF}];
+        end
+
+        out_distribs.(full_name) = distrib;
     end
+    
+    distributions = out_distribs;
 end
 
 end
