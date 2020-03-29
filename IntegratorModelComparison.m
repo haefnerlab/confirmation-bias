@@ -1,4 +1,5 @@
 function [bestfit, ll_train, ll_test, model_names, model_fields] = IntegratorModelComparison(signals, choices, nFolds, prefix, seed)
+if nargin < 5, seed = randi(1e9); end
 
 model_fields = {
     {'prior_C', 'log_temperature', 'log_lapse_1', 'log_lapse_2'}
@@ -9,11 +10,17 @@ model_fields = {
 
 model_names = {'ideal', 'itb', 'gamma', 'itb-gamma'};
 
-% Set RNG for repeatable folds
-if ~exist('seed', 'var') || isempty(seed), seed = 793412; end
-rng(seed, 'twister');
 nTrials = length(choices);
-idxShuffle = randperm(nTrials);
+
+% Shuffle data... use seed to set RNG for repeatable shuffles if re-running multiple times/using the
+% caching option
+if ~isempty(seed)
+    rng(seed, 'twister');
+    idxShuffle = randperm(nTrials);
+else
+    % If seed is [], no shuffling is done
+    idxShuffle = 1:nTrials;
+end
 
 idxFoldStart = round(linspace(1, nTrials+1, nFolds+1));
 idxFoldEnd = idxFoldStart(2:end)-1;

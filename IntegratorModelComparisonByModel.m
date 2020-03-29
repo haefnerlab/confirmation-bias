@@ -1,67 +1,52 @@
-function [bestfits, model_names] = IntegratorModelComparisonByModel(which_base, which_phase, reference, include_null)
+function [true_params, bestfits, model_names] = IntegratorModelComparisonByModel(which_base, which_phase, reference, add_null)
 
+if nargin < 3, reference = 'ideal'; end
+if nargin < 4, add_null = false; end
+
+base_params = Model.newModelParams('var_x', 0.1, 'gamma', .1, 'temperature', 0.1, 'lapse', .005, 'trials', 1600);
 switch which_base
     case 'is'
-        % Set base parameters for importance sampling model
-        true_params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', .1, 'temperature', 0.1, 'lapse', .005, 'trials', 1600, 'updates', 5, 'samples', 5);
-        % Set task parameters... the following are based on earlier runs of Model.getThresholdPoints
-        % to guarantee ~70% performance, but for consistency across machines the parameters are
-        % hard-coded here (whatever parameters are used here enter into the 'uid' for caching the
-        % model-fitting results, which may be precomputed remotely). If the 'true_params' above are
-        % changed, then these values will need to be changed as well.
-        switch which_phase
-            case 'lshc'
-                true_params.category_info = 0.906;
-                true_params.p_match = 0.906;
-                true_params.sensory_info = 0.650;
-                true_params.var_s = 13.42;
-            case 'hslc'
-                true_params.category_info = 0.628;
-                true_params.p_match = 0.628;
-                true_params.sensory_info = .900;
-                true_params.var_s = 1.22;
-        end
+        % Set parameters for importance sampling model
+        true_params = base_params;
+        true_params.model = 'is';
+        true_params.updates = 5;
+        true_params.samples = 5;
     case 'vb'
-        % Set base parameters for importance sampling model
-        true_params = Model.newModelParams('model', 'vb-czx', 'var_x', 0.1, 'gamma', 0.1, 'temperature', 0.1, 'lapse', .005, 'trials', 1600, 'updates', 5, 'step_size', 0.05);
-        % See comment in 'is' block above
-        switch which_phase
-            case 'lshc'
-                true_params.category_info = 0.908;
-                true_params.p_match = 0.908;
-                true_params.sensory_info = 0.655;
-                true_params.var_s = 12.61;
-            case 'hslc'
-                true_params.category_info = 0.691;
-                true_params.p_match = 0.691;
-                true_params.sensory_info = .917;
-                true_params.var_s = 1.04;
-        end
+        % Set parameters for VB model
+        true_params = base_params;
+        true_params.model = 'vb-czx';
+        true_params.updates = 5;
+        true_params.step_size = 0.05;
     case 'itb'
         % Set base parameters for integration-to-bound model
-        true_params = Model.newModelParams('model', 'itb', 'var_x', 0.1, 'gamma', .1, 'temperature', 0.4, 'lapse', .005, 'trials', 1600, 'updates', 1, 'bound', 1);
-        % See comment in 'is' block above
-        switch which_phase
-            case 'lshc'
-                true_params.category_info = 0.913;
-                true_params.p_match = 0.913;
-                true_params.sensory_info = 0.674;
-                true_params.var_s = 9.89;
-            case 'hslc'
-                true_params.category_info = 0.650;
-                true_params.p_match = 0.650;
-                true_params.sensory_info = 0.906;
-                true_params.var_s = 1.15;
-        end
+        true_params = base_params;
+        true_params.model = 'itb';
+        true_params.updates = 1;
+        true_params.bound = 1;
+        true_params.gamma_min = 0;
+        true_params.gamma_max = 0.5;
 end
 
+sens_cat_pts = Model.getThresholdPoints(0.51:0.02:0.99, true_params, 0.7, 5);
+
+switch which_phase
+    case 'lshc'
+        si = sens_cat_pts(1,1);
+        ci = sens_cat_pts(1,2);
+    case 'hslc'
+        si = sens_cat_pts(end,1);
+        ci = sens_cat_pts(end,2);
+end
+
+true_params.category_info = ci;
+true_params.p_match = ci;
+true_params.sensory_info = si;
+true_params.var_s = Model.getEvidenceVariance(si);
+
 % Make results repeatable
-true_params.seed = 24781390;
+true_params.seed = 977116605;
 
-%% Plot PK of the true model and print some diagnostics
-
-Model.plotPK(true_params, [1 0 0]);
-title('PK of true model');
+%% Print some diagnostics about the true model
 
 [data, true_cat] = Model.genDataWithParams(true_params);
 res = Model.runVectorized(true_params, data);
@@ -70,15 +55,16 @@ fprintf('\t%d trials x %d frames\n', true_params.trials, true_params.frames);
 fprintf('\tsensory info = %.2f\n', true_params.sensory_info);
 fprintf('\tcategory info = %.2f\n', true_params.category_info);
 fprintf('\tpercent correct = %.1f%%\n', 100*mean(res.choices == true_cat));
+[~,~,abb] = Model.plotPK(true_params, 'exp', {}, [], false);
+fprintf('\tPK beta fit = %.1f\n', abb(2));
 
 %% Fit various 'integrator' models
 
-seed = 2487429;
 uid = Model.getModelStringID(true_params);
 sigs = Model.logLikelihoodOdds(true_params, data);
-[bestfits, ll_train, ll_test, model_names, ~] = IntegratorModelComparison(sigs, res.choices, 50, uid, seed);
+[bestfits, ll_train, ll_test, model_names, ~] = IntegratorModelComparison(sigs, res.choices, 50, uid, []);
 
-if nargin >= 4 && include_null
+if add_null
     % For reference, compute the log likelihood under the null model
     ll_null = -log(2);
     ll_train(end+1, :) = ll_null;
