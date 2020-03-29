@@ -7,9 +7,6 @@ if ~exist('nboot', 'var'), nboot = 10000; end
 if ~exist('datadir', 'var'), datadir = fullfile(pwd, '..', 'RawData'); end
 if ~exist('is_naive', 'var'), is_naive = true(size(subjectIds)); end
 
-catdir = fullfile(datadir, '..', 'ConcatData');
-if ~exist(catdir, 'dir'), mkdir(catdir); end
-
 memodir = fullfile(datadir, '..', 'Precomputed');
 if ~exist(memodir, 'dir'), mkdir(memodir); end
 
@@ -19,12 +16,12 @@ pvalues = nan(length(subjectIds), 1);
 window_low = 0.5;
 window_high = 0.7;
 
-    function [floor, thresh] = getThresholdWrapper(subjectId, phase)
+    function [floor, thresh] = getThresholdWrapper(SubjectData, phase)
         if phase == 1
             floor = .4;
             thresh = .6;
         else
-            [floor, thresh] = GaborAnalysis.getThresholdWindow(subjectId, phase, window_low, window_high, datadir);
+            [floor, thresh] = GaborAnalysis.getThresholdWindow(SubjectData, phase, window_low, window_high, datadir);
         end
     end
 
@@ -46,20 +43,25 @@ window_high = 0.7;
     function slopes = getSlopesForPhase(subjectId, phase)
         stair_var = getStairVar(phase);
         
-        SubjectData = LoadOrRun(@LoadAllSubjectData, ...
-            {subjectId, phase, datadir}, fullfile(catdir, [subjectId '-' stair_var '.mat']));
-        [floor, thresh] = getThresholdWrapper(subjectId, phase);
-        SubjectDataThresh = GaborThresholdTrials(SubjectData, phase, thresh, floor);
+        SubjectData = LoadAllSubjectData(subjectId, phase, datadir);
+        [floor, thresh] = getThresholdWrapper(SubjectData, phase);
+        [~, trials] = GaborThresholdTrials(SubjectData, phase, thresh, floor);
+        kernel_kappa = 0.16;
+        sigs = LoadOrRun(@ComputeFrameSignals, {SubjectData, kernel_kappa}, ...
+            fullfile(memodir, ['perFrameSignals-' SubjectData.subjectID '-' num2str(kernel_kappa) '-' SubjectData.phase '.mat']));
+        sigs = sigs(trials, :);
+        choices = SubjectData.choice(trials) == +1;
+
         
         switch type
             case 'linear'
-                memo_name = ['Boot-LinPK-ideal-' stair_var '-' subjectId '-' num2str(thresh) '-' num2str(floor) '.mat'];
-                [~, ~, ~, ~, ~, fits] = LoadOrRun(@BootstrapLinearPKFit, {SubjectDataThresh, nboot, 0, true}, ...
+                memo_name = ['Boot-LinPK-' num2str(kernel_kappa) '-' stair_var '-' subjectId '-' num2str(thresh) '-' num2str(floor) '.mat'];
+                [~, ~, ~, ~, ~, fits] = LoadOrRun(@BootstrapLinearPKFit, {sigs, choices, nboot, true}, ...
                     fullfile(memodir, memo_name));
                 slopes = fits(:, 1);
             case 'exponential'
-                memo_name = ['Boot-ExpPK-ideal-' stair_var '-' subjectId '-' num2str(thresh) '-' num2str(floor) '.mat'];
-                [~, ~, ~, ~, ~, fits] = LoadOrRun(@BootstrapExponentialWeightsGabor, {SubjectDataThresh, nboot, 0, true}, ...
+                memo_name = ['Boot-ExpPK-' num2str(kernel_kappa) '-' stair_var '-' subjectId '-' num2str(thresh) '-' num2str(floor) '.mat'];
+                [~, ~, ~, ~, ~, fits] = LoadOrRun(@BootstrapExponentialWeightsGabor, {sigs, choices, nboot, true}, ...
                     fullfile(memodir, memo_name));
                 slopes = fits(:, 2);
         end

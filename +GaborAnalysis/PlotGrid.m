@@ -16,9 +16,6 @@ function [grid, combined] = PlotGrid(subjectIDs, thresholds, phase, plot_types, 
 if nargin < 4, plot_types = {'staircase', 'pm', 'pk'}; end
 if nargin < 5, datadir = fullfile(pwd, '..', 'RawData'); end
 
-catdir = fullfile(datadir, '..', 'ConcatData');
-if ~exist(catdir, 'dir'), mkdir(catdir); end
-
 memodir = fullfile(datadir, '..', 'Precomputed');
 if ~exist(memodir, 'dir'), mkdir(memodir); end
 
@@ -39,6 +36,7 @@ if size(thresholds, 2) == 1
     thresholds = [zeros(length(subjectIDs), 1), thresholds(:)];
 end
 
+KERNEL_KAPPA = 0.16;
 REGULARIZE_PKS = true;
 
 nS = length(subjectIDs);
@@ -47,10 +45,10 @@ nP = length(plot_types);
 window_low = 0.5;
 window_high = 0.7;
 
-    function [floor, thresh] = getThresholdWrapper(subjectId)
-        s_idx = strcmpi(subjectId, subjectIDs);
+    function [floor, thresh] = getThresholdWrapper(SubjectData)
+        s_idx = strcmpi(SubjectData.subjectID, subjectIDs);
         if isinf(thresholds(s_idx, 2))
-            [floor, thresh] = GaborAnalysis.getThresholdWindow(subjectId, phase, window_low, window_high, datadir);
+            [floor, thresh] = GaborAnalysis.getThresholdWindow(SubjectData, phase, window_low, window_high, datadir);
         else
             thresh = thresholds(s_idx, 2);
             if phase == 1
@@ -64,24 +62,27 @@ window_high = 0.7;
 grid = figure();
 for i=1:nS
     s = subjectIDs{i};
-    SubjectData = LoadOrRun(@LoadAllSubjectData, ...
-        {s, phase, datadir}, fullfile(catdir, [s '-' stair_var '.mat']));
-    [floor, thresh] = getThresholdWrapper(s);
-    trials = SubjectData.(stair_var) <= thresh & SubjectData.(stair_var) >= floor;
-    
+    SubjectData = LoadAllSubjectData(s, phase, datadir);
+    [floor, thresh] = getThresholdWrapper(SubjectData);
+    [~, sub_threshold_trials] = GaborThresholdTrials(SubjectData, phase, thresh, floor);
+    all_sigs = LoadOrRun(@ComputeFrameSignals, {SubjectData, KERNEL_KAPPA}, ...
+        fullfile(memodir, ['perFrameSignals-' SubjectData.subjectID '-' num2str(KERNEL_KAPPA) '-' SubjectData.phase '.mat']));
+    sub_threshold_sigs = all_sigs(sub_threshold_trials, :);
+    sub_threshold_choices = SubjectData.choice(sub_threshold_trials)' == +1;
+
     for j=1:length(plot_types)
         ax = subplot(nS, nP, (i-1)*nP + j);
         hold on;
         switch lower(plot_types{j})
             case 'staircase'
                 plot(SubjectData.(stair_var), '-k');
-                plot(find(trials), SubjectData.(stair_var)(trials), 'ob');
-                line([1 length(trials)], [thresh thresh], 'LineStyle', '--', 'Color', 'r');
+                plot(find(sub_threshold_trials), SubjectData.(stair_var)(sub_threshold_trials), 'ob');
+                line([1 length(sub_threshold_trials)], [thresh thresh], 'LineStyle', '--', 'Color', 'r');
                 if floor > 0
-                    line([1 length(trials)], [floor floor], 'LineStyle', '--', 'Color', 'r');
+                    line([1 length(sub_threshold_trials)], [floor floor], 'LineStyle', '--', 'Color', 'r');
                 end
                 ylabel(stair_var_name);
-                title([num2str(sum(trials)) '/' num2str(length(trials)) ' trials']);
+                title([num2str(sum(sub_threshold_trials)) '/' num2str(length(sub_threshold_trials)) ' trials']);
                 xlim([1 4000]);
             case 'rt'
                 plot(SubjectData.reaction_time);
@@ -174,11 +175,8 @@ for i=1:nS
                 end
                 title('Psychometric curve');
             case {'pk-glm'}
-                SubjectDataThresh = GaborThresholdTrials(...
-                    SubjectData, phase, thresh, floor);
-                memo_name = ['glmfit-PK-ideal-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
-                [w, ~, stats] = LoadOrRun(@glmfit, ...
-                    {SubjectDataThresh.ideal_frame_signals, [SubjectDataThresh.choice(:) ones(length(SubjectDataThresh.choice), 1)], 'binomial'}, ...
+                memo_name = ['glmfit-PK-' num2str(KERNEL_KAPPA) '-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
+                [w, ~, stats] = LoadOrRun(@glmfit, {sub_threshold_sigs/std(sub_threshold_sigs(:)), sub_threshold_choices, 'binomial'}, ...
                     fullfile(memodir, memo_name));
                 frames = SubjectData.number_of_images;
                 errorbar(1:frames, w(2:end), stats.se(2:end));
@@ -186,26 +184,25 @@ for i=1:nS
                 set(gca, 'XAxisLocation', 'origin');
                 set(gca, 'XTick', [1 frames]);
                 axis tight;
-                if isfield(SubjectDataThresh, 'model_pk')
-                    plot(1:frames, SubjectDataThresh.model_pk, 'LineWidth', 2);
+                if isfield(SubjectData, 'model_pk')
+                    plot(1:frames, SubjectData.model_pk, 'LineWidth', 2);
                 end
             case {'pk', 'pk-lr'}
-                SubjectDataThresh = GaborThresholdTrials(SubjectData, phase, thresh, floor);
                 if REGULARIZE_PKS
                     regstring = '-reg';
                     memo_name = ['PK-xValid-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
                     nFold = 10;
-                    hprs = [0 logspace(-3, 5, 9)];
+                    hpr_range = [0 logspace(-3, 5, 9)];
                     [hprs, ~] = LoadOrRun(@CustomRegression.xValidatePK, ...
-                        {SubjectDataThresh.ideal_frame_signals, SubjectDataThresh.choice == +1, hprs, 0, hprs, 1, nFold}, ...
+                        {sub_threshold_sigs, sub_threshold_choices, hpr_range, 0, hpr_range, 1, nFold}, ...
                         fullfile(memodir, memo_name));
                 else
                     regstring = '';
                     hprs = [0 0 0];
                 end
-                memo_name = ['Boot-PK-ideal-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) regstring '.mat'];
+                memo_name = ['Boot-PK-' num2str(KERNEL_KAPPA) '-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) regstring '.mat'];
                 [~, L, U, median, ~] = LoadOrRun(@BootstrapWeightsGabor, ...
-                    {SubjectDataThresh, 500, hprs, 0, true}, fullfile(memodir, memo_name));
+                    {sub_threshold_sigs, sub_threshold_choices, 500, hprs, true}, fullfile(memodir, memo_name));
                 frames = SubjectData.number_of_images;
                 boundedline(1:frames, median(1:frames)', [U(1:frames)-median(1:frames); median(1:frames)-L(1:frames)]');
                 errorbar(frames+1, median(end), median(end)-L(end), U(end)-median(end), 'LineWidth', 2, 'Color', 'r');
@@ -216,14 +213,14 @@ for i=1:nS
                 set(gca, 'XAxisLocation', 'origin');
                 set(gca, 'XTick', [1 frames]);
                 axis tight;
-                if isfield(SubjectDataThresh, 'model_pk')
-                    plot(1:frames, SubjectDataThresh.model_pk, 'LineWidth', 2);
+                if isfield(SubjectData, 'model_pk')
+                    plot(1:frames, SubjectData.model_pk, 'LineWidth', 2);
                 end
             case {'pk-lin'}
                 SubjectDataThresh = GaborThresholdTrials(SubjectData, phase, thresh, floor);
-                memo_name = ['Boot-LinPK-ideal-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
+                memo_name = ['Boot-LinPK-' num2str(KERNEL_KAPPA) '-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
                 [~, L, U, median, ~] = LoadOrRun(@BootstrapLinearPKFit, ...
-                    {SubjectDataThresh, 500, 0, true}, fullfile(memodir, memo_name));
+                    {sub_threshold_sigs, sub_threshold_choices, 500, 0, true}, fullfile(memodir, memo_name));
                 frames = SubjectData.number_of_images;
                 boundedline(1:frames, median(1:frames)', [U(1:frames)-median(1:frames); median(1:frames)-L(1:frames)]', 'r');
                 errorbar(frames+1, median(end), median(end)-L(end), U(end)-median(end), 'LineWidth', 2, 'Color', 'r');
@@ -236,9 +233,9 @@ for i=1:nS
                 end
             case {'pk-exp'}
                 SubjectDataThresh = GaborThresholdTrials(SubjectData, phase, thresh, floor);
-                memo_name = ['Boot-ExpPK-ideal-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
+                memo_name = ['Boot-ExpPK-' num2str(KERNEL_KAPPA) '-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
                 [~, L, U, median, ~] = LoadOrRun(@BootstrapExponentialWeightsGabor, ...
-                    {SubjectDataThresh, 500, 0, true}, fullfile(memodir, memo_name));
+                    {sub_threshold_sigs, sub_threshold_choices, 500, 0, true}, fullfile(memodir, memo_name));
                 frames = SubjectData.number_of_images;
                 boundedline(1:frames, median(1:frames)', [U(1:frames)-median(1:frames); median(1:frames)-L(1:frames)]', 'r');
                 errorbar(frames+1, median(end), median(end)-L(end), U(end)-median(end), 'LineWidth', 2, 'Color', 'r');
@@ -254,11 +251,9 @@ for i=1:nS
                 nFold = 10;
                 hprs = [0 logspace(-3, 5, 9)];
                 SubjectDataThresh = GaborThresholdTrials(SubjectData, phase, thresh, floor);
-                sigs = SubjectDataThresh.ideal_frame_signals;
-                resps = SubjectDataThresh.choice == +1;
                 memo_name = ['PK-xValid-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
                 [~, log_likelihoods] = LoadOrRun(@CustomRegression.xValidatePK, ...
-                    {sigs, resps, hprs, 0, hprs, 1, nFold}, fullfile(memodir, memo_name));
+                    {sub_threshold_sigs, sub_threshold_choices, hprs, 0, hprs, 1, nFold}, fullfile(memodir, memo_name));
                 avg_ll = squeeze(mean(log_likelihoods(:, 1, :, :), 4));
                 imagesc(avg_ll);
                 colorbar;
@@ -272,7 +267,7 @@ for i=1:nS
                 SubjectDataThresh = GaborThresholdTrials(SubjectData, phase, thresh, floor);
                 memo_name = ['Boot-CTA-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
                 [~, L, U, median, ~] = LoadOrRun(@BootstrapCTA, ...
-                    {SubjectDataThresh, 500}, ...
+                    {sub_threshold_sigs, sub_threshold_choices, 500}, ...
                     fullfile(memodir, memo_name));
                 frames = SubjectData.number_of_images;
                 boundedline(1:frames, median(1:frames)', [U(1:frames)-median(1:frames); median(1:frames)-L(1:frames)]');
@@ -336,30 +331,21 @@ for i=1:nS
                 end
                 bar(1:length(unq_signals), bias(1, :));
                 errorbar(1:length(unq_signals), bias(1, :), bias(1, :) - bias(2, :), bias(3, :) - bias(1, :), '.');
-            case 'ideal-signals'
-                unq_signals = unique(SubjectData.(stair_var));
-                for ui=1:length(unq_signals)
-                    trials_at = SubjectData.(stair_var) == unq_signals(ui);
-                    frame_signals = SubjectData.ideal_frame_signals(trials_at, :);
-                    ksdensity(frame_signals(:));
-                end
-                xlabel('Per Frame Signal');
-                legend(arrayfun(@(s) [stair_var_name '=' num2str(s)], unq_signals, 'UniformOutput', false));
-                axis tight;
+            case 'signals'
+                usign_sigs = all_sigs .* sign(SubjectData.frame_categories);
+                ksdensity(usign_sigs(:));
+                ksdensity(sub_threshold_sigs(:));
             case 'xv'
                 nFold = 10;
-                SubjectDataThresh = GaborThresholdTrials(SubjectData, phase, thresh, floor);
-                sigs = SubjectDataThresh.ideal_frame_signals;
-                resps = SubjectDataThresh.choice == +1;
                 memo_name = ['PK-xValidCompare-' stair_var '-' s '-' num2str(thresh) '-' num2str(floor) '.mat'];
                 [pkLL, regLL, expLL, linLL, reg_hprs] = LoadOrRun(@CustomRegression.xValidatePKModels, ...
-                    {sigs, resps, nFold}, fullfile(memodir, memo_name));
-                baseline = mean(linLL);
-                bar([1 2 3 4], mean([pkLL(:) regLL(:) expLL(:) linLL(:)], 1)-baseline);
-                errorbar(1, mean(pkLL)-baseline, std(pkLL)/sqrt(nFold), '-k');
-                errorbar(2, mean(regLL)-baseline, std(regLL)/sqrt(nFold), '-k');
-                errorbar(3, mean(expLL)-baseline, std(expLL)/sqrt(nFold), '-k');
-                errorbar(4, mean(linLL)-baseline, std(linLL)/sqrt(nFold), '-k');
+                    {sub_threshold_sigs, sub_threshold_choices, nFold}, fullfile(memodir, memo_name));
+                reference = pkLL;
+                bar([1 2 3 4], mean([pkLL; regLL; expLL; linLL]-reference, 2)');
+                errorbar(1, mean(pkLL-reference), std(pkLL-reference)/sqrt(nFold), '-k');
+                errorbar(2, mean(regLL-reference), std(regLL-reference)/sqrt(nFold), '-k');
+                errorbar(3, mean(expLL-reference), std(expLL-reference)/sqrt(nFold), '-k');
+                errorbar(4, mean(linLL-reference), std(linLL-reference)/sqrt(nFold), '-k');
                 set(gca, 'XTick', 1:4, 'XTickLabel', {'Unregularized', ['[' num2str(reg_hprs([1 3])) ']'], 'Exponential', 'Linear'});
                 ylabel('Relative Log-Likelihood');
         end
