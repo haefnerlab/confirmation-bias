@@ -190,32 +190,21 @@ baselineModel = 1;
 pkLLNoiseDiffs = pkLLNoise - pkLLNoise(baselineModel, :, :);
 pkLLRatioDiffs = pkLLRatio - pkLLRatio(baselineModel, :, :);
 
-% Compute confidence interval across folds. Since @meanci operates along 1st dimension, first
-% reshape to [#folds x (#models*#subjects)]
-pkLLNoiseDiffs = reshape(permute(pkLLNoiseDiffs, [3 1 2]), nFold, []);
-pkLLRatioDiffs = reshape(permute(pkLLRatioDiffs, [3 1 2]), nFold, []);
-
-[meanLLNoise, loLLNoise, hiLLNoise] = meanci(pkLLNoiseDiffs, .67);
-[meanLLRatio, loLLRatio, hiLLRatio] = meanci(pkLLRatioDiffs, .67);
-
-% Reshape bounds back to [#models x #subjects]
-meanLLNoise = reshape(meanLLNoise, length(models), length(xValSubjects));
-loLLNoise = reshape(loLLNoise, length(models), length(xValSubjects));
-hiLLNoise = reshape(hiLLNoise, length(models), length(xValSubjects));
-meanLLRatio = reshape(meanLLRatio, length(models), length(xValSubjects));
-loLLRatio = reshape(loLLRatio, length(models), length(xValSubjects));
-hiLLRatio = reshape(hiLLRatio, length(models), length(xValSubjects));
+% Compute mean and standard error across folds
+meanLLNoise = mean(pkLLNoiseDiffs, 3);
+semLLNoise = std(pkLLNoiseDiffs, [], 3) ./ sqrt(nFold);
+meanLLRatio = mean(pkLLRatioDiffs, 3);
+semLLRatio = std(pkLLRatioDiffs, [], 3) ./ sqrt(nFold);
 
 figure;
 subplot(2,1,1);
 hold on;
 p1 = bar(meanLLNoise');
 drawnow;
-for iSubject=1:N
+for iSubject=1:length(xValSubjects)
     for iModel=1:length(models)
         x = p1(iModel).XData(iSubject) + p1(iModel).XOffset;
-        m = meanLLNoise(iModel, iSubject);
-        errorbar(x, m, m-loLLNoise(iModel, iSubject), hiLLNoise(iModel, iSubject)-m, 'Color', 'k');
+        errorbar(x, meanLLNoise(iModel, iSubject), semLLNoise(iModel,iSubject), 'Color', 'k');
     end
 end
 legend({'Unregularized LR', 'Regularized LR', 'Exponential', 'Linear'}, 'location', 'best');
@@ -228,11 +217,10 @@ subplot(2,1,2);
 hold on;
 p1 = bar(meanLLRatio');
 drawnow;
-for iSubject=1:N
+for iSubject=1:length(xValSubjects)
     for iModel=1:length(models)
         x = p1(iModel).XData(iSubject) + p1(iModel).XOffset;
-        m = meanLLRatio(iModel, iSubject);
-        errorbar(x, m, m-loLLRatio(iModel, iSubject), hiLLRatio(iModel, iSubject)-m, 'Color', 'k');
+        errorbar(x, meanLLRatio(iModel, iSubject), semLLRatio(iModel,iSubject), 'Color', 'k');
     end
 end
 legend({'Unregularized LR', 'Regularized LR', 'Exponential', 'Linear'}, 'location', 'best');
