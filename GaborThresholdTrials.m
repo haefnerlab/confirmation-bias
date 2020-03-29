@@ -1,4 +1,4 @@
-function Data = GaborThresholdTrials(Data, phase, threshold, floor)
+function [Data , test_trials] = GaborThresholdTrials(Data, phase, threshold, floor)
 
 if phase == 0
     stair_param = 'contrast';

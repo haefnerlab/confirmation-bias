@@ -7,9 +7,6 @@ if ~exist('nboot', 'var'), nboot = 10000; end
 if ~exist('datadir', 'var'), datadir = fullfile(pwd, '..', 'RawData'); end
 if ~exist('is_naive', 'var'), is_naive = true(size(subjectIds)); end
 
-catdir = fullfile(datadir, '..', 'ConcatData');
-if ~exist(catdir, 'dir'), mkdir(catdir); end
-
 memodir = fullfile(datadir, '..', 'Precomputed');
 if ~exist(memodir, 'dir'), mkdir(memodir); end
 
@@ -19,12 +16,12 @@ pvalues = nan(length(subjectIds), 1);
 window_low = 0.5;
 window_high = 0.7;
 
-    function [floor, thresh] = getThresholdWrapper(subjectId, phase)
+    function [floor, thresh] = getThresholdWrapper(SubjectData, phase)
         if phase == 1
             floor = .4;
             thresh = .6;
         else
-            [floor, thresh] = GaborAnalysis.getThresholdWindow(subjectId, phase, window_low, window_high, datadir);
+            [floor, thresh] = GaborAnalysis.getThresholdWindow(SubjectData, phase, window_low, window_high, datadir);
         end
     end
 
@@ -46,20 +43,25 @@ window_high = 0.7;
     function slopes = getSlopesForPhase(subjectId, phase)
         stair_var = getStairVar(phase);
         
-        SubjectData = LoadOrRun(@LoadAllSubjectData, ...
-            {subjectId, phase, datadir}, fullfile(catdir, [subjectId '-' stair_var '.mat']));
-        [floor, thresh] = getThresholdWrapper(subjectId, phase);
-        SubjectDataThresh = GaborThresholdTrials(SubjectData, phase, thresh, floor);
+        SubjectData = LoadAllSubjectData(subjectId, phase, datadir);
+        [floor, thresh] = getThresholdWrapper(SubjectData, phase);
+        [~, trials] = GaborThresholdTrials(SubjectData, phase, thresh, floor);
+        kernel_kappa = 0.16;
+        sigs = LoadOrRun(@ComputeFrameSignals, {SubjectData, kernel_kappa}, ...
+            fullfile(memodir, ['perFrameSignals-' SubjectData.subjectID '-' num2str(kernel_kappa) '-' SubjectData.phase '.mat']));
+        sigs = sigs(trials, :);
+        choices = SubjectData.choice(trials) == +1;
+
         
         switch type
             case 'linear'
-                memo_name = ['Boot-LinPK-ideal-' stair_var '-' subjectId '-' num2str(thresh) '-' num2str(floor) '.mat'];
-                [~, ~, ~, ~, ~, fits] = LoadOrRun(@BootstrapLinearPKFit, {SubjectDataThresh, nboot, 0, true}, ...
+                memo_name = ['Boot-LinPK-' num2str(kernel_kappa) '-' stair_var '-' subjectId '-' num2str(thresh) '-' num2str(floor) '.mat'];
+                [~, ~, ~, ~, ~, fits] = LoadOrRun(@BootstrapLinearPKFit, {sigs, choices, nboot, true}, ...
                     fullfile(memodir, memo_name));
                 slopes = fits(:, 1);
             case 'exponential'
-                memo_name = ['Boot-ExpPK-ideal-' stair_var '-' subjectId '-' num2str(thresh) '-' num2str(floor) '.mat'];
-                [~, ~, ~, ~, ~, fits] = LoadOrRun(@BootstrapExponentialWeightsGabor, {SubjectDataThresh, nboot, 0, true}, ...
+                memo_name = ['Boot-ExpPK-' num2str(kernel_kappa) '-' stair_var '-' subjectId '-' num2str(thresh) '-' num2str(floor) '.mat'];
+                [~, ~, ~, ~, ~, fits] = LoadOrRun(@BootstrapExponentialWeightsGabor, {sigs, choices, nboot, true}, ...
                     fullfile(memodir, memo_name));
                 slopes = fits(:, 2);
         end
@@ -211,5 +213,55 @@ switch lower(type)
     case 'linear'
         ylabel('slope (linear)');
 end
+
+%% 2D errorbar plots
+
+alpha = 0.95;
+
+figure;
+hold on;
+for iSubject=1:length(subjectIds)
+    % Get lower and upper confidence intervals
+    [m1, l1, u1] = meanci(squeeze(slopes(iSubject, 1, :)), alpha);
+    [m2, l2, u2] = meanci(squeeze(slopes(iSubject, 2, :)), alpha);
+    errorbar(m1, m2, m2-l2, u2-m2, m1-l1, u1-m1, '-k');
+    
+    % Overlay dots
+    if is_naive(iSubject)
+        plot(m1, m2, 'o', 'Color', [0 0 0], 'MarkerFaceColor', [0 0 0]);
+    else
+        plot(m1, m2, 'o', 'Color', gray, 'MarkerFaceColor', gray);
+    end
+    
+    % p-value asterisks
+    if pvalues(iSubject) < 0.0001
+        ptxt = '***';
+    elseif pvalues(iSubject) < 0.001
+        ptxt = '**';
+    elseif pvalues(iSubject) < 0.05
+        ptxt = '*';
+    else
+        ptxt = ''; % ['p = ' num2str(pvalues(iSubject), 2)];
+    end
+    if ~isempty(ptxt)
+        text(m1+.01, m2+.01, ptxt);
+    end
+end
+
+switch lower(type)
+    case 'exponential'
+        xlabel(['slope (\beta), ' label1]);
+        ylabel(['slope (\beta), ' label2]);
+    case 'linear'
+        xlabel(['slope (linear), ' label1]);
+        ylabel(['slope (linear), ' label2]);
+end
+axis square;
+axis equal;
+grid on;
+xl = xlim;
+yl = ylim;
+plot(xl, xl, '-k', 'LineWidth', 2);
+xlim(xl); ylim(yl);
 
 end

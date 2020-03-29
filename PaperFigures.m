@@ -38,6 +38,23 @@ for n=N:-1:1
     shortnames{n} = hyphenSplit{2};
 end
 
+% Function handle to evaluate psychometric curve (see @plotPsych from psignifit toolbox)
+psychofun = @(psychofit,x) (1-psychofit.Fit(3)-psychofit.Fit(4))*psychofit.options.sigmoidHandle(x,psychofit.Fit(1),psychofit.Fit(2))+psychofit.Fit(4);
+
+%% Before computing PKs and fitting models, we need to (re)compute signal statistics per subject per condition. Slow, but only run once.
+
+for iSubject=1:length(noiseSubjects)
+    SubjectData = LoadAllSubjectData(noiseSubjects{iSubject}, NOISE_PHASE, DATADIR);
+    sigs = LoadOrRun(@ComputeFrameSignals, {SubjectData, KERNEL_KAPPA}, ...
+        fullfile(MEMODIR, ['perFrameSignals-' SubjectData.subjectID '-' num2str(KERNEL_KAPPA) '-' SubjectData.phase '.mat']));
+end
+
+for iSubject=1:length(ratioSubjects)
+    SubjectData = LoadAllSubjectData(ratioSubjects{iSubject}, RATIO_PHASE, DATADIR);
+    sigs = LoadOrRun(@ComputeFrameSignals, {SubjectData, KERNEL_KAPPA}, ...
+        fullfile(MEMODIR, ['perFrameSignals-' SubjectData.subjectID '-' num2str(KERNEL_KAPPA) '-' SubjectData.phase '.mat']));
+end
+
 %% Figure 1
 
 % Nothing to do - conceptual figures only created in vector graphics editor
@@ -46,14 +63,20 @@ end
 
 sem = @(vals) std(vals)/sqrt(N);
 for iSubject=length(bothSubjects):-1:1
-    warning off;
-    [~,~,psycho_fit] = GaborAnalysis.getThresholdWindow(bothSubjects{iSubject}, NOISE_PHASE, 0.5, THRESHOLD, DATADIR);
-    warning on;
-    % See @plotPsych, e.g.
-    pc_zero_signal(iSubject) = (1-psycho_fit.Fit(3)-psycho_fit.Fit(4))*psycho_fit.options.sigmoidHandle(0,psycho_fit.Fit(1),psycho_fit.Fit(2))+psycho_fit.Fit(4);
-    threshold(iSubject) = getThreshold(psycho_fit, 0.75);
+    SubjectData = LoadAllSubjectData(bothSubjects{iSubject}, NOISE_PHASE, DATADIR);
     
-    [~,~,psycho_fit] = GaborAnalysis.getThresholdWindow(bothSubjects{iSubject}, RATIO_PHASE, 0.3, 0.7, DATADIR);
+    % Get PM curve as % correct w.r.t. *unsigned* noise parameter.
+    warning off;
+    [~,~,psycho_fit] = GaborAnalysis.getThresholdWindow(SubjectData, NOISE_PHASE, 0.5, THRESHOLD, DATADIR);
+    warning on;
+
+    % Get %correct at 0 signal and threshold level
+    pc_zero_signal(iSubject) = psychofun(psycho_fit, 0);
+    threshold(iSubject) = getThreshold(psycho_fit, THRESHOLD);
+    
+    % Get PM curve w.r.t. frame ratio
+    SubjectData = LoadAllSubjectData(bothSubjects{iSubject}, RATIO_PHASE, DATADIR);
+    [~,~,psycho_fit] = GaborAnalysis.getThresholdWindow(SubjectData, RATIO_PHASE, 0.3, 0.7, DATADIR);
     slope = getSlopePC(psycho_fit, 0.5);
     pc_60_40_adjusted(iSubject) = 0.5 + .1 * slope;
 end
@@ -62,11 +85,11 @@ fprintf('Noise condition mean %%correct at zero signal = %f +/- %f, stdev = %f\n
 fprintf('Ratio condition mean %%correct at 6:4 = %f +/- %f, stdev = %f\n', mean(100*pc_60_40_adjusted), sem(100*pc_60_40_adjusted), std(100*pc_60_40_adjusted));
 
 nboot_pvalue = 10000;
-GaborAnalysis.DeltaSlopeStatistics(bothSubjects, [1 2], 'exponential', nboot_pvalue, is_naive, DATADIR);
-GaborAnalysis.DeltaSlopeStatistics(bothSubjects, [1 2], 'linear', nboot_pvalue, is_naive, DATADIR);
+GaborAnalysis.DeltaSlopeStatistics(bothSubjects, [RATIO_PHASE NOISE_PHASE], 'exponential', nboot_pvalue, is_naive, DATADIR);
+GaborAnalysis.DeltaSlopeStatistics(bothSubjects, [RATIO_PHASE NOISE_PHASE], 'linear', nboot_pvalue, is_naive, DATADIR);
 
-method = 'reg-lr'; % options include 'reg-lr', 'lr', 'exp', or 'lin'
-GaborAnalysis.DeltaPK(bothSubjects, [1 2], false, method, DATADIR);
+method = 'reg-lr'; % options include 'reg-lr', 'lr', 'exp', or 'lin'. This is just for visualization.
+GaborAnalysis.DeltaPK(bothSubjects, [RATIO_PHASE NOISE_PHASE], false, method, DATADIR);
 
 %% Psychometric curves
 
@@ -80,9 +103,8 @@ avg_pm_curve = zeros(size(noises));
 for iSubject=1:N
     SubjectData = LoadAllSubjectData(bothSubjects{iSubject}, NOISE_PHASE, DATADIR);
     [pm_fit, ~, ~, ~] = LoadOrRun(@GaborPsychometric, {SubjectData, -2}, ...
-        fullfile(MEMODIR, ['PM-noise-signed-' bothSubjects{iSubject} '.mat']));
-    % Next line copied from @plotPsych in the psignifit toolbox
-    subject_pm_curve = (1-pm_fit.Fit(3)-pm_fit.Fit(4))*arrayfun(@(x) pm_fit.options.sigmoidHandle(x,pm_fit.Fit(1),pm_fit.Fit(2)), noises)+pm_fit.Fit(4);
+        fullfile(MEMODIR, ['PM-noise-signed-' SubjectData.subjectID '.mat']));
+    subject_pm_curve = arrayfun(@(x) psychofun(pm_fit, x), noises);
     avg_pm_curve = avg_pm_curve + (subject_pm_curve - avg_pm_curve) / iSubject;
     plot(noises, subject_pm_curve, 'Color', LIGHT_RED, 'LineWidth', 1);
 end
@@ -99,9 +121,8 @@ avg_pm_curve = zeros(size(ratios));
 for iSubject=1:N
     SubjectData = LoadAllSubjectData(bothSubjects{iSubject}, RATIO_PHASE, DATADIR);
     [pm_fit, ~, ~, ~] = LoadOrRun(@GaborPsychometric, {SubjectData, RATIO_PHASE}, ...
-        fullfile(MEMODIR, ['PM-true_ratio-signed-' bothSubjects{iSubject} '.mat']));
-    % Next line copied from @plotPsych in the psignifit toolbox
-    subject_pm_curve = (1-pm_fit.Fit(3)-pm_fit.Fit(4))*arrayfun(@(x) pm_fit.options.sigmoidHandle(x,pm_fit.Fit(1),pm_fit.Fit(2)), ratios)+pm_fit.Fit(4);
+        fullfile(MEMODIR, ['PM-true_ratio-signed-' SubjectData.subjectID '.mat']));
+    subject_pm_curve = arrayfun(@(x) psychofun(pm_fit, x), ratios);
     avg_pm_curve = avg_pm_curve + (subject_pm_curve - avg_pm_curve) / iSubject;
     plot(ratios, subject_pm_curve, 'Color', LIGHT_BLUE, 'LineWidth', 1);
 end
@@ -110,141 +131,102 @@ xlabel('frame ratio left:right');
 ylabel('percent chose left');
 xlim([-inf inf]);
 
-%% Before computing PKs and fitting models, we need to (re)compute signal statistics per subject per condition. Slow, but only run once.
-
-figure;
-for iSubject=1:length(noiseSubjects)
-    SubjectData = LoadAllSubjectData(noiseSubjects{iSubject}, NOISE_PHASE, DATADIR);
-    sigs = LoadOrRun(@ComputeFrameSignals, {SubjectData, KERNEL_KAPPA}, ...
-        fullfile(MEMODIR, ['perFrameSignals-' noiseSubjects{iSubject} '-' num2str(KERNEL_KAPPA) '-noise.mat']));
-    subplotsquare(length(noiseSubjects), iSubject);
-    plot(SubjectData.ideal_frame_signals(:), sigs(:), '.');
-    title(noiseSubjects(iSubject));
-    axis equal; grid on;
-end
-
-figure;
-for iSubject=1:length(ratioSubjects)
-    SubjectData = LoadAllSubjectData(ratioSubjects{iSubject}, RATIO_PHASE, DATADIR);
-    sigs = LoadOrRun(@ComputeFrameSignals, {SubjectData, KERNEL_KAPPA}, ...
-        fullfile(MEMODIR, ['perFrameSignals-' ratioSubjects{iSubject} '-' num2str(KERNEL_KAPPA) '-ratio.mat']));
-    subplotsquare(length(ratioSubjects), iSubject);
-    plot(SubjectData.ideal_frame_signals(:), sigs(:), '.');
-    title(ratioSubjects(iSubject));
-    axis equal; grid on;
-end
-
 %% Supplemental PK cross-validation figure
 
 nFold = 20;
 pkLLNoise = zeros(4, N, nFold);
 pkLLRatio = zeros(4, N, nFold);
 for iSubject=N:-1:1
-    % Noise experiment PK cross-validation
+    %% Noise experiment PK cross-validation
     SubjectData = LoadAllSubjectData(bothSubjects{iSubject}, NOISE_PHASE, DATADIR);
-    [floor, thresh] = GaborAnalysis.getThresholdWindow(bothSubjects{iSubject}, NOISE_PHASE, 0.5, THRESHOLD);
-    SubjectDataThresh = GaborThresholdTrials(SubjectData, NOISE_PHASE, thresh, floor);
-    sigs = SubjectDataThresh.ideal_frame_signals;
-    resps = SubjectDataThresh.choice == +1;
-    memo_name = ['PK-xValidCompare-noise-' bothSubjects{iSubject} '-' num2str(thresh) '-' num2str(floor) '.mat'];
-    [pkLLNoise(1, iSubject, :), pkLLNoise(2, iSubject, :), pkLLNoise(3, iSubject, :), pkLLNoise(4, iSubject, :), ~] = ...
-        LoadOrRun(@CustomRegression.xValidatePKModels, {sigs, resps, nFold}, fullfile(MEMODIR, memo_name));
     
-    % Ratio experiment PK cross-validation
+    % Compute per-frame signals
+    sigs = LoadOrRun(@ComputeFrameSignals, {SubjectData, KERNEL_KAPPA}, ...
+        fullfile(MEMODIR, ['perFrameSignals-' SubjectData.subjectID '-' num2str(KERNEL_KAPPA) '-' SubjectData.phase '.mat']));
+    
+    % Select sub-threshold trials
+    [floor, thresh] = GaborAnalysis.getThresholdWindow(SubjectData, NOISE_PHASE, 0.5, THRESHOLD, MEMODIR);
+    [~, trials] = GaborThresholdTrials(SubjectData, NOISE_PHASE, thresh, floor);
+    sigs = sigs(trials, :);
+    choices = SubjectData.choice(trials) == +1;
+    
+    % Run cross-validated model comparison
+    memo_name = ['PK-xValidCompare-' SubjectData.phase '-' SubjectData.subjectID '-' num2str(thresh) '-' num2str(floor) '.mat'];
+    [pkLLNoise(1, iSubject, :), pkLLNoise(2, iSubject, :), pkLLNoise(3, iSubject, :), pkLLNoise(4, iSubject, :), ~] = ...
+        LoadOrRun(@CustomRegression.xValidatePKModels, {sigs, choices, nFold}, fullfile(MEMODIR, memo_name));
+    
+    %% Ratio experiment PK cross-validation
     SubjectData = LoadAllSubjectData(bothSubjects{iSubject}, RATIO_PHASE, DATADIR);
-    SubjectDataThresh = GaborThresholdTrials(SubjectData, RATIO_PHASE, .6, .4);
-    sigs = SubjectDataThresh.ideal_frame_signals;
-    resps = SubjectDataThresh.choice == +1;
-    disp(bothSubjects{iSubject});
-    disp(size(sigs));
-    disp(size(resps));
-    memo_name = ['PK-xValidCompare-true_ratio-' bothSubjects{iSubject} '-0.6-0.4.mat'];
+    
+    % Compute per-frame signals
+    sigs = LoadOrRun(@ComputeFrameSignals, {SubjectData, KERNEL_KAPPA}, ...
+        fullfile(MEMODIR, ['perFrameSignals-' SubjectData.subjectID '-' num2str(KERNEL_KAPPA) '-' SubjectData.phase '.mat']));
+    
+    % Select sub-threshold trials
+    [~, trials] = GaborThresholdTrials(SubjectData, RATIO_PHASE, .6, .4);
+    sigs = sigs(trials, :);
+    choices = SubjectData.choice(trials) == +1;
+    
+    % Run cross-validated model comparison
+    memo_name = ['PK-xValidCompare-' SubjectData.phase '-' SubjectData.subjectID '-0.6-0.4.mat'];
     [pkLLRatio(1, iSubject, :), pkLLRatio(2, iSubject, :), pkLLRatio(3, iSubject, :), pkLLRatio(4, iSubject, :), ~] = ...
-        LoadOrRun(@CustomRegression.xValidatePKModels, {sigs, resps, nFold}, fullfile(MEMODIR, memo_name));
+        LoadOrRun(@CustomRegression.xValidatePKModels, {sigs, choices, nFold}, fullfile(MEMODIR, memo_name));
 end
 
 % Note: CustomRegression.xValidatePKModels gives paired results. That is, each of the 4 models is
 % tested on the exact same data fold. The relevant statistic is therefore the *average of
-% differences in LL* rather than the *difference in averages*.
+% differences in LL* rather than the *difference in averages*. Size of both 'pkLLNoise' and
+% 'pkLLRatio' is [#models x #subjects x #folds]
+xValSubjects = shortnames;
+models = {'LR', 'reg. LR', 'Exp.', 'Lin.'};
 
-% Compute differences w.r.t. linear model as the baseline
-baselineModel = 4;
+% Sum LL across subjects to get LL for the whole dataset
+pkLLNoise(:, end+1, :) = sum(pkLLNoise, 2);
+pkLLRatio(:, end+1, :) = sum(pkLLRatio, 2);
+xValSubjects{end+1} = 'Combined';
+
+% Compute differences w.r.t. unregularized logistic regression (essentially glmfit) as baseline
+baselineModel = 1;
 pkLLNoiseDiffs = pkLLNoise - pkLLNoise(baselineModel, :, :);
 pkLLRatioDiffs = pkLLRatio - pkLLRatio(baselineModel, :, :);
 
-% Sum across subjects for combined result
-pkLLNoiseDiffsAll = squeeze(sum(pkLLNoiseDiffs, 2));
-pkLLRatioDiffsAll = squeeze(sum(pkLLNoiseDiffs, 2));
-
-% Sort across 'folds' so it's easy to get confidence intervals
-pkLLNoiseDiffs = sort(pkLLNoiseDiffs, 3);
-pkLLRatioDiffs = sort(pkLLRatioDiffs, 3);
-pkLLNoiseDiffsAll = sort(pkLLNoiseDiffsAll, 2);
-pkLLRatioDiffsAll = sort(pkLLRatioDiffsAll, 2);
-
-% Get mean and 50% confidence intervals across folds for each statistic
-meanDiffLLNoise = mean(pkLLNoiseDiffs, 3);
-loLLNoise = pkLLNoiseDiffs(:, :, round(.25 * nFold));
-hiLLNoise = pkLLNoiseDiffs(:, :, round(.75 * nFold));
-
-meanDiffLLRatio = mean(pkLLRatioDiffs, 3);
-loLLRatio = pkLLRatioDiffs(:, :, round(.25 * nFold));
-hiLLRatio = pkLLRatioDiffs(:, :, round(.75 * nFold));
-
-meanDiffLLNoiseAll = mean(pkLLNoiseDiffsAll, 2);
-loLLNoiseAll = pkLLNoiseDiffsAll(:, round(.25 * nFold));
-hiLLNoiseAll = pkLLNoiseDiffsAll(:, round(.75 * nFold));
-
-meanDiffLLRatioAll = mean(pkLLRatioDiffsAll, 2);
-loLLRatioAll = pkLLRatioDiffsAll(:, round(.25 * nFold));
-hiLLRatioAll = pkLLRatioDiffsAll(:, round(.75 * nFold));
+% Compute mean and standard error across folds
+meanLLNoise = mean(pkLLNoiseDiffs, 3);
+semLLNoise = std(pkLLNoiseDiffs, [], 3) ./ sqrt(nFold);
+meanLLRatio = mean(pkLLRatioDiffs, 3);
+semLLRatio = std(pkLLRatioDiffs, [], 3) ./ sqrt(nFold);
 
 figure;
 subplot(2,1,1);
 hold on;
-p1 = bar([meanDiffLLNoise'; meanDiffLLNoiseAll']);
+p1 = bar(meanLLNoise');
 drawnow;
-for iSubject=1:N
-    for iType=1:4
-        c = p1(iType).FaceColor;
-        x = p1(iType).XData(iSubject) + p1(iType).XOffset;
-        m = meanDiffLLNoise(iType, iSubject);
-        errorbar(x, m, m-loLLNoise(iType, iSubject), hiLLNoise(iType, iSubject)-m, 'Color', 'k');
+for iSubject=1:length(xValSubjects)
+    for iModel=1:length(models)
+        x = p1(iModel).XData(iSubject) + p1(iModel).XOffset;
+        errorbar(x, meanLLNoise(iModel, iSubject), semLLNoise(iModel,iSubject), 'Color', 'k');
     end
-end
-for iType=1:4
-    c = p1(iType).FaceColor;
-    x = N + 1 + p1(iType).XOffset;
-    m = meanDiffLLNoiseAll(iType);
-    errorbar(x, m, m-loLLNoiseAll(iType), hiLLNoiseAll(iType)-m, 'Color', 'k');
 end
 legend({'Unregularized LR', 'Regularized LR', 'Exponential', 'Linear'}, 'location', 'best');
 ylabel('Relative log-likelihood');
 title('Noise Condition');
-set(gca, 'XTick', 1:N+1, 'XTickLabel', [shortnames, {'Combined'}]);
+set(gca, 'XTick', 1:length(xValSubjects), 'XTickLabel', xValSubjects);
 xtickangle(45);
 
 subplot(2,1,2);
 hold on;
-p1 = bar([meanDiffLLRatio'; meanDiffLLRatioAll']);
+p1 = bar(meanLLRatio');
 drawnow;
-for iSubject=1:N
-    for iType=1:4
-        c = p1(iType).FaceColor;
-        x = p1(iType).XData(iSubject) + p1(iType).XOffset;
-        m = meanDiffLLRatio(iType, iSubject);
-        errorbar(x, m, m-loLLRatio(iType, iSubject), hiLLRatio(iType, iSubject)-m, 'Color', 'k');
+for iSubject=1:length(xValSubjects)
+    for iModel=1:length(models)
+        x = p1(iModel).XData(iSubject) + p1(iModel).XOffset;
+        errorbar(x, meanLLRatio(iModel, iSubject), semLLRatio(iModel,iSubject), 'Color', 'k');
     end
 end
-for iType=1:4
-    c = p1(iType).FaceColor;
-    x = N + 1 + p1(iType).XOffset;
-    m = meanDiffLLRatioAll(iType);
-    errorbar(x, m, m-loLLRatioAll(iType), hiLLRatioAll(iType)-m, 'Color', 'k');
-end
+legend({'Unregularized LR', 'Regularized LR', 'Exponential', 'Linear'}, 'location', 'best');
 ylabel('Relative log-likelihood');
 title('Ratio Condition');
-set(gca, 'XTick', 1:N+1, 'XTickLabel', [shortnames, {'Combined'}]);
+set(gca, 'XTick', 1:length(xValSubjects), 'XTickLabel', xValSubjects);
 xtickangle(45);
 
 %% Figure 4 - insufficiency of ITB model
@@ -458,85 +440,6 @@ figureToPanel(cs_fig, figModelSupp, 6, 3, 16, parula);
 figureToPanel(pk_fig, figModelSupp, 6, 3, 17);
 [~,~,~,~,fig,cmap] = Model.plotCSSlopes(ps, ps, params, beta_range, THRESHOLD, sens_cat_pts);
 figureToPanel(fig, figModelSupp, 6, 3, 18, cmap);
-
-%% Model fits
-
-init_model_params = Model.newModelParams('model', 'is', ...
-    'gamma', 0.1, ...
-    'samples', 5, ...
-    'updates', 2, ...
-    'lapse', 0.01);
-
-nInner = 10;
-
-fields = {'prior_C', 'gamma', 'samples', 'lapse', 'sensor_noise'};
-LB = [0 0 1 0 0];
-UB = [1 1 100 1 5];
-PLB = LB;
-PUB = UB;
-
-x0 = [.5 .1 5 .01 1];
-
-vbmc_options = vbmc('defaults');
-vbmc_options.UncertaintyHandling = 'yes';
-
-% for iSubject=1:length(noiseSubjects)
-%     memo_name = ['VBMC-noise-' noiseSubjects{iSubject} '.mat'];
-%     
-%     SubjectData = LoadAllSubjectData(noiseSubjects{iSubject}, NOISE_PHASE, DATADIR);
-%     ThresholdData = GaborThresholdTrials(SubjectData, NOISE_PHASE, 0.17, 0);
-%     likefn_args = {fields, init_model_params, ThresholdData, nInner};
-%     [VP, ~, ~, extflag] = LoadOrRun(@vbmc, ...
-%         [{@Fitting.subjectDataLogLikelihood, x0, LB, UB, PLB, PUB, vbmc_options} likefn_args], ...
-%         fullfile(MEMODIR, memo_name));
-%     
-%     savedir = fullfile('demo-fit', noiseSubjects{iSubject});
-%     if ~exist(savedir, 'dir'), mkdir(savedir); end
-%     
-%     Xsamp = vbmc_rnd(VP, 1e5);
-%     [fig, ax] = cornerplot(Xsamp, fields, [], [LB; UB]);
-%     statuses = {'not converged', 'converged'};
-%     suptitle(sprintf('%s :: %s', noiseSubjects{iSubject}, statuses{extflag+1}));
-%     saveas(fig, fullfile(savedir, 'cornerplot-noise.fig'));
-%     close(fig);
-%     
-%     fig = visModelFitPsychometric(ThresholdData, NOISE_PHASE, VP, fields, init_model_params, nInner, 10);
-%     saveas(fig, fullfile(savedir, 'psychometric-noise-subthreshold.fig'));
-%     close(fig);
-%     
-%     fig = visModelFitPsychometric(SubjectData, NOISE_PHASE, VP, fields, init_model_params, nInner, 10);
-%     saveas(fig, fullfile(savedir, 'psychometric-noise.fig'));
-%     close(fig);
-% end
-
-for iSubject=1:length(ratioSubjects)
-    memo_name = ['VBMC-ratio-' ratioSubjects{iSubject} '.mat'];
-    
-    SubjectData = LoadAllSubjectData(ratioSubjects{iSubject}, RATIO_PHASE, DATADIR);
-    ThresholdData = GaborThresholdTrials(SubjectData, RATIO_PHASE, 0.6, 0.4);
-    likefn_args = {fields, init_model_params, ThresholdData, nInner};
-    [VP, ~, ~, extflag] = LoadOrRun(@vbmc, ...
-        [{@Fitting.subjectDataLogLikelihood, x0, LB, UB, PLB, PUB, vbmc_options} likefn_args], ...
-        fullfile(MEMODIR, memo_name));
-    
-    savedir = fullfile('demo-fit', ratioSubjects{iSubject});
-    if ~exist(savedir, 'dir'), mkdir(savedir); end
-    
-    Xsamp = vbmc_rnd(VP, 1e5);
-    [fig, ax] = cornerplot(Xsamp, fields, [], [LB; UB]);
-    statuses = {'not converged', 'converged'};
-    suptitle(sprintf('%s :: %s', ratioSubjects{iSubject}, statuses{extflag+1}));
-    saveas(fig, fullfile(savedir, 'cornerplot-ratio.fig'));
-    close(fig);
-    
-    fig = visModelFitPsychometric(ThresholdData, RATIO_PHASE, VP, fields, init_model_params, nInner, 10);
-    saveas(fig, fullfile(savedir, 'psychometric-ratio-subthreshold.fig'));
-    close(fig);
-    
-    fig = visModelFitPsychometric(SubjectData, RATIO_PHASE, VP, fields, init_model_params, nInner, 10);
-    saveas(fig, fullfile(savedir, 'psychometric-ratio.fig'));
-    close(fig);
-end
 
 %% Helper function for figure layout
 

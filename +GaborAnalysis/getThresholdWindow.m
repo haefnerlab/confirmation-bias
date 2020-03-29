@@ -1,13 +1,9 @@
-function [floor, thresh, fit_result] = getThresholdWindow(subjectID, phase, perf_lo, perf_hi, datadir)
-%GABORANALYSIS.GETTHRESHOLDWINDOW return [low_signal, high_signal] range of
-%signal values corresponding to the given performance levels. (Think of
-%this function as inverting the psychometric curve).
+function [floor, thresh, fit_result] = getThresholdWindow(SubjectData, phase, perf_lo, perf_hi, memodir)
+%GABORANALYSIS.GETTHRESHOLDWINDOW return [low_signal, high_signal] range of signal values
+%corresponding to the given performance levels. (Think of this function as inverting the
+%psychometric curve).
 
-if nargin < 5, datadir = fullfile(pwd, '..', 'RawData'); end
-
-catdir = fullfile(datadir, '..', 'ConcatData');
-if ~exist(catdir, 'dir'), mkdir(catdir); end
-memodir = fullfile(datadir, '..', 'Precomputed');
+if ~exist('memodir', 'var'), memodir = fullfile(pwd, '..', 'Precomputed'); end
 if ~exist(memodir, 'dir'), mkdir(memodir); end
 
 if phase == 0
@@ -20,13 +16,10 @@ else
     error('Expected phase 0 for Contrast or 1 for Ratio or 2 for Noise');
 end
 
-SubjectData = LoadOrRun(@LoadAllSubjectData, ...
-    {subjectID, phase, datadir}, ...
-    fullfile(catdir, [subjectID '-' stair_var '.mat']));
 % Use PM fit to get floor and threshold
 [fit_result, ~, ~, ~] = LoadOrRun(@GaborPsychometric, ...
     {SubjectData, phase}, ...
-    fullfile(memodir, ['PM-' stair_var '-' subjectID '.mat']));
+    fullfile(memodir, ['PM-' stair_var '-' SubjectData.subjectID '.mat']));
 try
     floor = getThreshold(fit_result, perf_lo, false);
 catch

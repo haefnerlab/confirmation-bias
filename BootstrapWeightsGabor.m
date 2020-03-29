@@ -1,19 +1,15 @@
-function [M, L, U, median, weight_matrix] = BootstrapWeightsGabor(Test_Data, bootstrapsteps, hprs, signalKappa, normalize)
+function [M, L, U, median, weight_matrix] = BootstrapWeightsGabor(signals, choices, bootstrapsteps, hprs, normalize)
+if nargin < 5, normalize = false; end
 
-if nargin < 3, signalKappa = 0; end
-if nargin < 4, normalize = false; end
-
-frame_signals = ComputeFrameSignals(Test_Data, signalKappa);
-
-[trials, frames] = size(frame_signals);
+[trials, frames] = size(signals);
 num_weights = frames + 1;
 weight_matrix = zeros(bootstrapsteps, num_weights);
 
 parfor i=1:bootstrapsteps
     % Randomly resample trials with replacement
     index = randi([1 trials], 1, trials);
-    boot_choices = Test_Data.choice(index) == +1;
-    boot_signals = frame_signals(index, :);
+    boot_choices = choices(index);
+    boot_signals = signals(index, :);
    
     % Temporal PK regression
     weights = CustomRegression.PsychophysicalKernel(boot_signals, boot_choices, hprs(1), hprs(2), hprs(3), 1);
