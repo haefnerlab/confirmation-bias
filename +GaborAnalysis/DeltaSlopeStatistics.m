@@ -214,4 +214,54 @@ switch lower(type)
         ylabel('slope (linear)');
 end
 
+%% 2D errorbar plots
+
+alpha = 0.95;
+
+figure;
+hold on;
+for iSubject=1:length(subjectIds)
+    % Get lower and upper confidence intervals
+    [m1, l1, u1] = meanci(squeeze(slopes(iSubject, 1, :)), alpha);
+    [m2, l2, u2] = meanci(squeeze(slopes(iSubject, 2, :)), alpha);
+    errorbar(m1, m2, m2-l2, u2-m2, m1-l1, u1-m1, '-k');
+    
+    % Overlay dots
+    if is_naive(iSubject)
+        plot(m1, m2, 'o', 'Color', [0 0 0], 'MarkerFaceColor', [0 0 0]);
+    else
+        plot(m1, m2, 'o', 'Color', gray, 'MarkerFaceColor', gray);
+    end
+    
+    % p-value asterisks
+    if pvalues(iSubject) < 0.0001
+        ptxt = '***';
+    elseif pvalues(iSubject) < 0.001
+        ptxt = '**';
+    elseif pvalues(iSubject) < 0.05
+        ptxt = '*';
+    else
+        ptxt = ''; % ['p = ' num2str(pvalues(iSubject), 2)];
+    end
+    if ~isempty(ptxt)
+        text(m1+.01, m2+.01, ptxt);
+    end
+end
+
+switch lower(type)
+    case 'exponential'
+        xlabel(['slope (\beta), ' label1]);
+        ylabel(['slope (\beta), ' label2]);
+    case 'linear'
+        xlabel(['slope (linear), ' label1]);
+        ylabel(['slope (linear), ' label2]);
+end
+axis square;
+axis equal;
+grid on;
+xl = xlim;
+yl = ylim;
+plot(xl, xl, '-k', 'LineWidth', 2);
+xlim(xl); ylim(yl);
+
 end
