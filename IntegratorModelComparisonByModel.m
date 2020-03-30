@@ -62,7 +62,7 @@ fprintf('\tPK beta fit = %.1f\n', abb(2));
 
 uid = Model.getModelStringID(true_params);
 sigs = Model.logLikelihoodOdds(true_params, data);
-[bestfits, ll_train, ll_test, model_names, ~] = IntegratorModelComparison(sigs, res.choices, 50, uid, []);
+[bestfits, ll_train, ll_test, model_names, ~] = IntegratorModelComparison(sigs, res.choices, 0.98, 50, uid);
 
 if add_null
     % For reference, compute the log likelihood under the null model

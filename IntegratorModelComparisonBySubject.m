@@ -31,8 +31,8 @@ if sub_threshold
 end
 
 %% Fit models and get cross-validation scores
-prefix = [subjectId '-' num2str(kernel_kappa) '-' SubjectData.phase];
-[bestfit, train_ll, test_ll, model_names] = IntegratorModelComparison(sigs, choices, 50, prefix, 989895774);
+prefix = [subjectId '-' num2str(kernel_kappa) '-' SubjectData.phase '-' num2str(sub_threshold)];
+[bestfit, train_ll, test_ll, model_names] = IntegratorModelComparison(sigs, choices, 0.98, 100, prefix);
 nModels = length(model_names);
 
 if add_null
