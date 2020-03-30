@@ -9,7 +9,7 @@ model_fields = {
 
 model_names = {'ideal', 'itb', 'gamma', 'itb_gamma'};
 
-use_cache =  nargin > 5 && ~isempty(prefix);
+use_cache =  nargin >= 5 && ~isempty(prefix);
 parfor iRep=1:nRepeats
     if use_cache
         [bestfit(:, iRep), ll_train(:, iRep), ll_test(:, iRep), n_train(iRep)] = LoadOrRun(@fit_wrapper, ...

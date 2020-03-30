@@ -1,9 +1,11 @@
-function [true_params, bestfits, model_names] = IntegratorModelComparisonByModel(which_base, which_phase, reference, add_null)
+function [true_params, bestfits, model_names] = IntegratorModelComparisonByModel(which_base, which_phase, group_by, reference, add_null)
 
-if nargin < 3, reference = 'ideal'; end
-if nargin < 4, add_null = false; end
+if nargin < 3, group_by = 'traintest'; end % or 'model'
+if nargin < 4, reference = 'ideal'; end
+if nargin < 5, add_null = false; end
 
 base_params = Model.newModelParams('var_x', 0.1, 'gamma', .1, 'temperature', 0.1, 'lapse', .005, 'trials', 1600);
+base_params.save_dir = 'tmp';
 switch which_base
     case 'is'
         % Set parameters for importance sampling model
@@ -62,7 +64,7 @@ fprintf('\tPK beta fit = %.1f\n', abb(2));
 
 uid = Model.getModelStringID(true_params);
 sigs = Model.logLikelihoodOdds(true_params, data);
-[bestfits, ll_train, ll_test, model_names, ~] = IntegratorModelComparison(sigs, res.choices, 0.98, 50, uid);
+[bestfits, ll_train, ll_test, ~, model_names] = IntegratorModelComparison(sigs, res.choices, 0.98, 50, uid);
 
 if add_null
     % For reference, compute the log likelihood under the null model
@@ -87,15 +89,24 @@ sem_ll_diff(:,1) = std(ll_diff, [], 2) ./ sqrt(size(ll_diff, 2));
 % Second column is LL difference on test set:
 ll_diff = ll_test - ll_test(ref_model,:);
 est_ll_diff(:,2) = mean(ll_diff, 2);
-sem_ll_diff(:,3) = std(ll_diff, [], 2) ./ sqrt(size(ll_diff, 2));
+sem_ll_diff(:,2) = std(ll_diff, [], 2) ./ sqrt(size(ll_diff, 2));
 
 %% Plot result
 hold on;
-bar(1:nModels, est_ll_diff);
-errorbar((1:nModels)-.15, est_ll_diff(:,1), sem_ll_diff(:,1), 'ok');
-errorbar((1:nModels)+.15, est_ll_diff(:,2), sem_ll_diff(:,2), 'ok');
-legend({'train', 'test'}, 'Location', 'Northwest');
-set(gca, 'XTick', 1:nModels, 'XTickLabel', model_names);
+if startsWith(group_by, 'm')
+    h = bar(est_ll_diff); drawnow;
+    errorbar(h(1).XData+h(1).XOffset, est_ll_diff(:,1), sem_ll_diff(:,1), 'ok');
+    errorbar(h(2).XData+h(2).XOffset, est_ll_diff(:,2), sem_ll_diff(:,2), 'ok');
+    legend({'train', 'test'}, 'Location', 'Northwest');
+    set(gca, 'XTick', 1:nModels, 'XTickLabel', model_names);
+elseif startsWith(group_by, 't')
+    h = bar(est_ll_diff'); drawnow;
+    for m=1:length(model_names)
+        errorbar(h(m).XData+h(m).XOffset, est_ll_diff(m,:), sem_ll_diff(m,:), 'ok');
+    end
+    legend(model_names, 'Location', 'Northwest');
+    set(gca, 'XTick', 1:2, 'XTickLabel', {'train', 'test'});
+end
 grid on;
 ylabel(['\Delta LL from ' reference ' fit']);
 title(sprintf('Model fits to %s [%s]', upper(which_base), upper(which_phase)));
