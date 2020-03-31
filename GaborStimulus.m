@@ -24,8 +24,9 @@ else
     % Randomly permute whether each frame matches the true category, with
     % 'ratio' percent of them matching.
     n_match = round(GaborData.ratio(trial) * GaborData.number_of_images);
-    match_frames = [true(1, n_match) false(1, GaborData.number_of_images - n_match)];
-    match_frames = logical(Shuffle(double(match_frames)));
+    idx_mismatch = randperm(GaborData.number_of_images, GaborData.number_of_images - n_match);
+    match_frames = true(1, GaborData.number_of_images);
+    match_frames(idx_mismatch) = false;
 end
 
 frame_categories = zeros(size(match_frames));
