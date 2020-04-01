@@ -27,7 +27,7 @@ naiveBothSubjects = intersect(naiveRatioSubjects, naiveNoiseSubjects);
 % Re-order so that informed subjects are at the end
 ratioSubjects = [naiveRatioSubjects informedSubjects];
 noiseSubjects = [naiveNoiseSubjects informedSubjects];
-bothSubjects = [intersect(naiveRatioSubjects, naiveNoiseSubjects) informedSubjects];
+bothSubjects = sort([intersect(naiveRatioSubjects, naiveNoiseSubjects) informedSubjects]);
 is_naive = ismember(bothSubjects, naiveBothSubjects);
 
 % Compute population-level psycho metrics
@@ -229,7 +229,7 @@ title('Ratio Condition');
 set(gca, 'XTick', 1:length(xValSubjects), 'XTickLabel', xValSubjects);
 xtickangle(45);
 
-%% Figure 4 - insufficiency of ITB model
+%% Figure 4 - simulation of hierarchical ITB model
 
 fig4 = figure;
 
