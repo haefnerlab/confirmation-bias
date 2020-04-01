@@ -1,4 +1,4 @@
-function [true_params, bestfits, model_names] = IntegratorModelComparisonByModel(which_base, which_phase, group_by, reference, add_null)
+function [true_params, model_names] = IntegratorModelComparisonByModel(which_base, which_phase, group_by, reference, add_null)
 
 if nargin < 3, group_by = 'traintest'; end % or 'model'
 if nargin < 4, reference = 'ideal'; end
@@ -64,7 +64,7 @@ fprintf('\tPK beta fit = %.1f\n', abb(2));
 
 uid = Model.getModelStringID(true_params);
 sigs = Model.logLikelihoodOdds(true_params, data);
-[bestfits, ll_train, ll_test, ~, model_names] = IntegratorModelComparison(sigs, res.choices, 0.98, 50, uid);
+[ll_train, ll_test, ~, model_names] = IntegratorModelComparison(sigs, res.choices, [0.1 1], 500, uid);
 
 if add_null
     % For reference, compute the log likelihood under the null model
