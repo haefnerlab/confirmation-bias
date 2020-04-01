@@ -58,7 +58,6 @@ prop_adjust_gamma_temp = all(ismember({'gamma', 'log_temperature'}, fields));
         end
     end
 
-
     function lp = log_prior(params)
         lp = 0;
         fields = fieldnames(distribs);
@@ -67,33 +66,9 @@ prop_adjust_gamma_temp = all(ismember({'gamma', 'log_temperature'}, fields));
         end
     end
 
-    function integrator = integrate(params, signals)
-        log_prior_odds = log(params.prior_C) - log(1-params.prior_C);
-        
-        [nTrials, nFrames] = size(signals);
-        integrator = zeros(nTrials, nFrames+1);
-        integrator(:,1) = log_prior_odds;
-        for f=1:nFrames
-            integrator(:,f+1) = integrator(:,f)*(1-params.gamma) + signals(:, f);
-            
-            % Implement sticky bound by setting integrator to inf in the loop (it can never undo the
-            % inf) and setting all inf values to the bound outside the loop.
-            integrator(integrator >= +params.bound) = +inf;
-            integrator(integrator <= -params.bound) = -inf;
-        end
-        integrator(isinf(integrator)) = sign(integrator(isinf(integrator)))*params.bound;
-    end
-
     function ll = log_like(params, signals, choices)
-        % By adjusting for temperature before integrating, we eliminate the dependency between the
-        % fit temperature and the fit prior + bound.
-        integrator = integrate(params, signals/params.temperature);
-        log_odds = integrator(:,end);
-        
-        lapse_range = 1-(params.lapse_1+params.lapse_2);
-        choice_prob = params.lapse_1 + lapse_range * 1./(1+exp(-log_odds));
-        
-        ll = sum(log(choice_prob(choices == +1))) +sum(log(1-choice_prob(choices ~= +1)));
+        run_results = Model.runIntegratorModel(params, signals);
+        ll = sum(log(run_results.prob_choice(choices == +1))) + sum(log(1-run_results.prob_choice(choices ~= +1)));
     end
 
     function lp = log_post(params, signals, choices)
