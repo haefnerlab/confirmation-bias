@@ -42,11 +42,8 @@ for n=1:updates
     x_samples(:, :, n) = samp;
     flat_samples = samp(:);
     
-    % Get unnormalized importance weights for each sample (note that this is vectorized over trials,
-    % but we have to loop over samples. Typically number of samples << number of trials)
-    for s=1:samples
-        weights(:, s, n) = 1 ./ mog.pdf(x_samples(:, s, n), priors);
-    end
+    % Get unnormalized importance weights for each sample using vectorized function mog.pdf
+    weights(:, :, n) = 1 ./ mog.pdf(x_samples(:, :, n), priors);
 
     % Normalize importance-sampling weights
     if params.importance_norm
