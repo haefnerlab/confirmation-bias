@@ -12,7 +12,7 @@ signals = signals / params.temperature;
 results.lpo = zeros(trials, frames+1);
 results.lpo(:,1) = log(params.prior_C) - log(1-params.prior_C);
 
-for f=1:nFrames
+for f=1:frames
     results.lpo(:,f+1) = results.lpo(:,f)*(1-params.gamma) + signals(:, f);
     
     % Implement sticky bound by setting results.lpo to inf in the loop (it can never undo the
