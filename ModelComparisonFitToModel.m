@@ -84,7 +84,7 @@ parfor iRun=1:nReRuns
     % Estimate log likelihood of each model
     for iModel=1:nModels
         [~, ll(iModel,iRun), var_ll(iModel,iRun)] = ...
-            Fitting.choiceModelLogProb(bestfit{iModel}, empty_prior, data, true_res.choices);
+            Fitting.choiceModelLogProbIBS(bestfit{iModel}, empty_prior, data, true_res.choices);
     end
 end
 

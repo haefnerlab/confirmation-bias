@@ -79,7 +79,7 @@ lower_bound = -true_params.trials*log(2);
 figure;
 for j=1:repeats
     log_post(:,j) = arrayfun(...
-        @(x) Fitting.choiceModelLogProb(Fitting.setParamsFields(test_params, field, x), prior_info, data, results.choices), ...
+        @(x) Fitting.choiceModelLogProbIBS(Fitting.setParamsFields(test_params, field, x), prior_info, data, results.choices), ...
         domain);
     post_prob(:,j) = log2prob(log_post(:,j));
 
@@ -128,7 +128,7 @@ opts.Display = 'iter';
 for iRun=10:-1:1
     x0 = PLB + rand(size(PLB)) .* (PUB - PLB);
     [BESTFIT(iRun,:), NLL(iRun), EXITFLAG(iRun)] = bads(...
-        @(x) -Fitting.choiceModelLogProb(Fitting.setParamsFields(test_params, fields, x), prior_info, data, results.choices), ...
+        @(x) -Fitting.choiceModelLogProbIBS(Fitting.setParamsFields(test_params, fields, x), prior_info, data, results.choices), ...
         x0, LB, UB, PLB, PUB, [], opts);
     for iF=1:nF
         for jF=iF:nF
@@ -217,7 +217,7 @@ opts = bads('defaults');
 opts.UncertaintyHandling = true;
 opts.NonlinearScaling = false;
 ideal_bestfit = bads(...
-    @(x) -Fitting.choiceModelLogProb(Fitting.setParamsFields(ideal_params(islowsig), ideal_fields, x), ideal_prior_info, stim_set(islowsig), choice_set(islowsig)), ...
+    @(x) -Fitting.choiceModelLogProbIBS(Fitting.setParamsFields(ideal_params(islowsig), ideal_fields, x), ideal_prior_info, stim_set(islowsig), choice_set(islowsig)), ...
     [0.5 log(5) log(.05)], LB, UB, PLB, PUB, [], opts);
 ideal_params = Fitting.setParamsFields(ideal_params, ideal_fields, ideal_bestfit);
 
@@ -229,8 +229,8 @@ fprintf('Expected prior from choice bias = %.3f\n', exp_prior_C);
 fprintf('Best fit prior = %.3f\n', ideal_bestfit(1));
 
 %% Evaluate log likelihood of the ideal observer model
-[~, ideal_ll_lowsig, var_ideal_ll_lowsig] = Fitting.choiceModelLogProb(ideal_params(islowsig), ideal_prior_info, stim_set(islowsig), choice_set(islowsig));
-[~, ideal_ll, var_ideal_ll] = Fitting.choiceModelLogProb(ideal_params, ideal_prior_info, stim_set, choice_set);
+[~, ideal_ll_lowsig, var_ideal_ll_lowsig] = Fitting.choiceModelLogProbIBS(ideal_params(islowsig), ideal_prior_info, stim_set(islowsig), choice_set(islowsig));
+[~, ideal_ll, var_ideal_ll] = Fitting.choiceModelLogProbIBS(ideal_params, ideal_prior_info, stim_set, choice_set);
 
 % Plot ideal observer behavior on subject data
 figure;
@@ -258,7 +258,7 @@ for iPara=1:length(ideal_fields)
     domain = linspace(ideal_prior_info.(f).lb, ideal_prior_info.(f).ub, 31);
     for iX=length(domain):-1:1
         for iRep=10:-1:1
-            [logpost(iX, iRep), loglike(iX, iRep), logvar(iX, iRep), lb] = Fitting.choiceModelLogProb(...
+            [logpost(iX, iRep), loglike(iX, iRep), logvar(iX, iRep), lb] = Fitting.choiceModelLogProbIBS(...
                 Fitting.setParamsFields(ideal_params(islowsig), {f}, domain(iX)), ideal_prior_info, stim_set(islowsig), choice_set(islowsig));
         end
     end
@@ -295,7 +295,7 @@ for iRun=10:-1:1
     trunstart = tic;
     x0 = PLB + rand(size(PLB)).*(PUB-PLB);
     [BESTFIT(iRun,:), NLL(iRun), EXITFLAG(iRun)]  = bads(...
-        @(x) -Fitting.choiceModelLogProb(Fitting.setParamsFields(params_set(islowsig), fields_to_fit, x), prior_info, stim_set(islowsig), choice_set(islowsig)), ...
+        @(x) -Fitting.choiceModelLogProbIBS(Fitting.setParamsFields(params_set(islowsig), fields_to_fit, x), prior_info, stim_set(islowsig), choice_set(islowsig)), ...
         x0, LB, UB, PLB, PUB, [], opts);
     toc(trunstart);
 end
@@ -365,8 +365,8 @@ for iSet=1:length(params_set)
     % Title according to SI and CI of this group
     title(sprintf('SI=%.2f  CI=%.2f', bads_params_set(iSet).sensory_info, bads_params_set(iSet).category_info));
 end
-bads_loglike = Fitting.choiceModelLogProb(bads_params_set, empty_prior, stim_set, choice_set);
-bads_logpost = Fitting.choiceModelLogProb(bads_params_set, prior_info, stim_set, choice_set);
+bads_loglike = Fitting.choiceModelLogProbIBS(bads_params_set, empty_prior, stim_set, choice_set);
+bads_logpost = Fitting.choiceModelLogProbIBS(bads_params_set, prior_info, stim_set, choice_set);
 sgtitle({['ITB behavior on ' subjectId '-translated data'], ['Choice-model LL = ' num2str(bads_loglike) ', LPo = ' num2str(bads_logpost) ', LPri = ' num2str(bads_logpost-bads_loglike)]});
 
 %% Helpers

@@ -57,7 +57,7 @@ for iRun=10:-1:1
     % Initialize randomly on each iteration
     x0 = PLB + (PUB-PLB).*rand(size(PLB));
     [BESTFIT(iRun,:), NLL(iRun), EXITFLAG(iRun)] = bads(...
-        @(x) -Fitting.choiceModelLogProb(Fitting.setParamsFields(params_set, fit_fields, x), distribs, stim_set, choice_set), ...
+        @(x) -Fitting.choiceModelLogProbIBS(Fitting.setParamsFields(params_set, fit_fields, x), distribs, stim_set, choice_set), ...
         x0, LB, UB, PLB, PUB, [], bads_options);
 end
 
@@ -68,7 +68,7 @@ bestfit_params = Fitting.setParamsFields(params_set(1), fit_fields, BESTFIT(best
 
 %% Evaluate stats on best model
 if nargout >= 2
-    [logpost, logpri, ~, logposterr] = Fitting.choiceModelLogProb(bestfit_params, distribs, stim_set, choice_set);
+    [logpost, logpri, ~, logposterr] = Fitting.choiceModelLogProbIBS(bestfit_params, distribs, stim_set, choice_set);
     loglike = logpost - logpri;
     logposterr = sqrt(logposterr);
 end

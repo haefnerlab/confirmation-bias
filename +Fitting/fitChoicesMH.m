@@ -24,9 +24,9 @@ for iKappa=1:length(uKappas)
 end
 
     function log_post = logpostpdf(smpl)
-        % Fitting.choiceModelLogProb is a stochastic estimator of the log posterior.. average over a few runs
+        % Fitting.choiceModelLogProbIBS is a stochastic estimator of the log posterior.. average over a few runs
         for i=nRepeat:-1:1
-            log_post(i) = Fitting.choiceModelLogProb(Fitting.setParamsFields(params, fields, smpl), distributions, expt_signals, expt_choices);
+            log_post(i) = Fitting.choiceModelLogProbIBS(Fitting.setParamsFields(params, fields, smpl), distributions, expt_signals, expt_choices);
         end
         log_post = mean(log_post);
     end

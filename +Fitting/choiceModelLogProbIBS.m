@@ -1,5 +1,5 @@
-function [log_post, log_like, est_variance, lower_bound] = choiceModelLogProb(params, prior_info, signals, choices, lower_bound)
-% FITTING.CHOICEMODELLOGPROB estimate log posterior probability of given params struct. Prior is
+function [log_post, log_like, est_variance, lower_bound] = choiceModelLogProbIBS(params, prior_info, signals, choices, lower_bound)
+% FITTING.choiceModelLogProbIBS estimate log posterior probability of given params struct. Prior is
 % based on prior_info struct (see @Fitting.defaultDistributions). If prior_info is empty, prior is
 % not counted and only the log likelihood is computed. The log likelihood is stochastic but unbiased,
 % computed using the Inverse Binomial Sampling method of [1], clipped at a maximum of maxK
