@@ -11,7 +11,7 @@ crossed = abs(lpo) >= bound;
 lpo(~crossed) = lpo(~crossed)*(1-gamma) + Model.logLikelihoodOdds(params, e(~crossed));
 
 % Add zero-mean gaussian noise to lpo.
-lpo = lpo + randn(size(lpo)) * noise;
+lpo(~crossed) = lpo(~crossed) + randn(sum(~crossed),1) * noise;
 
 % 'Stick' to bound after update
 lpo = min(max(-bound, lpo), +bound);
