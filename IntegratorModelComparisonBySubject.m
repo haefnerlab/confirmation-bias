@@ -10,7 +10,7 @@ memodir = fullfile(datadir, '..', 'Precomputed');
 if ~exist(memodir, 'dir'), mkdir(memodir); end
 
 %% Load subject data
-SubjectData = LoadAllSubjectData(subjectId, phase, '../PublishData');
+SubjectData = LoadAllSubjectData(subjectId, phase, datadir);
 kernel_kappa = 0.16;
 
 sigs = LoadOrRun(@ComputeFrameSignals, {SubjectData, kernel_kappa}, ...
