@@ -2,13 +2,14 @@
 
 clear;
 rng('shuffle');
-true_params = Model.newModelParams('model', 'itb', ...
+true_params = Model.newModelParams('model', 'is', ...
     'var_x', 0.1, ...
     'gamma', .05, ...
     'allow_gamma_neg', false, ...
     'save_dir', 'tmp', ...
-    'trials', 800, ...
-    'updates', 1, ...
+    'trials', 1000, ...
+    'updates', 5, ...
+    'samples', 5, ...
     'step_size', 0.01, ...
     'bound', 1, ...
     'noise', .01, ...
@@ -26,7 +27,7 @@ distribs = Fitting.defaultDistributions(fittable_parameters, [], false);
 % depending on whether we're doing MAP fitting (e.g. with BADS) or full posterior fitting (e.g. with
 % VBMC)
 log_fittable_parameters = {'log_lapse', 'log_noise', 'log_temperature', 'log_bound'};
-log_distribs_map = Fitting.defaultDistributions(fittable_parameters, true);
+log_distribs_map = Fitting.defaultDistributions(log_fittable_parameters, true);
 log_distribs_bayes = Fitting.defaultDistributions(log_fittable_parameters, false);
 
 % Simulate ground-truth results
@@ -38,8 +39,9 @@ results = Model.runVectorized(true_params, data);
 %% Plot priors over each parameter
 
 figure;
-for iPara=1:length(fittable_parameters)
-    d = distribs.(fittable_parameters{iPara});
+fields = fieldnames(distribs);
+for iPara=1:length(fields)
+    d = distribs.(fields{iPara});
     xs = linspace(d.plb, d.pub, 1001);
     log_ps = d.logpriorpdf(xs);
     ps = exp(log_ps - max(log_ps));
@@ -48,14 +50,14 @@ for iPara=1:length(fittable_parameters)
     checkps = d.priorpdf(xs);
     checkps = checkps / sum(checkps);
     
-    subplotsquare(length(fittable_parameters), iPara); hold on;
+    subplotsquare(length(fields), iPara); hold on;
     plot(xs, ps, '-k', 'LineWidth', 2);
     plot(xs, checkps, '--r', 'LineWidth', 1);
     plot(d.plb*[1 1], ylim, '--b');
     plot(d.pub*[1 1], ylim, '--g');
-    title([strrep(fittable_parameters{iPara}, '_', ' ') ' prior']);
+    title([strrep(fields{iPara}, '_', ' ') ' prior']);
     
-    if iPara == length(fittable_parameters)
+    if iPara == length(fields)
         legend({'exp(logpriorpdf)', 'priorpdf'}, 'location', 'best');
     end
 end
@@ -64,9 +66,9 @@ clear iPara d xs ps log_ps checkps
 
 %% Visualize some (log) posterior marginal slices from the true model
 
-field = 'log_bound';
+field = 'prior_C';
 prior_info = Fitting.defaultDistributions({field}, false);
-domain = linspace(prior_info.(field).plb, prior_info.(field).pub);
+domain = linspace(prior_info.(field).plb, prior_info.(field).pub, 11);
 
 repeats = 3;
 
@@ -156,19 +158,19 @@ THRESHOLD = 0.7;
 DATADIR = fullfile(pwd, '..', 'PublishData');
 MEMODIR = fullfile(pwd, '..', 'Precomputed');
 
-subjectId = 'BPGTask-subject01';
+subjectId = 'BPGTask-subject07';
 SubjectData = LoadAllSubjectData(subjectId, NOISE_PHASE, DATADIR);
 kernel_kappa = 0.16;
 uid = [subjectId '-' num2str(kernel_kappa) '-' SubjectData.phase];
 signals = LoadOrRun(@ComputeFrameSignals, {SubjectData, kernel_kappa}, ...
     fullfile('../Precomputed', ['perFrameSignals-' uid '.mat']));
 
-[params_set, stim_set, choice_set, trial_set] = SubjectDataToModelParams(SubjectData, signals, kernel_kappa, 0);
-nonempty = ~cellfun(@isempty, choice_set);
-params_set = params_set(nonempty);
-stim_set = stim_set(nonempty);
-choice_set = choice_set(nonempty);
-trial_set = trial_set(nonempty);
+internal_noise = 1;
+[params_set, stim_set, choice_set, trial_set] = SubjectDataToModelParams(SubjectData, signals, kernel_kappa, internal_noise);
+
+% Subselect: low(ish) signals only
+lowsigcutoff = 0.85;
+islowsig = [params_set.sensory_info] <= lowsigcutoff | [params_set.category_info] <= lowsigcutoff;
 
 % Visualize transformation of signals from subject data.. set 'signed=true' to view bimodals, or
 % signed=false to view just positive lobes.
@@ -202,7 +204,7 @@ sgtitle('Debug Fig: red = sig distrib; blue = transformed distrib; green = targe
 %% Baseline: evaluate subject w.r.t. ideal observer model, fitting only temperature param
 
 ideal_params = arrayfun(@(p) setfield(p, 'model', 'ideal'), params_set);
-ideal_fields = {'log_temperature', 'log_lapse'};
+ideal_fields = {'prior_C', 'log_temperature', 'log_lapse'};
 ideal_prior_info = Fitting.defaultDistributions(ideal_fields);
 
 LB  = cellfun(@(f) ideal_prior_info.(f).lb,  ideal_fields);
@@ -215,11 +217,19 @@ opts = bads('defaults');
 opts.UncertaintyHandling = true;
 opts.NonlinearScaling = false;
 ideal_bestfit = bads(...
-    @(x) -Fitting.choiceModelLogProb(Fitting.setParamsFields(ideal_params, ideal_fields, x), ideal_prior_info, stim_set, choice_set), ...
-    [log(5) log(.05)], LB, UB, PLB, PUB, [], opts);
+    @(x) -Fitting.choiceModelLogProb(Fitting.setParamsFields(ideal_params(islowsig), ideal_fields, x), ideal_prior_info, stim_set(islowsig), choice_set(islowsig)), ...
+    [0.5 log(5) log(.05)], LB, UB, PLB, PUB, [], opts);
 ideal_params = Fitting.setParamsFields(ideal_params, ideal_fields, ideal_bestfit);
 
+emp_p_choice = mean(vertcat(choice_set{islowsig}) == +1);
+emp_p_category = mean(sum(vertcat(stim_set{islowsig}),2) > 0);
+exp_log_prior_C = log(emp_p_choice/(1-emp_p_choice)) - log(emp_p_category/(1-emp_p_category));
+exp_prior_C = 1./(1+exp(-exp_log_prior_C));
+fprintf('Expected prior from choice bias = %.3f\n', exp_prior_C);
+fprintf('Best fit prior = %.3f\n', ideal_bestfit(1));
+
 %% Evaluate log likelihood of the ideal observer model
+[~, ideal_ll_lowsig, var_ideal_ll_lowsig] = Fitting.choiceModelLogProb(ideal_params(islowsig), ideal_prior_info, stim_set(islowsig), choice_set(islowsig));
 [~, ideal_ll, var_ideal_ll] = Fitting.choiceModelLogProb(ideal_params, ideal_prior_info, stim_set, choice_set);
 
 % Plot ideal observer behavior on subject data
@@ -237,7 +247,8 @@ for iSet=1:length(ideal_params)
     % Title according to SI and CI of this group
     title(sprintf('SI=%.2f  CI=%.2f', ideal_params(iSet).sensory_info, ideal_params(iSet).category_info));
 end
-sgtitle({['Ideal Observer behavior on ' subjectId '-translated data'], sprintf('LL=%.2f +/- %.2f', ideal_ll, sqrt(var_ideal_ll))});
+sgtitle({['Ideal Observer behavior on ' subjectId '-translated data'], ...
+    sprintf('LL=%.2f +/- %.2f (all)\tLL=%.2f +/- %.2f (low)', ideal_ll, sqrt(var_ideal_ll), ideal_ll_lowsig, sqrt(var_ideal_ll_lowsig))});
 
 %% Plot marginal posterior and marginal likelihood slices for each parameter
 figure;
@@ -248,7 +259,7 @@ for iPara=1:length(ideal_fields)
     for iX=length(domain):-1:1
         for iRep=10:-1:1
             [logpost(iX, iRep), loglike(iX, iRep), logvar(iX, iRep), lb] = Fitting.choiceModelLogProb(...
-                Fitting.setParamsFields(ideal_params, {f}, domain(iX)), ideal_prior_info, stim_set, choice_set);
+                Fitting.setParamsFields(ideal_params(islowsig), {f}, domain(iX)), ideal_prior_info, stim_set(islowsig), choice_set(islowsig));
         end
     end
     errorbar(domain, mean(logpost, 2), sqrt(mean(logvar, 2))/sqrt(size(logvar,2)));
@@ -263,7 +274,7 @@ for iPara=1:length(ideal_fields)
     drawnow;
 end
 
-%% Try fitting subject with BADS
+%% Try fitting ITB to subject with BADS
 
 % Prepare model fields, priors, etc for fitting
 fields_to_fit = {'prior_C', 'gamma', 'log_temperature', 'log_bound', 'log_lapse'};
@@ -284,7 +295,7 @@ for iRun=10:-1:1
     trunstart = tic;
     x0 = PLB + rand(size(PLB)).*(PUB-PLB);
     [BESTFIT(iRun,:), NLL(iRun), EXITFLAG(iRun)]  = bads(...
-        @(x) -Fitting.choiceModelLogProb(Fitting.setParamsFields(params_set, fields_to_fit, x), prior_info, stim_set, choice_set), ...
+        @(x) -Fitting.choiceModelLogProb(Fitting.setParamsFields(params_set(islowsig), fields_to_fit, x), prior_info, stim_set(islowsig), choice_set(islowsig)), ...
         x0, LB, UB, PLB, PUB, [], opts);
     toc(trunstart);
 end
