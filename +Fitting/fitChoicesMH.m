@@ -1,79 +1,103 @@
-function [params_samples, samples, fields] = fitChoicesMH(SubjectData, signals, params, distributions, nSamples, nRepeat, plotEvery)
+function [samples, accept, params_samples] = fitChoicesMH(signals, choices, base_params, n_samples, distributions, n_inner, sample_burnin, sample_thin, chkpt)
+if nargin < 6 || isempty(n_inner), n_inner = 50; end
+if nargin < 7 || isempty(sample_burnin), sample_burnin = 500; end
+if nargin < 8 || isempty(sample_thin), sample_thin = 10; end
+if nargin < 9, chkpt = ''; end
 
 fields = fieldnames(distributions);
-
 for iField=1:length(fields)
-    if ~isfield(distributions.(fields{iField}), 'logpriorpdf')
-        distributions.(fields{iField}).logpriorpdf = ...
-            @(x) log(distributions.(fields{iField}).priorpdf(x));
-    end
     if ~isfield(distributions.(fields{iField}), 'logproppdf')
         distributions.(fields{iField}).logproppdf = ...
             @(x1, x2) log(distributions.(fields{iField}).proppdf(x1, x2));
     end
 end
 
-% TODO - instead of z-scoring, convert experimental data into log-odds
-expt_choices = SubjectData.choice;
-expt_signals = zeros(size(SubjectData.ideal_frame_signals));
-uKappas = unique(SubjectData.noise);
-for iKappa=1:length(uKappas)
-    trials = SubjectData.noise == uKappas(iKappa);
-    sigs = SubjectData.ideal_frame_signals(trials, :);
-    expt_signals(trials, :) = sigs / std(sigs(:));
-end
+% Wrap Fitting.choiceModelLogProb to make log-posterior function
+log_post = @(smpl, fields, distribs) Fitting.choiceModelLogProb(Fitting.setParamsFields(base_params, fields, smpl), ...
+    distribs, signals, choices, n_inner);
 
-    function log_post = logpostpdf(smpl)
-        % Fitting.choiceModelLogProbIBS is a stochastic estimator of the log posterior.. average over a few runs
-        for i=nRepeat:-1:1
-            log_post(i) = Fitting.choiceModelLogProbIBS(Fitting.setParamsFields(params, fields, smpl), distributions, expt_signals, expt_choices);
-        end
-        log_post = mean(log_post);
-    end
-
-    function x = propose(x)
+    function x = proprnd(x, fields, distribs)
         for jField=1:length(fields)
-            x(jField) = distributions.(fields{jField}).proprnd(x(jField));
+            x(jField) = distribs.(fields{jField}).proprnd(x(jField));
         end
     end
 
-    function log_prop = logproppdf(x1, x2)
+    function log_prop = logproppdf(x1, x2, fields, distribs)
         log_prop = 0;
         for jField=1:length(fields)
-            log_prop = log_prop + distributions.(fields{jField}).logproppdf(x1(jField), x2(jField));
+            log_prop = log_prop + distribs.(fields{jField}).logproppdf(x1(jField), x2(jField));
         end
     end
 
 %% Run sampler
 
-initial_values = cellfun(@(f) params.(f), fields);
-if nargin < 6
-    plotEvery = 100;
-end
-nBatches = nSamples / plotEvery;
-lastSample = initial_values(:)';
-samples = [];
-for iBatch=1:nBatches
-    fprintf('batch %d/%d\t', iBatch, nBatches);
-    tic;
-    samples(end+1:end+plotEvery,:) = mhsample(lastSample, plotEvery, 'logpdf', ...
-        @logpostpdf, 'logproppdf', @logproppdf, 'proprnd', @propose);
-    toc;
-    lastSample = samples(end, :);
-    clf;
-    [~, Ax] = plotmatrix(samples);
-    for iFild=1:length(fields)
-        title(Ax(iField,iField), fields{iField});
+batch_size = 100;
+n_batch = ceil(n_samples / batch_size);
+batch_time = nan(1, n_batch);
+net_accept = nan(1, n_batch);
+samples = cell(n_batch, 1);
+
+% Load in 'checkpointed' samples if there are any
+if ~isempty(chkpt)
+    disp('MHSample load from checkpoints');
+    [pth, ~] = fileparts(chkpt);
+    chkfiles = dir([chkpt '*.mat']);
+    [~, isrt] = sort({chkfiles.name});
+    for iChk=length(chkfiles):-1:1
+        ld = load(fullfile(pth, chkfiles(isrt(iChk)).name));
+        samples{iChk} = ld.batch_samples;
+        net_accept(iChk) = ld.batch_accept;
     end
-    drawnow;
+    start_batch = length(chkfiles)+1;
+else
+    start_batch = 1;
 end
+
+% If needed (i.e. not loading from checkpoint), draw 100 points from the prior and initialize to the
+% best one
+if isempty(samples{1})
+    disp('MHSample init');
+    for iInit=100:-1:1
+        init_smpl(iInit, :) = cellfun(@(f) distributions.(f).priorrnd(1), fields);
+        init_lp(iInit) = log_post(init_smpl(iInit, :), fields, distributions);
+    end
+    [~,idx] = max(init_lp);
+    init_smpl = init_smpl(idx, :);
+end
+
+% Run sampling
+disp('MHSample run');
+for iBatch=start_batch:n_batch
+    if iBatch > 1
+        init_smpl = samples{iBatch-1}(end, :);
+        sample_burnin = 0;
+    end
+    
+    tstart = tic;
+    [batch_sample, batch_accept] = mhsample(init_smpl, batch_size, ...
+        'logpdf', @(x) log_post(x, fields, distributions), ...
+        'proprnd', @(x) proprnd(x, fields, distributions), ...
+        'logproppdf', @(x1, x2) logproppdf(x1, x2, fields, distributions), ...
+        'burnin', sample_burnin, 'thin', sample_thin);
+    batch_time(iBatch) = toc(tstart);
+
+    t_remain = (n_batch - iBatch) * nanmean(batch_time);
+    fprintf('MH Sample :: Batch %03d of %03d\tAccept=%.1f%%\tETA=%.1fs\n', iBatch, n_batch, 100*nanmean(net_accept), t_remain);
+
+    if ~isempty(chkpt)
+        savename = [chkpt sprintf('-batch%04d.mat', iBatch)];
+        disp(['Saving to ' savename]);
+        save(savename, 'batch_sample', 'batch_accept');
+    end
+end
+
+samples = vertcat(samples{:});
+accept = nanmean(net_accept);
 
 %% Assign results back to struct array
 
 for iSample=size(samples, 1):-1:1
-    for iField=1:length(fields)
-        params_samples(iSample).(fields{iField}) = samples(iSample, iField);
-    end
+    params_samples(iSample) = Fitting.setParamsFields(base_params, fields, samples(iSample, :));
 end
 
 end
