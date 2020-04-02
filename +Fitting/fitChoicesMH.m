@@ -45,7 +45,7 @@ if ~isempty(chkpt)
     [~, isrt] = sort({chkfiles.name});
     for iChk=length(chkfiles):-1:1
         ld = load(fullfile(pth, chkfiles(isrt(iChk)).name));
-        samples{iChk} = ld.batch_samples;
+        samples{iChk} = ld.batch_sample;
         net_accept(iChk) = ld.batch_accept;
     end
     start_batch = length(chkfiles)+1;
@@ -80,6 +80,9 @@ for iBatch=start_batch:n_batch
         'logproppdf', @(x1, x2) logproppdf(x1, x2, fields, distributions), ...
         'burnin', sample_burnin, 'thin', sample_thin);
     batch_time(iBatch) = toc(tstart);
+    
+    samples{iBatch} = batch_sample;
+    net_accept(iBatch) = batch_accept;
 
     t_remain = (n_batch - iBatch) * nanmean(batch_time);
     fprintf('MH Sample :: Batch %03d of %03d\tAccept=%.1f%%\tETA=%.1fs\n', iBatch, n_batch, 100*nanmean(net_accept), t_remain);
