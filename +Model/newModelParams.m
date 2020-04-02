@@ -81,8 +81,4 @@ elseif strcmpi(params.model, 'itb') && params.updates > 1
     warning('ITB model; setting params.updates to 1');
     params.updates = 1;
 end
-
-if strcmpi(params.model, 'ideal') && params.temperature > 0
-    warning('Ideal observer; setting params.temperature to 0');
-end
 end
