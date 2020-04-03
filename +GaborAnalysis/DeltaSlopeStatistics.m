@@ -75,7 +75,7 @@ window_high = 0.7;
 switch type
     case 'linear'
         xlab = 'linear slope';
-        range = [-.2 .2];
+        range = [-1 1];
     case 'exponential'
         xlab = '\beta';
         range = [-1 1];

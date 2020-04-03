@@ -41,7 +41,7 @@ for i=1:length(files)
 end
 
 if ~loaded_one
-    error('No data found for %s in %s experiment.', subjectID, expt_type);
+    error('No data found for %s in %s experiment in %s', subjectID, expt_type, datadir);
 end
 
 % Add a 'true_ratio' field for analysis.
