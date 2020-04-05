@@ -1,4 +1,4 @@
-function [log_post, log_like, est_variance, lower_bound, nSamplesToMatch] = choiceModelLogProbIBS(params, prior_info, signals, choices, lower_bound)
+function [log_post, log_like, est_variance, lower_bound, nSamplesToMatch] = choiceModelLogProbIBS(params, prior_info, signals, choices, lower_bound, repeats)
 % FITTING.choiceModelLogProbIBS estimate log posterior probability of given params struct. Prior is
 % based on prior_info struct (see @Fitting.defaultDistributions). If prior_info is empty, prior is
 % not counted and only the log likelihood is computed. The log likelihood is stochastic but unbiased,
@@ -10,6 +10,8 @@ function [log_post, log_like, est_variance, lower_bound, nSamplesToMatch] = choi
 %
 % [1] van Opheusden, B., Acerbi, L., & Ma, W. J. (2020). Unbiased and Efficient Log-Likelihood
 %   Estimation with Inverse Binomial Sampling. http://arxiv.org/abs/2001.03985
+
+if nargin < 6 || isempty(repeats), repeats = 1; end
 
 if ~iscell(signals)
     signals = {signals};
@@ -69,10 +71,10 @@ rng('shuffle');
 
 % All we need for the IBS likelihood is the number of model simulations, each trial, until we
 % match the choice on that trial
-nSamplesToMatch = ones(nTotalTrials, 1);
+nSamplesToMatch = nan(nTotalTrials, repeats);
 
-% Only keep re-running simulations on trials that haven't yet been matched
-matched = false(nTotalTrials, 1);
+% Only keep re-running simulations on trials that haven't yet been matched 'repeats' times
+matched = zeros(nTotalTrials, 1);
 
 % At each iteration, the upper bound is based on L for all 'matched' trials plus what it would be
 % for the 'unmatched' trials if they all completed on the next iteration.
@@ -80,45 +82,54 @@ L_hat_upper_bound = 0;
 
 % Loop forever (up to maxK) until no unmatched trials remain
 k = 1;
-while ~all(matched) && L_hat_upper_bound > lower_bound
+while ~all(matched >= repeats) && L_hat_upper_bound > lower_bound
+    unmatched = matched < repeats;
     for iSet=length(params):-1:1
-        if all(matched(setIdx(:,iSet))), continue; end
+        if ~any(unmatched(setIdx(:,iSet))), continue; end
         
         % Run the model only on unmatched trials within this set
-        sim_results = Model.runVectorized(params(iSet), signals(~matched & setIdx(:,iSet), :));
+        sim_results = Model.runVectorized(params(iSet), signals(unmatched & setIdx(:,iSet), :));
         
         % For all that now match... record 'k' and mark those trials as complete
-        matching_subset = sim_results.choices == choices(~matched & setIdx(:,iSet));
+        matching_subset = sim_results.choices == choices(unmatched & setIdx(:,iSet));
         if any(matching_subset)
             % Work out the indices out of 1:nTotalTrials that we just matched
-            sim_idxs = find(~matched & setIdx(:,iSet));
+            sim_idxs = find(unmatched & setIdx(:,iSet));
             match_idxs = sim_idxs(matching_subset);
-            % Mark those trials as completed
-            matched(match_idxs) = true;
-            % Store their 'k'
-            nSamplesToMatch(match_idxs) = k;
+            % Add 1 to 'matched' on matching trials
+            matched(match_idxs) = matched(match_idxs) + 1;
+            % Store the 'k' for this match number. If this is the 2nd or higher repeat for a given
+            % trial, then 'k' is adjusted to number of simulations since the last success.
+            last_match = nansum(nSamplesToMatch(match_idxs, :), 2);
+            idx_update = sub2ind(size(nSamplesToMatch), match_idxs, matched(match_idxs));
+            nSamplesToMatch(idx_update) = k-last_match;
         end
     end
         
     % Upper-bound on L-hat is the estimate of L under the assumption that all other trials will be
     % matched on the next step.
-    nSamplesToMatch(~matched) = k+1;
+    effectiveSamples = nSamplesToMatch;
+    effectiveSamples(matched == 0, 1) = k+1;
     
     % See eq. 14 in reference [1]; psi(0,x) is Matlab's builtin digamma function of x, i.e. the
     % first derivative of log(gamma(x))
-    L_hat_upper_bound = sum(psi(0,1) - psi(0,nSamplesToMatch));
+    L_hat_upper_bound = sum(nanmean(psi(0,1) - psi(0,effectiveSamples), 2));
 
     % Advance...
     k = k+1;
 end
+
+% Sanity check on number of repeats
+assert(all(sum(~isnan(nSamplesToMatch), 2) == repeats));
     
 % See eq. 14 in reference [1]; psi(0,x) is Matlab's builtin digamma function of x, i.e. the
 % first derivative of log(gamma(x))
-log_lh_per_trial = psi(0,1) - psi(0,nSamplesToMatch);
+log_lh_per_trial = nanmean(psi(0,1) - psi(0,nSamplesToMatch), 2);
 
 % See eq. 16 in reference [1]; psi(1,x) is the trigamma function of x, i.e. the second
 % derivative of log(gamma(x))
-var_ll_per_trial = psi(1,1) - psi(1,nSamplesToMatch);
+est_var_per_trial = nanmean(psi(1,1) - psi(1,nSamplesToMatch), 2) ./ repeats;
+est_variance = sum(est_var_per_trial);
 
 rng(randstate);
 
@@ -127,7 +138,4 @@ rng(randstate);
 % Unbiased estimate of the log posterior...
 log_like = sum(log_lh_per_trial);
 log_post = log_prior + log_like;
-
-% Estimate of the variance in log_post
-est_variance = sum(var_ll_per_trial);
 end
