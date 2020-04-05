@@ -1,4 +1,4 @@
-function [log_post, log_prior, log_lh_per_trial, likelihood_samples] = choiceModelLogProb(params, prior_info, signals, choices, nInner)
+function [log_post, log_like, est_variance, likelihood_samples] = choiceModelLogProb(params, prior_info, signals, choices, nInner)
 
 if ~iscell(signals)
     signals = {signals};
@@ -10,9 +10,13 @@ assert(nSets == length(signals));
 assert(nSets == length(choices));
 
 likelihood_samples = cell(size(params));
-log_lh_per_trial = cell(size(params));
+log_like_per_trial = cell(size(params));
 
 if all(cellfun(@isempty, signals)), return; end
+
+if Model.isStochastic(params) && nInner == 1
+    warning('It''s strongly suggested that # inner loop simulations > 1 when using a stochastic model!');
+end
 
 % Sanity check that all choices are in [-1 +1]
 for iSet=1:nSets
@@ -34,8 +38,7 @@ for iF=1:length(prior_fields)
     end
 end
 
-%% Evaluate likelihood
-log_lh = 0;
+%% Evaluate likelihood per trial
 for iSet=1:nSets
     thisParams = params(iSet);
     nTrials = length(choices{iSet});
@@ -63,12 +66,23 @@ for iSet=1:nSets
     choseNeg = ~chosePos;
     likelihood_samples{iSet}(chosePos, :) = prob_choice(chosePos, :);
     likelihood_samples{iSet}(choseNeg, :) = 1-prob_choice(choseNeg, :);
-    
-    log_lh_per_trial{iSet} = log(mean(likelihood_samples{iSet}, 2));
-    log_lh = log_lh + sum(log_lh_per_trial{iSet});
 end
 
+% Correct for log transformation. Above, each 'likelihood_samples' is an unbiased estimate of the
+% likelihood. However, we want an estimate of the log likelihood. With some assumptions, the
+% following corrects for the log transform (see https://stats.stackexchange.com/q/57766). If
+% nInner=1, then nothing happens since var_like_per_trial will be 0; this should only be the case if
+% using a deterministic model (otherwise, a warning will be issued above).
+all_likelihood_samples = vertcat(likelihood_samples{:});
+mean_like_per_trial = mean(all_likelihood_samples, 2);
+var_like_per_trial = var(all_likelihood_samples, [], 2) / nInner;
+est_log_like_per_trial = log(mean_like_per_trial); %- var_like_per_trial./(2*mean_like_per_trial.^2);
+est_var_log_like_per_trial = var_like_per_trial./mean_like_per_trial.^2;
+
+log_like = sum(est_log_like_per_trial);
+est_variance = sum(est_var_log_like_per_trial);
+
 %% Combine prior and likelihood
-log_post = log_prior + log_lh;
+log_post = log_prior + log_like;
 
 end
