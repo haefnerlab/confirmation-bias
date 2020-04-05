@@ -108,6 +108,56 @@ plot(Fitting.getParamsFields(test_params, field)*[1 1], ylim, '--r');
 
 sgtitle(strrep(Model.getModelStringID(true_params), '_', ' '));
 
+%% Compare bias and variance as a function of # likelihood evaluations
+
+fields = {'prior_C', 'temperature', 'lapse'};
+distribs = Fitting.defaultDistributions(fields, false, false);
+for i=1:50
+    disp([i 50]);
+    for irep=1:3
+        [logpost_p(i,irep), loglike_p(i,irep), variance_p(i,irep)] = Fitting.choiceModelLogProb(true_params, distribs, data, results.choices, i);
+    end
+    n_evals_p(i) = i * true_params.trials;
+end
+
+for i=1:20
+    disp([i 20]);
+    [logpost_ibs(i), loglike_ibs(i), variance_ibs(i), ~, n_sims_per] = Fitting.choiceModelLogProbIBS(true_params, distribs, data, results.choices);
+    n_evals_ibs(i) = sum(n_sims_per);
+end
+eff_logpost_ibs = cumsum(logpost_ibs) ./ (1:20);
+eff_loglike_ibs = cumsum(loglike_ibs) ./ (1:20);
+eff_variance_ibs = cumsum(variance_ibs) ./ ((1:20).^2);
+eff_evals_ibs = cumsum(n_evals_ibs);
+
+figure;
+subplot(1,2,1); hold on;
+for irep=1:3
+    errorbar(n_evals_p, logpost_p(:,irep), sqrt(variance_p(:,irep)));
+end
+errorbar(eff_evals_ibs, eff_logpost_ibs, sqrt(eff_variance_ibs), '-k');
+xlabel('Total # evaluations');
+ylabel('Log Posterior Estimate');
+legend([arrayfun(@(i) ['avg. p run ' num2str(i)], 1:size(logpost_p,2), 'uniformoutput', false), {'IBS'}])
+
+subplot(1,2,2); hold on;
+for irep=1:3
+    plot(n_evals_p, variance_p(:,irep), 'marker', '.');
+end
+plot(eff_evals_ibs, eff_variance_ibs, 'k', 'marker', '.');
+xlabel('Total # evaluations');
+ylabel('Variance in estimate');
+legend([arrayfun(@(i) ['avg. p run ' num2str(i)], 1:size(logpost_p,2), 'uniformoutput', false), {'IBS'}])
+ 
+%% MH inference fitting model to itself
+
+fields = {'prior_C'};
+distribs = Fitting.defaultDistributions(fields, false, true_params.allow_gamma_neg);
+smpls(:,1) = Fitting.sampleModelMH(data, results.choices, true_params, 500, distribs, 1);
+smpls(:,2) = Fitting.sampleModelMH(data, results.choices, true_params, 500, distribs, 5);
+smpls(:,3) = Fitting.sampleModelMH(data, results.choices, true_params, 500, distribs, 10);
+plot(smpls);
+
 %% MAP inference fitting model to itself with BADS
 
 test_params = true_params;
