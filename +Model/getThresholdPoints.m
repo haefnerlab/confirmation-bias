@@ -15,7 +15,7 @@ for i=nPoints:-1:1
     c_ray = 1-t*sin(angles(i));
     
     correct_ray = interp2(ss, cc, correct, s_ray, c_ray);
-    valid = ~isnan(correct_ray);
+    valid = ~isnan(correct_ray) & isfirstunique(correct_ray);
 
     best_t = interp1(correct_ray(valid), t(valid), pCorrect);
     
@@ -31,4 +31,13 @@ for i=nPoints:-1:1
     grid_pts(i, :) = [ps(s_closest) ps(c_closest)];
 end
 
+end
+
+function first = isfirstunique(values)
+match = (values - values') == 0;
+match(end+1,:) = true;
+idxval = 1:length(values);
+idxfirst = arrayfun(@(col) find(match(:,col), 1), idxval);
+first = idxfirst == idxval;
+first = reshape(first, size(values));
 end
