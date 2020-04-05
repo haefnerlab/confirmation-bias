@@ -211,8 +211,9 @@ uid = [subjectId '-' num2str(kernel_kappa) '-' SubjectData.phase];
 signals = LoadOrRun(@ComputeFrameSignals, {SubjectData, kernel_kappa}, ...
     fullfile('../Precomputed', ['perFrameSignals-' uid '.mat']));
 
-internal_noise = 1;
-[params_set, stim_set, choice_set, trial_set] = SubjectDataToModelParams(SubjectData, signals, kernel_kappa, internal_noise);
+internal_noise = 3;
+base_params = Model.newModelParams('model', 'itb');
+[params_set, stim_set, choice_set, trial_set] = SubjectDataToModelParams(SubjectData, kernel_kappa, internal_noise, base_params, DATADIR);
 
 % Subselect: low(ish) signals only
 lowsigcutoff = 0.85;
