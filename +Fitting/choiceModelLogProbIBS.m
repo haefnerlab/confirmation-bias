@@ -119,8 +119,13 @@ while ~all(matched >= repeats) && L_hat_upper_bound > lower_bound
     k = k+1;
 end
 
-% Sanity check on number of repeats
-assert(all(sum(~isnan(nSamplesToMatch), 2) == repeats));
+if L_hat_upper_bound > lower_bound
+    % If we didn't hit the lower bound, the following sanity-check should hold:
+    assert(all(sum(~isnan(nSamplesToMatch), 2) == repeats));
+else
+    % We hit the lower bound.. use 'effectiveSamples' for the actual estimator
+    nSamplesToMatch = effectiveSamples;
+end
     
 % See eq. 14 in reference [1]; psi(0,x) is Matlab's builtin digamma function of x, i.e. the
 % first derivative of log(gamma(x))
