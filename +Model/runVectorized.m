@@ -123,14 +123,18 @@ if ~isempty(updateFun)
 end
 
 if params.temperature == 0
-    results.choices = sign(results.lpo(:, end));
-else
-    adjusted_lpo = results.lpo(:, end) / params.temperature;
-    prob_choice = 1./(1+exp(-adjusted_lpo));
-    bool_choices = rand(size(prob_choice)) < prob_choice;
-    results.choices = sign(double(bool_choices) - .5);
+    params.temperature = eps;
 end
-fifty_fifty = results.lpo(:,end) == 0;
-random_trials = fifty_fifty | rand(trials, 1) < lapse;
-results.choices(random_trials) = sign(rand(sum(random_trials), 1) - 0.5);
+
+if isfield(params, 'lapse_1') && isfield(params, 'lapse_2')
+    lapse1 = params.lapse_1;
+    lapse2 = params.lapse_2;
+else
+    lapse1 = params.lapse;
+    lapse2 = params.lapse;
+end
+
+results.prob_choice = lapse1 + (1-lapse1-lapse2)./(1+exp(-results.lpo(:,end) / params.temperature));
+bool_choices = rand(size(results.prob_choice)) < results.prob_choice;
+results.choices = sign(double(bool_choices) - .5);
 end
