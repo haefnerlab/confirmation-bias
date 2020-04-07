@@ -57,10 +57,10 @@ for iStim=nUnqStim:-1:1
     choice_set{iStim} = choice_set{iStim}(:);
 
     % Record effective sensory and category information for this set of trials
-    param_set(iStim).sensory_info = max(.51, min(.99, sensory_info(iStim)));
-    param_set(iStim).var_s = model_var_s(iStim);
-    param_set(iStim).category_info = max(.51, min(.99, unqStim(iStim, 2)));
-    param_set(iStim).p_match = param_set(iStim).category_info;
+    si = max(.51, min(.99, sensory_info(iStim)));
+    ci = max(.51, min(.99, unqStim(iStim, 2)));
+    param_set(iStim) = Model.setCategorySensoryInfo(param_set(iStim), ci, si);
+
     % Add other Subject's stimulus parameters to the model params for debugging - has no effect on
     % the model behavior
     param_set(iStim).kappa = unqStim(iStim, 1);

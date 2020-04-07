@@ -24,9 +24,9 @@ switch which_base
         true_params = base_params;
         true_params.model = 'itb';
         true_params.updates = 1;
-        true_params.bound = 1;
-        true_params.gamma_min = 0;
-        true_params.gamma_max = 0.5;
+        true_params.bound = 1.2;
+        true_params.noise = 0.35;
+        true_params.gammafun = @(ci,si) (1-ci);
 end
 
 sens_cat_pts = Model.getThresholdPoints(0.51:0.02:0.99, true_params, 0.7, 5);
@@ -40,10 +40,7 @@ switch which_phase
         ci = sens_cat_pts(end,2);
 end
 
-true_params.category_info = ci;
-true_params.p_match = ci;
-true_params.sensory_info = si;
-true_params.var_s = Model.getEvidenceVariance(si);
+true_params = Model.setCategorySensoryInfo(true_params, ci, si);
 
 % Make results repeatable
 true_params.seed = 977116605;

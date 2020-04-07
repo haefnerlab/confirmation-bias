@@ -16,19 +16,10 @@ params.seed = 24781390;
 switch which_phase
     case 'lshc'
         % Use LSHC as reference, fit other models to it
-        true_params = params;
-        true_params.sensory_info = sens_cat_pts(1,1);
-        true_params.var_s = Model.getEvidenceVariance(sens_cat_pts(1,1));
-        true_params.category_info = sens_cat_pts(1,2);
-        true_params.p_match = sens_cat_pts(1,2);
-        
+        true_params = Model.setCategorySensoryInfo(params, sens_cat_pts(1,2), sens_cat_pts(1,1));        
     case 'hslc'
         % Use HSLC as reference, fit other models to it
-        true_params = params;
-        true_params.sensory_info = sens_cat_pts(end,1);
-        true_params.var_s = Model.getEvidenceVariance(sens_cat_pts(end,1));
-        true_params.category_info = sens_cat_pts(end,2);
-        true_params.p_match = sens_cat_pts(end,2);
+        true_params = Model.setCategorySensoryInfo(params, sens_cat_pts(end,2), sens_cat_pts(end,1));        
 end
 
 %% Plot PK of the true model and print some diagnostics
