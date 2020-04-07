@@ -19,13 +19,13 @@ function params = newModelParams(varargin)
 % MODEL PARAMETERS
 %   var_s   - variance of gaussian p(s|x)
 %   p_match - weight of x modes, i.e. p(x|C) = p_match*N(C,var_x)+(1-p_match)*N(-C,var_x)
-%   prior_C - prior probability of C=+1
+%%%   prior_C - prior probability of C=+1
 %   var_x   - variance of each mode of p(x|C)
-%   gamma   - value in [0,1]; how much the bias is 'subtracted out'.
+%%%   gamma   - value in [0,1]; how much the bias is 'subtracted out'.
 %   updates - the number of updates to p(C) per frame, corresponding to the brain's sampling time.
 %   noise   - amount of noise added, each frame, to accumulated log probabilities so far
-%   lapse   - lapse rate (percent of trials making a random choice regardless of stimulus)
-%   samples - effective "dimensionality" of x; how many independent measurements we get of x 
+%%%   lapse   - lapse rate (percent of trials making a random choice regardless of stimulus)
+%%%   samples - effective "dimensionality" of x; how many independent measurements we get of x 
 %             per update (e.g. multiple independent sampling chains). Only used in IS model.
 %   step_size - What percent of the "full update" to log(q(C=+1)/q(C=-1)) to apply each step. Only
 %               used in VB model.

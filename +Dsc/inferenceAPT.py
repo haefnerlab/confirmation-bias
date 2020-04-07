@@ -22,7 +22,7 @@ from mat4py import loadmat
 #%%
 def ConfirmationBiasSimulator(xval,fieldstofit,params, dataPath, engine):
     # run matlab code run.vectorized and read results
-   # print("Hello I am in Simulator")
+    # print("Hello I am in Simulator")
 
     paramsNew = copy.deepcopy(params)
     for i,f in enumerate(fieldstofit):
@@ -69,50 +69,29 @@ class ConfirmationBiasStats(BaseSummaryStats):
      
         return stats
 #%%
-# load the MATLAB engine
-if __name__ == "__main__":
-    engine = matlab.engine.start_matlab()
-    
-    datafolder = '../dscData'
-    filename = 'syntheticData_priorC5.mat'
-    dataPath = os.path.join(datafolder,filename)
-    syntheticData = loadmat(dataPath)
-    # load data
-    choice = np.squeeze(np.asarray(syntheticData['sim_results']['choices']))
+def runAPTinference(dataname,savefolder,fieldstofit,prior):
+    # load the data
 
-    params = syntheticData['params']
-    
-    # define prior over model parameters
-    fieldstofit = ['prior_C','gamma','samples','lapse']
-    seed_p = 2
-    prior_min = np.array([0,0,1,0])
-    prior_max = np.array([1,1,100,1])
-    prior =  dd.Uniform(lower = prior_min , upper = prior_max,seed = seed_p)
-    
-    
-    #sim_resultsTest = ConfirmationBiasSimulator([0.5,0.01,5,0,0],fieldstofit,params, dataPath, engine)
-    
+    data = loadmat(dataname)
+    choice = np.squeeze(np.asarray(data['sim_results']['choices']))
+    params = data['params']
+
     
     # inference parameters
     seed_inf = 1
-    
     pilot_samples = 2000
-    
     # training schedule
     n_train = 2000
     n_rounds = 1
-    
     # fitting setup
     minibatch = 100
     epochs = 100
     val_frac = 0.05
-    
     # network setup
-    n_hiddens = [50,50]
     
+    n_hiddens = [50,50]
     # convenience
     prior_norm = True
-    
     # MAF parameters
     density = 'maf'
     n_mades = 5         # number of MADES
@@ -120,13 +99,19 @@ if __name__ == "__main__":
     
     # define generator class
     s = ConfirmationBiasStats()
-    # use multiple processes of simulators
-    n_processes = 1
+   
+    n_processes = 2
     seeds_m = np.arange(1,n_processes+1,1)
-    m = ConfirmationBias(dataPath, fieldstofit,params,engine, seeds_m[0])
     
+    #
+    engine = matlab.engine.start_matlab()
+    
+    ps = engine.genpath('/gpfs/fs2/scratch/sliu88/APT')
+    engine.addpath(ps)
+    m = ConfirmationBias(dataname, fieldstofit,params,engine, seeds_m[0])
     g = dg.Default(model=m, prior=prior, summary=s)
-    #%%
+    
+
     # do inference
     # inference object
     res = infer.SNPEC(g,
@@ -148,3 +133,50 @@ if __name__ == "__main__":
                     proposal='prior',
                     val_frac=val_frac,
                     verbose=True,)
+    return log,posterior
+#%%
+# load the MATLAB engine
+if __name__ == "__main__":
+    
+    """"
+    variables to change for different inference tasks:
+    filename
+    fieldstofit and corresponding range
+    """
+    priorC_list = [1]
+    gamma_list = [1]
+    lapse_list = [1]
+    samples_list = [1]
+    for C in priorC_list:
+        for g in gamma_list:
+            for l in lapse_list:
+                for s in samples_list:
+                    
+                    # load data
+                    datafolder = '../dscData/syntheticDataCB'
+                    filename = 'Trial1priorC%dgamma%dlapse%lsamples%spmatch1vars1.mat' %(C,g,l,s)
+                    dataname = os.path.join(datafolder,filename)
+                    
+                    
+                    # define prior over model parameters
+                    fieldstofit = ['prior_C','gamma','samples','lapse']
+                   
+                    prior_min = np.array([0,0,1,0])
+                    prior_max = np.array([1,1,100,1])
+                   
+                    seed_p = 2
+                    prior =  dd.Uniform(lower = prior_min , upper = prior_max,seed = seed_p)
+                
+                
+                    
+                    log,posterior = runAPTinference(dataname,fieldstofit,prior)
+                    
+                    #%%
+                    # generate 1000 samples from posterior
+                    posteriorSamples = posterior[0].gen(1000)
+                    # save these samples to a .matfile
+                    from scipy.io import savemat
+                   
+                    savefolder = '../dscData/resultsSyntheticDataCB'
+                    savename ='res'+ filename
+                    savemat(os.path.join(savefolder,savename),{'posterSamples':posteriorSamples,'log':log})

@@ -4,14 +4,10 @@ close all
 %addpath(genpath('/Users/liushizhao/projects/APT/CB/confirmation-bias'));
 %%
 clear;
-
 dataFolder = '../dscData/syntheticDataCB/';
 resultsFolder =  '../dscData/syntheticInferCBresults/';
-
 load([dataFolder,'genDataInfo', '.mat'], 'genDataInfo');
-
 fieldsToInfer = {'prior_C', 'gamma', 'samples', 'lapse'};
-
 % for i0 = 1:numel(genDataInfo.N_trials_list)
 % for i1 = 1:numel(genDataInfo.prior_C_list)
 %     for i2 = 1:numel(genDataInfo.gamma_list)
@@ -32,39 +28,36 @@ A = [1, 2, 3]';
 ma = size(A, 1);
 [a,b,c, d, e, f, g]=ndgrid(1:ma,1:ma,1:ma, 1:ma, 1:ma, 1:ma, 1:ma);
 product = [A(a,:),A(b,:),A(c,:),A(d, :), A(e, :), A(f, :), A(g, :)];
-M = 40;
-parfor (i = 1:size(product, 1), M)
+parfor (i = 1:size(product, 1))
     [VP, extflag, dataName] = runVBMCInferenceFunc(dataFolder, fieldsToInfer, ...
                                 product(i, 1), product(i, 2), product(i, 3), ...
                                 product(i, 4), product(i, 5), product(i, 6), ...
                                 product(i, 7));
     parsave([resultsFolder,dataName],VP,extflag,fieldsToInfer)
-    if mod(i, 200) == 0
-        disp(["Done with: ", num2str(i/200), " samples"]);
+    if mod(i, 10) == 0
+        try
+            fid = fopen('output_file.txt', 'at+');
+            fprintf(fid, "Done with: %d samples", i/10);
+            fclose(fid);
+            disp(["Done with, ", num2str(i/10), " samples"]);
+        catch
+            disp("That didn't work");
+        end
     end
 end
-
 % [VP, extflag, dataName] = runVBMCInferenceFunc(dataFolder, fieldsToInfer, i0, i1, i2, i3, i4, i5, i6);
-
 % Xsamp = vbmc_rnd(VP, 1e5);
 % [fig, ax] = cornerplot(Xsamp, fields, [], [LB; UB]);
-
 % save([resultsFolder,dataName],'VP','extflag','fieldsToInfer')
-
 % save the figure here?
 % save the inferred variables here
-
 function parsave(fname, VP, extflag, fieldsToInfer)
   save(fname,'VP','extflag','fieldsToInfer');
 end
-
-
 function [VP, extflag, dataName] = runVBMCInferenceFunc(dataFolder, fieldsToInfer, ...
         i_trials, i_prior, i_gamma, i_lapse, i_samples, i_p_match, i_var_s)
-
     dataName = sprintf('Trial%dpriorC%dgamma%dlapse%dsamples%dpmatch%dvars%d',...
         i_trials,i_prior,i_gamma, i_lapse, i_samples, i_p_match, i_var_s);
-
     load([dataFolder,dataName, '.mat']);
     % fields to infer
     % upper and lower bound of each parameter
@@ -75,7 +68,6 @@ function [VP, extflag, dataName] = runVBMCInferenceFunc(dataFolder, fieldsToInfe
     PUB = UB;
     % initial value of parameters
     x0 = [.5 .1 5 .01];
-
     nInner = 10;
     vbmc_options = vbmc('defaults');
     vbmc_options.UncertaintyHandling = 'yes';
@@ -83,15 +75,11 @@ function [VP, extflag, dataName] = runVBMCInferenceFunc(dataFolder, fieldsToInfe
     init_model_params = Model.newModelParams('model', 'is');
     init_model_params = Fitting.sanitize(init_model_params);
     likefn_args = {init_model_params , signals, sim_results.choices,nInner};
-
     % define likelihood function
-
     fun = @(x) llfun(x,fieldsToInfer,init_model_params,signals, sim_results.choices, nInner) ;
     % vbmc inference
     [VP, ~, ~, extflag] = vbmc(fun,x0,LB,UB,PLB,PUB,vbmc_options);
 end
-
-
 function choiceLL = llfun(xvals,fields, model_params,signals, choices, nInner)
 for iField=1:length(fields)
     % update inferred parameters for each iteration

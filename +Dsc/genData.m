@@ -26,7 +26,7 @@ genDataInfo.p_match_list = [0, 0.5, 1];
 genDataInfo.var_s_list = logspace(-2,1,3);
 
 save([dataFolder,'genDataInfo'],'genDataInfo','importantFields','defaultParams');
-for i0 = 1:numel(genDataInfo.N_trials_list)
+for i0 = 3:3
 for i1 = 1:numel(genDataInfo.prior_C_list)
     for i2 = 1:numel(genDataInfo.gamma_list)
         for i3 = 1:numel(genDataInfo.lapse_list)
