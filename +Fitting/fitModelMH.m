@@ -13,7 +13,13 @@ if stoch
     % Step 1A: sample. Note that stochastic models with finite repetitions will result in posteriors
     % that are wider than the true posterior because each LH evaluation is corrupted by noise
     disp('fitModelMH: stochastic step A');
-    input_id = string2hash([Model.getModelStringID(base_params) num2str([signals(:)' choices'])]);
+    if iscell(signals)
+        allsigs = vertcat(signals{:});
+        allchoices = vertcat(choices{:});
+        input_id = string2hash([Model.getModelStringID(base_params(1)) num2str([allsigs(:)' allchoices'])]);
+    else
+        input_id = string2hash([Model.getModelStringID(base_params) num2str([signals(:)' choices'])]);
+    end
     chkpt = fullfile('sample-checkpoints', sprintf('%x', input_id));
     [samples, ~, sample_info] = Fitting.sampleModelMH(signals, choices, base_params, 2000, distribs, 5, 50, 10, chkpt);
     
