@@ -1,4 +1,4 @@
-function [aic, model_info, sampleses] = ModelComparison(base_params, signals, choices, prefix)
+function [aic, model_info, sampleses] = ModelComparison(base_params, signals, choices, prefix, model_names)
 
 % Note: use 'base_params' to set generative model parameters like CI, SI, etc
 
@@ -14,9 +14,16 @@ model_info = struct(...
               {'prior_C', 'log_temperature', 'log_lapse'}}, ...
     'gammaneg', {0 0 0 1 0});
 
+% If supplied, restrict to the ones requested
+if nargin >= 5
+    names = {model_info.name};
+    keep = cellfun(@(nm) any(strcmpi(nm, model_names)), names);
+    model_info = model_info(keep);
+end
+
 %% Fit each model
 use_cache =  nargin >= 4 && ~isempty(prefix);
-for iModel=1:length(model_info)
+parfor iModel=1:length(model_info)
     this_params = base_params;
     fields = model_info(iModel).fields;
     for iP=1:length(this_params)
