@@ -17,7 +17,7 @@ if stoch
     chkpt = fullfile('sample-checkpoints', sprintf('%x', input_id));
     [samples, ~, sample_info] = Fitting.sampleModelMH(signals, choices, base_params, 2000, distribs, 5, 50, 10, chkpt);
     
-    % Step 1B: Get a rough estimate of the posterior probability at each (unique) sample
+    % Step 1B: Get a rough estimate of the log probabilities at each (unique) sample
     disp('fitModelMH: stochastic step B');
     [uSamples, ~, idxExpand] = unique(samples, 'rows');
     for iSamp=size(uSamples, 1):-1:1
@@ -25,62 +25,58 @@ if stoch
         est_lp(iSamp) = mean(sample_info.logpdf(idxExpand == iSamp));
         est_var(iSamp) = mean(sample_info.variance(idxExpand == iSamp)) / sum(idxExpand == iSamp);
     end
-    upper_conf = est_ll + 3*sqrt(est_var);
+    upper_conf = est_ll + 2*sqrt(est_var);
+    lower_conf = est_ll - 2*sqrt(est_var);
     
     % Step 1C: Search for the best sample (maximum likelihood)
     disp('fitModelMH: stochastic step C');
-    [srt_upper_conf, isrt] = sort(upper_conf, 'descend');
-    uSamples = uSamples(isrt, :);
-    est_ll = est_ll(isrt);
-    est_lp = est_lp(isrt);
-    est_var = est_var(isrt);
     
-    best_ll_idx = 1;
-    best_lp_idx = 1;
-    for iSamp=1:size(uSamples,1)
-        % Break when upper confidence region of all remaining samples is below the lower confidence
-        % region of the best estimate (LL)
-        if est_ll(best_ll_idx)-3*sqrt(est_var(best_idx)) > srt_upper_conf(iSamp)
-            break;
-        end
+    refine_file = [chkpt '-refine.mat'];
+    if exist(refine_file, 'file')
+        ld = load(refine_file);
+        samples = ld.samples;
+        sample_scores = ld.sample_scores;
+    else
+        allidx = 1:size(uSamples,1);
+        [~, imax] = max(upper_conf);
         
-        % Compute a better estimate of the log prob for this point by using a larger number of
-        % repeats.
-        [new_est_lp, new_est_ll, new_est_var] = Fitting.choiceModelLogProbIBS(...
-            Fitting.setParamsFields(base_params, fields, uSamples(iSamp, :)), distribs, signals, choices, [], 50);
-        
-        est_ll(iSamp) = (est_ll(iSamp)*new_est_var + new_est_ll*(est_var(iSamp))) / (est_var(iSamp) + new_est_var);
-        est_lp(iSamp) = (est_lp(iSamp)*new_est_var + new_est_lp*(est_var(iSamp))) / (est_var(iSamp) + new_est_var);
-        est_var(iSamp) = 1./(1./est_var(iamp) + 1./new_est_var);
-        
-        if est_ll(iSamp) > est_ll(best_ll_idx)
-            best_ll_idx = iSamp;
-        end
-        
-        if est_lp(iSamp) > est_ll(best_lp_idx)
-            best_lp_idx = iSamp;
-        end
-    end
-    
-    % DEBUG FIGURE
-    figure; hold on;
-    errorbar(1:size(uSamples,1), est_ll(isrt), sqrt(est_var(isrt)));
-    errorbar(1:size(uSamples,1), est_ll(isrt), 3*sqrt(est_var(isrt)));
-    plot(best_ll_idx*[1 1], ylim, '--r');
-    
-    % Store best post and best like
-    mle_params = Fitting.setParamsFields(base_params, fields, uSamples(best_ll_idx, :));
-    map_params = Fitting.setParamsFields(base_params, fields, uSamples(best_lp_idx, :));
+        maxeval = 10000;
+        ieval = 1;
+        % Loop until our *lower* bound on the best point is better than the *upper* bound on all other
+        % points
+        while lower_conf(imax) < max(upper_conf(setdiff(allidx, imax))) && ieval < maxeval
+            % % DEBUG FIGURE
+            % cla; hold on;
+            % errorbar(1:size(uSamples,1), est_ll, 2*sqrt(est_var));
+            % [~,ibest] = max(est_ll);
+            % errorbar(ibest, est_ll(ibest), 2*sqrt(est_var(ibest)), '-r');
+            % plot(imax, est_ll(imax), 'og');
+            % drawnow;
 
-    % Un-sort the values and return estimates to [nsamples x ...] shape
-    invsrt = zeros(size(isrt));
-    invsrt(isrt) = 1:length(isrt);
-    est_ll = est_ll(invsrt);
-    est_lp = est_lp(invsrt);
-    est_var = est_var(invsrt);
-    sample_scores.loglike = est_ll(idxExpand);
-    sample_scores.logpdf = est_lp(idxExpand);
-    sample_scores.variance = est_var(idxExpand);
+            % Compute a better estimate of the log prob for this point by using a larger number of
+            % repeats.
+            [new_est_lp, new_est_ll, new_est_var] = Fitting.choiceModelLogProbIBS(...
+                Fitting.setParamsFields(base_params, fields, uSamples(imax, :)), distribs, signals, choices, [], 50);
+            
+            est_ll(imax) = (est_ll(imax)*new_est_var + new_est_ll*(est_var(imax))) / (est_var(imax) + new_est_var);
+            est_lp(imax) = (est_lp(imax)*new_est_var + new_est_lp*(est_var(imax))) / (est_var(imax) + new_est_var);
+            est_var(imax) = 1./(1./est_var(imax) + 1./new_est_var);
+            
+            upper_conf(imax) = est_ll(imax) + 3*sqrt(est_var(imax));
+            lower_conf(imax) = est_ll(imax) - 3*sqrt(est_var(imax));
+            
+            [~, imax] = max(upper_conf);
+            
+            ieval = ieval + 1;
+        end
+        
+        % Store refined estimates back into 'sample_scores'
+        sample_scores.loglike = est_ll(idxExpand);
+        sample_scores.logpdf = est_lp(idxExpand);
+        sample_scores.variance = est_var(idxExpand);
+        
+        save(refine_file, 'samples', 'sample_scores');
+    end
 else
     % Fitting strategy 2 (deterministic model): (A) sample the posterior then (B) pick the best
     % sample.
@@ -88,14 +84,16 @@ else
     % Step 2A: sample
     disp('fitModelMH: deterministic step A');
     [samples, ~, sample_scores] = Fitting.sampleModelMH(signals, choices, base_params, 2000, distribs, 0, 50, 10);
-    
-    % Step 2B: find maximum likelihood and MAP sample
-    [~, best_ll_idx] = max(sample_scores.loglike);
-    mle_params = Fitting.setParamsFields(base_params, fields, samples(best_ll_idx, :));
-    
-    [~, best_lp_idx] = max(sample_scores.logpdf);
-    map_params = Fitting.setParamsFields(base_params, fields, samples(best_lp_idx, :));
 end
+        
+% Penultimate step: find maximum likelihood and MAP sample
+[~, best_ll_idx] = max(sample_scores.loglike);
+mle_params = Fitting.setParamsFields(base_params, fields, samples(best_ll_idx, :));
+
+[~, best_lp_idx] = max(sample_scores.logpdf);
+map_params = Fitting.setParamsFields(base_params, fields, samples(best_lp_idx, :));
+
+%% Finally, search LL landscape with GP, starting from the best point
 
 
 end

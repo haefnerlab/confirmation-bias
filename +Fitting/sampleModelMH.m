@@ -52,15 +52,15 @@ samples = cell(n_batch, 1);
 
 % Load in 'checkpointed' samples if there are any
 if ~isempty(chkpt)
-    disp('MHSample load from checkpoints');
     [pth, ~] = fileparts(chkpt);
     chkfiles = dir([chkpt '*.mat']);
     [~, isrt] = sort({chkfiles.name});
+    fprintf('MHSample load %d of %d batches from checkpoints\n', length(chkfiles), n_batch);
     for iChk=length(chkfiles):-1:1
         ld = load(fullfile(pth, chkfiles(isrt(iChk)).name));
         samples{iChk} = ld.batch_sample;
         net_accept(iChk) = ld.batch_accept;
-        batch_smpl_info(iChck) = ld.batch_info;
+        batch_smpl_info(iChk) = ld.batch_info;
     end
     start_batch = length(chkfiles)+1;
 else
