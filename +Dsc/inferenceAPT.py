@@ -19,6 +19,8 @@ import delfi.inference as infer
 from delfi.summarystats.BaseSummaryStats import BaseSummaryStats
 import copy
 from mat4py import loadmat
+import logging
+import datetime
 #%%
 def ConfirmationBiasSimulator(xval,fieldstofit,params, dataPath, engine):
     # run matlab code run.vectorized and read results
@@ -82,7 +84,7 @@ def runAPTinference(dataname,savefolder,fieldstofit,prior):
     pilot_samples = 2000
     # training schedule
     n_train = 2000
-    n_rounds = 1
+    n_rounds = 3
     # fitting setup
     minibatch = 100
     epochs = 100
@@ -143,18 +145,24 @@ if __name__ == "__main__":
     filename
     fieldstofit and corresponding range
     """
-    priorC_list = [1]
-    gamma_list = [1]
-    lapse_list = [1]
-    samples_list = [1]
+    # create a log file
+    time_stamp = datetime.datetime.now()
+    currentTime  = time_stamp.strftime('%Y.%m.%d-%H:%M')
+    logname = 'inferenceAPT' + currentTime
+    logging.basicConfig(filename = logname,level = logging.DEBUG)
+    
+    priorC_list = [1,2,3]
+    gamma_list = [1,2,3]
+    lapse_list = [1,2,3]
+    samples_list = [1,2,3]
     for C in priorC_list:
         for g in gamma_list:
             for l in lapse_list:
                 for s in samples_list:
-                    
+                   
                     # load data
                     datafolder = '../dscData/syntheticDataCB'
-                    filename = 'Trial1priorC%dgamma%dlapse%lsamples%spmatch1vars1.mat' %(C,g,l,s)
+                    filename = 'Trial3priorC%dgamma%dlapse%lsamples%spmatch2vars1.mat' %(C,g,l,s)
                     dataname = os.path.join(datafolder,filename)
                     
                     
@@ -168,7 +176,7 @@ if __name__ == "__main__":
                     prior =  dd.Uniform(lower = prior_min , upper = prior_max,seed = seed_p)
                 
                 
-                    
+                    logging.info('Running %dpriorC %dgamma %dlapse %dsamples' %(C,g,l,s))
                     log,posterior = runAPTinference(dataname,fieldstofit,prior)
                     
                     #%%
@@ -180,3 +188,4 @@ if __name__ == "__main__":
                     savefolder = '../dscData/resultsSyntheticDataCB'
                     savename ='res'+ filename
                     savemat(os.path.join(savefolder,savename),{'posterSamples':posteriorSamples,'log':log})
+                    logging.info('Finished %dpriorC %dgamma %dlapse %dsamples' %(C,g,l,s))
