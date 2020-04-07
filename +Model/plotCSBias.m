@@ -42,11 +42,8 @@ for ipt=1:npts
     [~, il] = min(abs(sensory_infos - s));
     [~, ip] = min(abs(category_infos - c));
     
-    params.category_info = c;
-    params.sensory_info = s;
-    params.p_match = c;
-    params.var_s = Model.getEvidenceVariance(s);
-    
+    params = Model.setCategorySensoryInfo(params, c, s);
+
     figure(bias_fig);
     subplotsquare(npts, ipt);
     Model.plotTrueBiasCorrection(params, {'Color', colors(ipt, :)});

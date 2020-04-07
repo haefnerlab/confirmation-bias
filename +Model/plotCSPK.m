@@ -44,15 +44,7 @@ for i=1:length(sens_pts)
     s = sens_pts(i);
     c = cat_pts(i);
     
-    params.category_info = c;
-    params.sensory_info = s;
-    params.p_match = c;
-    params.var_s = Model.getEvidenceVariance(s);
-    
-    if isfield(params, 'gamma_min') && ~isempty(params.gamma_min)
-        params.gamma = params.gamma_min + (params.gamma_max - params.gamma_min) * (1-c) * 2;
-    end
-
+    params = Model.setCategorySensoryInfo(params, c, s);
     [weights, errors, para] = Model.plotPK(params, pk_hprs, {}, [], false);
     
     if isequal(pk_colormap, 'beta')

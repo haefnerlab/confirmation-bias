@@ -35,9 +35,11 @@ if nargin >= 2 && drop_cs_terms
     % Drop terms corresponding to individual points in the space..
     name = regexprep(name, '_cinfo[0-9.]+_sinfo[0-9.]+_vs[0-9.]+_pm[0-9.]+', '');
     
-    % But maybe add a term describing how gamma changes over the space
-    if isfield(params, 'gamma_min') && ~isempty(params.gamma_min)
-        name = regexprep(name, '_gam[0-9.]+', sprintf('_gmin%.2f_gmax%.2f', params.gamma_min ,params.gamma_max));
+    % If 'gammafun' is supplied, 'gamma' is not static. Remove it from the descriptor and replace it
+    % with a descriptor of 'gammafun' itself
+    if ~isempty(params.gammafun)
+        gfuninfo = functions(params.gammafun);
+        name = regexprep(name, '_gam[0-9.]+', ['_gfun[' gfuninfo.function ']']);
     end
 end
 

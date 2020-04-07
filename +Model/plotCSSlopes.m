@@ -25,18 +25,7 @@ slopes = nan(size(ss));
 slopeErrors = nan(size(ss));
 
 for i=1:numel(ss)
-    params_copy = params;
-    % Set data-generating parameters.
-    params_copy.sensory_info = ss(i);
-    params_copy.category_info = cc(i);
-    % Set variances for this pair of category- & sensory-info values. (That is, assume that the
-    % model 'knows' the environment statistics)
-    params_copy.var_s = Model.getEvidenceVariance(ss(i));
-    params_copy.p_match = cc(i);
-    
-    if isfield(params, 'gamma_min') && ~isempty(params.gamma_min)
-        params.gamma = params.gamma_min + (params.gamma_max - params.gamma_min) * (1-cc(i)) * 2;
-    end
+    params_copy = Model.setCategorySensoryInfo(params, cc(i), ss(i));
     
     % Construct UIDs for saving/loading with disk
     results_uid = Model.getModelStringID(params_copy);
