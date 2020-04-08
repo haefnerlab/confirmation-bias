@@ -71,7 +71,7 @@ class ConfirmationBiasStats(BaseSummaryStats):
      
         return stats
 #%%
-def runAPTinference(dataname,savefolder,fieldstofit,prior):
+def runAPTinference(dataname,fieldstofit,prior):
     # load the data
 
     data = loadmat(dataname)
@@ -150,6 +150,9 @@ if __name__ == "__main__":
     currentTime  = time_stamp.strftime('%Y.%m.%d-%H:%M')
     logname = 'inferenceAPT' + currentTime
     logging.basicConfig(filename = logname,level = logging.DEBUG)
+    # create a savefolder
+    savefolder = '../dscData/resultsSyntheticDataCB'+ currentTime
+    os.mkdir(savefolder)
     
     priorC_list = [1,2,3]
     gamma_list = [1,2,3]
@@ -162,7 +165,7 @@ if __name__ == "__main__":
                    
                     # load data
                     datafolder = '../dscData/syntheticDataCB'
-                    filename = 'Trial3priorC%dgamma%dlapse%lsamples%spmatch2vars1.mat' %(C,g,l,s)
+                    filename = 'Trial1priorC%dgamma%dlapse%dsamples%d.mat' %(C,g,l,s)
                     dataname = os.path.join(datafolder,filename)
                     
                     
@@ -185,7 +188,7 @@ if __name__ == "__main__":
                     # save these samples to a .matfile
                     from scipy.io import savemat
                    
-                    savefolder = '../dscData/resultsSyntheticDataCB'
+                    
                     savename ='res'+ filename
                     savemat(os.path.join(savefolder,savename),{'posterSamples':posteriorSamples,'log':log})
                     logging.info('Finished %dpriorC %dgamma %dlapse %dsamples' %(C,g,l,s))
