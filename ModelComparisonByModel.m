@@ -51,7 +51,7 @@ end
 
 %%
 
-for ii=1:3*length(ground_truths)*length(model_names)
+parfor ii=1:3*length(ground_truths)*length(model_names)
     [iTruth, iModel, iCondition] = ind2sub([length(ground_truths) length(model_names) 3], ii);
 
     switch iCondition

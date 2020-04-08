@@ -35,13 +35,14 @@ parfor iModel=1:length(model_info)
     % 'noise' is a parameter even if base_params.noise=0. But it also just seems like good practice.
     this_params = Fitting.setParamsFields(this_params, fields, cellfun(@(f) distribs.(f).priorrnd(1), fields));
     if use_cache
-        [sampleses{iModel}, ~, ~, sample_scores, ~] = LoadOrRun(@Fitting.fitModelMH, ...
+        [~, sampleses{iModel}, sample_scores, ~] = LoadOrRun(@Fitting.fitModelMH, ...
             {this_params, signals, choices, distribs, struct('prefix', prefix)}, ...
             fullfile('../Precomputed', ['mhfit-' prefix '-' model_info(iModel).name '.mat']));
     else
-        [sampleses{iModel}, ~, ~, sample_scores, ~] = Fitting.fitModelMH(this_params, signals, choices, distribs, struct('prefix', prefix));
+        [~, sampleses{iModel}, sample_scores, ~] = Fitting.fitModelMH(this_params, signals, choices, distribs, struct('prefix', prefix));
     end
     
+    % TODO - use ML value of actual fit params, whether by GP or best sample
     mle(iModel) = max(sample_scores.loglike);
     npara(iModel) = length(fields);
 end
