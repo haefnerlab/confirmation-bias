@@ -4,6 +4,16 @@ function [optim_results, samples, sample_scores, metadata] = fitModelMH(base_par
 
 fields = fieldnames(distribs);
 
+% Get a UID for the model being fit, signals, and choices so that we can restart from checkpoints
+if iscell(signals)
+    allsigs = vertcat(signals{:});
+    allchoices = vertcat(choices{:});
+    input_id = string2hash([base_params(1).model, strjoin(fieldnames(distribs)), num2str([allsigs(:)' allchoices'])]);
+else
+    input_id = string2hash([base_params(1).model, strjoin(fieldnames(distribs)), num2str([signals(:)' choices'])]);
+end
+chkpt = fullfile('sample-checkpoints', sprintf('%x', input_id));
+
 stoch = Model.isStochastic(base_params);
 if stoch
     % Fitting strategy 1 (stochastic model): (A) MH sample points, resulting in over-dispersed
@@ -13,14 +23,6 @@ if stoch
     % Step 1A: sample. Note that stochastic models with finite repetitions will result in posteriors
     % that are wider than the true posterior because each LH evaluation is corrupted by noise
     disp('fitModelMH: stochastic step A');
-    if iscell(signals)
-        allsigs = vertcat(signals{:});
-        allchoices = vertcat(choices{:});
-        input_id = string2hash([Model.getModelStringID(base_params(1)) num2str([allsigs(:)' allchoices'])]);
-    else
-        input_id = string2hash([Model.getModelStringID(base_params) num2str([signals(:)' choices'])]);
-    end
-    chkpt = fullfile('sample-checkpoints', sprintf('%x', input_id));
     [samples, ~, sample_scores] = Fitting.sampleModelMH(signals, choices, base_params, 2000, distribs, 5, 50, 10, chkpt);
     
     % Step 1B: Get a rough estimate of the log probabilities at each (unique) sample
@@ -102,7 +104,7 @@ else
     
     % Step 2A: sample
     disp('fitModelMH: deterministic step A');
-    [samples, ~, sample_scores] = Fitting.sampleModelMH(signals, choices, base_params, 2000, distribs, 0, 50, 10);
+    [samples, ~, sample_scores] = Fitting.sampleModelMH(signals, choices, base_params, 2000, distribs, 0, 50, 10, chkpt);
     
     % Step 2B: prep GP below by combining all evals for redundant samples
     [uSamples, ~, idxExpand] = unique(samples, 'rows');
