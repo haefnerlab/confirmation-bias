@@ -9,8 +9,10 @@ if iscell(signals)
     allsigs = vertcat(signals{:});
     allchoices = vertcat(choices{:});
     input_id = string2hash([base_params(1).model, strjoin(fieldnames(distribs)), num2str([allsigs(:)' allchoices'])]);
+    nTrials = length(allchoices);
 else
     input_id = string2hash([base_params(1).model, strjoin(fieldnames(distribs)), num2str([signals(:)' choices'])]);
+    nTrials = length(choices);
 end
 chkpt = fullfile('sample-checkpoints', sprintf('%x', input_id));
 
@@ -52,7 +54,7 @@ if stoch
         allidx = 1:size(uSamples,1);
         [~, ibest] = max(est_ll);
         
-        max_eval_per_point = 20;
+        max_eval_per_point = round(sqrt(nTrials));
         n_evals_per = ones(size(upper_conf));
         
         % Loop until our *lower* bound on the best point is better than the *upper* bound on all other
