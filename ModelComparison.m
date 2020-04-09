@@ -1,4 +1,4 @@
-function [aic, model_info, sampleses] = ModelComparison(base_params, signals, choices, prefix, model_names)
+function [aic, aic_err, model_info, sampleses] = ModelComparison(base_params, signals, choices, prefix, model_names)
 
 % Note: use 'base_params' to set generative model parameters like CI, SI, etc
 
@@ -35,19 +35,25 @@ parfor iModel=1:length(model_info)
     % 'noise' is a parameter even if base_params.noise=0. But it also just seems like good practice.
     this_params = Fitting.setParamsFields(this_params, fields, cellfun(@(f) distribs.(f).priorrnd(1), fields));
     if use_cache
-        [~, sampleses{iModel}, sample_scores, ~] = LoadOrRun(@Fitting.fitModelMH, ...
+        [optim_results, sampleses{iModel}, ~, ~] = LoadOrRun(@Fitting.fitModelMH, ...
             {this_params, signals, choices, distribs, struct('prefix', prefix)}, ...
             fullfile('../Precomputed', ['mhfit-' prefix '-' model_info(iModel).name '.mat']));
     else
-        [~, sampleses{iModel}, sample_scores, ~] = Fitting.fitModelMH(this_params, signals, choices, distribs, struct('prefix', prefix));
+        [optim_results, sampleses{iModel}, ~, ~] = Fitting.fitModelMH(this_params, signals, choices, distribs, struct('prefix', prefix));
     end
     
-    % TODO - use ML value of actual fit params, whether by GP or best sample
-    mle(iModel) = max(sample_scores.loglike);
+    % TODO - cache or do this inside of fitModelMH
+    if iscell(choices)
+        nTrials = sum(cellfun(@length, choices));
+    else
+        nTrials = length(choices);
+    end
+    [~, mle(iModel), ll_var(iModel)] = Fitting.choiceModelLogProbIBS(optim_results.gp_mle_params, signals, choices, distribs, [], round(sqrt(nTrials)));
     npara(iModel) = length(fields);
 end
 
 %% Compute AIC
 aic = aicbic(mle, npara);
+aic_err = sqrt(ll_var);
 
 end
