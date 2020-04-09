@@ -126,9 +126,9 @@ if params.temperature == 0
     params.temperature = eps;
 end
 
-if isfield(params, 'lapse_1') && isfield(params, 'lapse_2')
-    lapse1 = params.lapse_1;
-    lapse2 = params.lapse_2;
+if isfield(params, 'lapse1') && isfield(params, 'lapse2')
+    lapse1 = params.lapse1;
+    lapse2 = params.lapse2;
 else
     lapse1 = params.lapse;
     lapse2 = params.lapse;

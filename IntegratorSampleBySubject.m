@@ -10,10 +10,10 @@ if ~exist(memodir, 'dir'), mkdir(memodir); end
 
 %% Define models
 model_fields = {
-    {'prior_C', 'log_temperature', 'log_lapse_1', 'log_lapse_2'}
-    {'prior_C', 'log_temperature', 'log_lapse_1', 'log_lapse_2', 'bound'}
-    {'prior_C', 'log_temperature', 'log_lapse_1', 'log_lapse_2', 'gamma'}
-    {'prior_C', 'log_temperature', 'log_lapse_1', 'log_lapse_2', 'bound', 'gamma'}
+    {'prior_C', 'log_temperature', 'log_lapse1', 'log_lapse2'}
+    {'prior_C', 'log_temperature', 'log_lapse1', 'log_lapse2', 'bound'}
+    {'prior_C', 'log_temperature', 'log_lapse1', 'log_lapse2', 'gamma'}
+    {'prior_C', 'log_temperature', 'log_lapse1', 'log_lapse2', 'bound', 'gamma'}
 };
 
 model_names = {'ideal', 'itb', 'gamma', 'itb_gamma'};

@@ -23,11 +23,17 @@ if nargin >= 1
     islog = cellfun(@(f) startsWith(f, 'log_'), fields);
     fields = cellfun(@(f) strrep(f, 'log_', ''), fields, 'UniformOutput', false);
 
-    % Handle case where a field is suffixed with a number like  '_1' or '_2' (e.g. multiple lapses)
-    hassuffix = cellfun(@(f) ~isempty(regexpi(f, '_\d+$')), fields);
-    suffixes = cellfun(@(f) regexprep(f, '.*(?=_\d+$)', ''), fields, 'UniformOutput', false);
-    suffixes(~hassuffix) = {''};
+    % Handle case where field has an index, e.g. suffixed with '_1' or '_2'
+    hasindex = cellfun(@(f) ~isempty(regexpi(f, '\w+\d*_\d+$')), fields);
+    indexes = cellfun(@(f) regexprep(f, '\w+\d*(_\d+)', '$1'), fields, 'uniformoutput', false);
+    indexes(~hasindex) = {''};
     fields = cellfun(@(f) regexprep(f, '_\d+$', ''), fields, 'UniformOutput', false);
+
+    % Handle case where a field is suffixed with a number like  'lapse1' or 'lapse2' (e.g. multiple lapses)
+    hassuffix = cellfun(@(f) ~isempty(regexpi(f, '\w+\d+$')), fields);
+    suffixes = cellfun(@(f) regexprep(f, '\w+(\d+)', '$1'), fields, 'UniformOutput', false);
+    suffixes(~hassuffix) = {''};
+    fields = cellfun(@(f) regexprep(f, '\d+$', ''), fields, 'UniformOutput', false);
 
     % Warn about unrecognized fields and remove them
     unrecognized = setdiff(fields, defaultFields);
@@ -79,9 +85,7 @@ if nargin >= 1
             end
         end
 
-        if hassuffix(iF)
-            full_name = [full_name suffixes{iF}];
-        end
+        full_name = [full_name suffixes{iF} indexes{iF}];
 
         out_distribs.(full_name) = distrib;
     end

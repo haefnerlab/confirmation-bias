@@ -1,7 +1,7 @@
 function [best_params, map_value, ll_train, ll_test] = fitIntegratorModel(train_signals, train_choices, fields, allow_gamma_neg, priors, test_signals, test_choices)
 %% Handle inputs
 
-default_fields = {'prior_C', 'gamma', 'bound', 'log_temperature', 'log_lapse_1', 'log_lapse_2'};
+default_fields = {'prior_C', 'gamma', 'bound', 'log_temperature', 'log_lapse1', 'log_lapse2'};
 default_values = [.5 0 inf 0 -inf -inf];
 
 if nargin < 3 || isempty(fields), fields = default_fields; end

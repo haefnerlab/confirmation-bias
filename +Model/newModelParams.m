@@ -31,7 +31,7 @@ function params = newModelParams(varargin)
 %   updates - the number of updates to p(C) per frame, corresponding to the brain's sampling time.
 %   noise   - amount of noise added, each frame, to accumulated log probabilities so far
 %   lapse   - lapse rate (percent of trials making a random choice regardless of stimulus).
-%             Alternately, set lapse_1 and lapse_2 for separate 'low' and 'high' lapse rates.
+%             Alternately, set lapse1 and lapse2 for separate 'low' and 'high' lapse rates.
 %   samples - effective "dimensionality" of x; how many independent measurements we get of x 
 %             per update (e.g. multiple independent sampling chains). Only used in IS model.
 %   step_size - What percent of the "full update" to log(q(C=+1)/q(C=-1)) to apply each step. Only

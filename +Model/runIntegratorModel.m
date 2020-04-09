@@ -22,7 +22,7 @@ for f=1:frames
 end
 results.lpo(isinf(results.lpo)) = sign(results.lpo(isinf(results.lpo)))*params.bound;
 
-lapse_range = 1-(params.lapse_1+params.lapse_2);
-results.prob_choice = params.lapse_1 + lapse_range * 1./(1+exp(-results.lpo(:,end)));
+lapse_range = 1-(params.lapse1+params.lapse2);
+results.prob_choice = params.lapse1 + lapse_range * 1./(1+exp(-results.lpo(:,end)));
 results.choice = rand(trials, 1) < results.prob_choice;
 end
