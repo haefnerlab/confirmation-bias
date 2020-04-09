@@ -1,38 +1,24 @@
-function [bestfit, train_ll, test_ll, model_names] = IntegratorModelComparisonBySubject(subjectId, phase, sub_threshold, group_by, reference, add_null, datadir)
+function [bestfit, train_ll, test_ll, model_names] = IntegratorModelComparisonBySubject(subjectId, phase, group_by, reference, add_null, datadir)
 %% Setup
-if nargin < 3, sub_threshold = false; end
-if nargin < 4, group_by = 'traintest'; end % or 'model'
-if nargin < 5, reference = 'ideal'; end
-if nargin < 6, add_null = false; end
-if nargin < 7, datadir = fullfile(pwd, '..', 'RawData'); end
+if nargin < 3, group_by = 'traintest'; end % or 'model'
+if nargin < 4, reference = 'ideal'; end
+if nargin < 5, add_null = false; end
+if nargin < 6, datadir = fullfile(pwd, '..', 'RawData'); end
 
 memodir = fullfile(datadir, '..', 'Precomputed');
 if ~exist(memodir, 'dir'), mkdir(memodir); end
 
-%% Load subject data
-SubjectData = LoadAllSubjectData(subjectId, phase, datadir);
 kernel_kappa = 0.16;
-
-sigs = LoadOrRun(@ComputeFrameSignals, {SubjectData, kernel_kappa}, ...
-    fullfile(memodir, ['perFrameSignals-' SubjectData.subjectID '-' num2str(kernel_kappa) '-' SubjectData.phase '.mat']));
-choices = SubjectData.choice(:) == +1;
-
-if sub_threshold
-    if phase == 1
-        thresh = 0.6;
-        floor = 0.4;
-    elseif phase == 2
-        [floor, thresh] = GaborAnalysis.getThresholdWindow(SubjectData, phase, 0.5, 0.7, memodir);
-    else
-        error('not implemented');
-    end
-    [~, trials] = GaborThresholdTrials(SubjectData, phase, thresh, floor);
-    sigs = sigs(trials, :);
-    choices = choices(trials, :);
+[~, sigs, choices] = GetSubjectDataForFitting(subjectId, kernel_kappa, [], datadir);
+if length(phase) == 1
+    sigs = sigs{phase};
+    choices = choices{phase};
+else
+    error('IntegratorModelComparison needs updating before jointly fitting multiple conditions...');
 end
 
 %% Fit models and get cross-validation scores
-prefix = [subjectId '-' num2str(kernel_kappa) '-' SubjectData.phase '-' num2str(sub_threshold)];
+prefix = [subjectId '-' num2str(kernel_kappa) '-' num2str(phase)];
 [bestfit, train_ll, test_ll, ~, model_names] = IntegratorModelComparison(sigs, choices, [0.1 1], 500, prefix);
 nModels = length(model_names);
 
@@ -78,5 +64,5 @@ elseif startsWith(group_by, 't')
 end
 grid on;
 ylabel(['\Delta LL from ' reference ' fit']);
-title(['Model Comparison: ' subjectId ' [' upper(SubjectData.phase) ']']);
+title(['Model Comparison: ' subjectId ' [' num2str(phase) ']']);
 end
