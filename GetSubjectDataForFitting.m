@@ -27,8 +27,8 @@ stim_set{2} = LoadOrRun(@ComputeFrameSignals, {SubjectDataNoise, kernel_kappa}, 
 % Restrict stim and choices to sub-threshold in each task
 stim_set{1} = stim_set{1}(trial_set{1}, :);
 stim_set{2} = stim_set{2}(trial_set{2}, :);
-choice_set{1} = SubjectDataRatio.choice(trial_set{1});
-choice_set{2} = SubjectDataNoise.choice(trial_set{2});
+choice_set{1} = sign(SubjectDataRatio.choice(trial_set{1})' - 0.5);
+choice_set{2} = sign(SubjectDataNoise.choice(trial_set{2})' - 0.5);
 
 % Sub-threshold data in the 'ratio' condition (HSLC) has category information 0.6 since all 6:4 or
 % 4:6 trials are included in the analysis. Sub-threshold data in the 'noise' condition (LSHC) has
