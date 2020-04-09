@@ -100,6 +100,8 @@ if stoch
         
         save(refine_file, 'samples', 'sample_scores');
     end
+    
+    gp_args = {'Sigma', sqrt(mean(est_var)), 'SigmaLowerBound', min(sqrt(est_var)), 'ConstantSigma', false};
 else
     % Fitting strategy 2 (deterministic model): (A) sample the posterior then (B) pick the best
     % sample.
@@ -115,6 +117,8 @@ else
         est_lp(iSamp) = mean(sample_scores.logpdf(idxExpand == iSamp));
         est_var(iSamp) = mean(sample_scores.variance(idxExpand == iSamp)) / sum(idxExpand == iSamp);
     end
+    
+    gp_args = {'Sigma', .01, 'ConstantSigma', true};
 end
         
 % Penultimate step: find maximum likelihood and MAP sample
@@ -130,18 +134,18 @@ optim_results.map_params = Fitting.setParamsFields(base_params, fields, samples(
 init_scale = cellfun(@(f) (distribs.(f).pub-distribs.(f).plb)/20, fields)';
 
 % Fit Gaussian process to all log likelihood evaluations
-gp_ll = fitrgp(uSamples, est_ll, 'Sigma', sqrt(mean(est_var)), 'SigmaLowerBound', min(sqrt(est_var)), ...
-    'KernelFunction', 'ardsquaredexponential', 'KernelParameters', [init_scale std(est_ll)]);
+gp_ll = fitrgp(uSamples, est_ll, 'KernelFunction', 'ardsquaredexponential', ...
+    'KernelParameters', [init_scale std(est_ll)], gp_args{:});
 % Search the GP fit for a better maximum
 gp_mle = fmincon(@(x) -gp_ll.predict(x), samples(best_ll_idx, :), [], [], [], [], ...
     cellfun(@(f) distribs.(f).lb, fields), cellfun(@(f) distribs.(f).ub, fields));
 optim_results.gp_mle_params = Fitting.setParamsFields(base_params, fields, gp_mle);
 
 % Repeat the above for the MAP
-gp_lp = fitrgp(uSamples, est_lp, 'Sigma', sqrt(mean(est_var)), 'SigmaLowerBound', min(sqrt(est_var)), ...
-    'KernelFunction', 'ardsquaredexponential', 'KernelParameters', [init_scale std(est_lp)]);
+gp_lp = fitrgp(uSamples, est_lp, 'KernelFunction', 'ardsquaredexponential', ...
+    'KernelParameters', [init_scale std(est_lp)], gp_args{:});
 % Search the GP fit for a better maximum
-gp_map = fmincon(@(x) -gp_lp.predict(x), samples(best_ll_idx, :), [], [], [], [], ...
+gp_map = fmincon(@(x) -gp_lp.predict(x), samples(best_lp_idx, :), [], [], [], [], ...
     cellfun(@(f) distribs.(f).lb, fields), cellfun(@(f) distribs.(f).ub, fields));
 optim_results.gp_map_params = Fitting.setParamsFields(base_params, fields, gp_map);
 
