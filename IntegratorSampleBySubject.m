@@ -2,7 +2,7 @@ function [samples_by_model, model_names, model_fields, params_samples] = Integra
 %% Setup
 if nargin < 3, n_samples = 10000; end
 if nargin < 4, sub_threshold = false; end
-if nargin < 5, datadir = fullfile(pwd, '..', 'RawData'); end
+if nargin < 5, datadir = fullfile(pwd, '..', 'PublishData'); end
 if nargin < 6, cache = true; end
 
 memodir = fullfile(datadir, '..', 'Precomputed');

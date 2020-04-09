@@ -4,7 +4,7 @@ function [slopes, pvalues] = DeltaSlopeStatistics(subjectIds, phases, type, nboo
 %there being a significant difference between the two phases.
 
 if ~exist('nboot', 'var'), nboot = 10000; end
-if ~exist('datadir', 'var'), datadir = fullfile(pwd, '..', 'RawData'); end
+if ~exist('datadir', 'var'), datadir = fullfile(pwd, '..', 'PublishData'); end
 if ~exist('is_naive', 'var'), is_naive = true(size(subjectIds)); end
 
 memodir = fullfile(datadir, '..', 'Precomputed');

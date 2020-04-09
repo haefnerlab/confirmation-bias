@@ -1,7 +1,7 @@
 function [GaborData, sources] = LoadAllSubjectData(subjectID, phase, datadir)
 %LOADALLSUBJECTDATA Looks for and concatenates .mat files for this subject
 %across all sessions, including Quit sessions.
-if nargin < 3, datadir = fullfile(pwd, '..', 'RawData'); end
+if nargin < 3, datadir = fullfile(pwd, '..', 'PublishData'); end
 
 if phase == 0
     expt_type = 'Contrast';

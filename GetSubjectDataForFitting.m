@@ -1,6 +1,6 @@
 function [param_set, stim_set, choice_set, trial_set] = GetSubjectDataForFitting(subjectId, kernel_kappa, base_params, datadir)
 
-if ~exist('datadir', 'var'), datadir=fullfile(pwd, '../RawData'); end
+if ~exist('datadir', 'var'), datadir=fullfile(pwd, '../PublishData'); end
 memodir = fullfile(datadir, '../Precomputed');
 
 if ~exist('base_params', 'var') || isempty(base_params)

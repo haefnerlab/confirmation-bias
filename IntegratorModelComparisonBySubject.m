@@ -3,7 +3,7 @@ function [bestfit, train_ll, test_ll, model_names] = IntegratorModelComparisonBy
 if nargin < 3, group_by = 'traintest'; end % or 'model'
 if nargin < 4, reference = 'ideal'; end
 if nargin < 5, add_null = false; end
-if nargin < 6, datadir = fullfile(pwd, '..', 'RawData'); end
+if nargin < 6, datadir = fullfile(pwd, '..', 'PublishData'); end
 
 memodir = fullfile(datadir, '..', 'Precomputed');
 if ~exist(memodir, 'dir'), mkdir(memodir); end

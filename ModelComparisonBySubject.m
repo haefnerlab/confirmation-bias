@@ -1,7 +1,7 @@
 function [fig, model_names] = ModelComparisonBySubject(subjectIds, phases, group_by, datadir)
 %% Setup
 if nargin < 3, group_by = 'subject'; end % or 'model'
-if nargin < 4, datadir = fullfile(pwd, '..', 'RawData'); end
+if nargin < 4, datadir = fullfile(pwd, '..', 'PublishData'); end
 
 memodir = fullfile(datadir, '..', 'Precomputed');
 if ~exist(memodir, 'dir'), mkdir(memodir); end
