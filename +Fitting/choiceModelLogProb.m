@@ -47,7 +47,7 @@ for iSet=1:nSets
     signals{iSet} = repmat(signals{iSet}, nInner, 1);
 
     % Run the model
-    sim_results = Model.runVectorized(thisParams, signals{iSet});
+    sim_results = Model.runVectorized(thisParams, signals{iSet} / thisParams.signal_scale);
     
     % Reshape prob_choice from model to [nTrials x nInner]
     prob_choice = reshape(sim_results.prob_choice, nTrials, nInner);

@@ -88,7 +88,7 @@ while ~all(matched >= repeats) && L_hat_upper_bound > lower_bound
         if ~any(unmatched(setIdx(:,iSet))), continue; end
         
         % Run the model only on unmatched trials within this set
-        sim_results = Model.runVectorized(params(iSet), signals(unmatched & setIdx(:,iSet), :));
+        sim_results = Model.runVectorized(params(iSet), signals(unmatched & setIdx(:,iSet), :) / params(iSet).signal_scale);
         
         % For all that now match... record 'k' and mark those trials as complete
         matching_subset = sim_results.choices == choices(unmatched & setIdx(:,iSet));

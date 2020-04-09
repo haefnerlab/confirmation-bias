@@ -19,7 +19,7 @@ true_params = Model.newModelParams('model', 'is', ...
 
 % Get default distributions over all fittable parameters (priors and bounds plotted in the next
 % block). 3rd argument to defaultDistributions is whether gamma may be negative.
-fittable_parameters = {'prior_C', 'lapse', 'gamma', 'sensor_noise', 'var_x', 'noise', ...
+fittable_parameters = {'prior_C', 'lapse', 'gamma', 'signal_scale', 'var_x', 'noise', ...
     'temperature', 'bound', 'updates', 'samples'};
 distribs = Fitting.defaultDistributions(fittable_parameters, [], false);
 
@@ -195,6 +195,65 @@ for iRun=10:-1:1
     drawnow;
 end
 
+%% Load subject data and try to estimate s->e slope for each difficulty level
+
+% Uppercase constants copied from @PaperFigures
+NOISE_PHASE = 2; % aka LSHC
+DATADIR = fullfile(pwd, '..', 'PublishData');
+MEMODIR = fullfile(pwd, '..', 'Precomputed');
+
+subjectId = 'BPGTask-subject02';
+SubjectData = LoadAllSubjectData(subjectId, NOISE_PHASE, DATADIR);
+kernel_kappa = 0.16;
+uid = [subjectId '-' num2str(kernel_kappa) '-' SubjectData.phase];
+signals = LoadOrRun(@ComputeFrameSignals, {SubjectData, kernel_kappa}, ...
+    fullfile(MEMODIR, ['perFrameSignals-' uid '.mat']));
+choices = sign(SubjectData.choice - 0.5);
+
+allStim = [SubjectData.noise; SubjectData.contrast; max(SubjectData.true_ratio, 1-SubjectData.true_ratio)]';
+[uStim, ~, idxExpand] = unique(allStim, 'rows');
+
+fields = {'prior_C', 'lapse', 'signal_scale'};
+distribs = Fitting.defaultDistributions(fields);
+
+params = Model.newModelParams('model', 'ideal', 'temperature', 0.1, 'lapse', .02);
+samples = zeros(1000, size(uStim,1), length(fields));
+for iStim=size(uStim,1):-1:1
+    disp(iStim);
+    trials = idxExpand == iStim;
+    params.p_match = uStim(iStim, 3);
+    init_para = [0.5 .01 1/5];
+    samples(:,iStim,:) = mhsample(init_para, 1000, ...
+        'logpdf', @(x) Fitting.choiceModelLogProb(Fitting.setParamsFields(params, fields, x), distribs, signals(trials, :), choices(trials), 1), ...
+        'proprnd', @(x) arrayfun(@(i) distribs.(fields{i}).proprnd(x(i)), 1:length(fields)), ...
+        'logproppdf', @(x1,x2) sum(arrayfun(@(i) distribs.(fields{i}).logproppdf(x1(i), x2(i)), 1:length(fields))), ...
+        'thin', 20, 'burnin', 200);
+    
+    cla;
+    plot(squeeze(samples(:,iStim,:)));
+    drawnow;
+end
+
+% Add samples for all sub-threshold trials
+trials = SubjectData.noise < .16;
+samples(:,end+1,:) = mhsample(init_para, 1000, ...
+    'logpdf', @(x) Fitting.choiceModelLogProb(Fitting.setParamsFields(params, fields, x), distribs, signals(trials, :), choices(trials), 1), ...
+    'proprnd', @(x) arrayfun(@(i) distribs.(fields{i}).proprnd(x(i)), 1:length(fields)), ...
+    'logproppdf', @(x1,x2) sum(arrayfun(@(i) distribs.(fields{i}).logproppdf(x1(i), x2(i)), 1:length(fields))), ...
+    'thin', 20, 'burnin', 200);
+
+for i=1:length(fields)
+    subplot(1,length(fields),i); hold on;
+    [m,l,u] = meanci(samples(:,:,i), .67);
+    errorbar(1:20, m, m-l, u-m);
+    title(fields{i});
+end
+
+% Plot dependency between lapse and signal scale
+all_lapse = samples(:, end, 2);
+all_scale = samples(:, end, 3);
+cornerplot([all_lapse(:) all_scale(:)], {'lapse', 'signal scale'});
+
 %% Load subject data and visualize conversion to model space
 
 % Uppercase constants copied from @PaperFigures
@@ -209,7 +268,7 @@ SubjectData = LoadAllSubjectData(subjectId, NOISE_PHASE, DATADIR);
 kernel_kappa = 0.16;
 uid = [subjectId '-' num2str(kernel_kappa) '-' SubjectData.phase];
 signals = LoadOrRun(@ComputeFrameSignals, {SubjectData, kernel_kappa}, ...
-    fullfile('../Precomputed', ['perFrameSignals-' uid '.mat']));
+    fullfile(MEMODIR, ['perFrameSignals-' uid '.mat']));
 
 internal_noise = 3;
 base_params = Model.newModelParams('model', 'itb');
