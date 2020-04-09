@@ -6,6 +6,9 @@ function params = newModelParams(varargin)
 %'params = MODEL.NEWMODELPARAMS('samples', 10)' creates a struct with all default params (e.g. 
 % params.gamma is 0), but with params.samples set to 10.
 %
+% When setting sensory or category information, use @Model.setCategorySensoryInfo to ensure
+% data-generation and inference parameters are matched.
+%
 % Param keys are
 % GENERAL CONFIGURATION
 %   save_dir      - directory to save/load precomputed results
@@ -14,26 +17,30 @@ function params = newModelParams(varargin)
 %   trials        - number of trials
 %   frames        - number of frames per trial
 %   category_info - probability that x matches c
-%   sensory_info  - probability of recovering x from e (see Model.getEvidenceVariance)
+%   sensory_info  - probability of recovering x from e (see @Model.getEvidenceVariance)
 %   seed          - seed for generating data
-% MODEL PARAMETERS
+% INFERENCE PARAMETERS
 %   var_s   - variance of gaussian p(s|x)
 %   p_match - weight of x modes, i.e. p(x|C) = p_match*N(C,var_x)+(1-p_match)*N(-C,var_x)
 %   prior_C - prior probability of C=+1
 %   var_x   - variance of each mode of p(x|C)
 %   gamma   - value in [0,1]; how much the bias is 'subtracted out'.
-%   allow_gamma_neg - flag.. if true, gamma may be in [-1,1]
 %   gammafun - in cases where we experiment with setting 'gamma' as a function of CI/SI balance,
 %              provide a function handle gamma=gammafun(ci,si) (default [] indicating constant
 %              gamma)
 %   updates - the number of updates to p(C) per frame, corresponding to the brain's sampling time.
 %   noise   - amount of noise added, each frame, to accumulated log probabilities so far
-%   lapse   - lapse rate (percent of trials making a random choice regardless of stimulus)
+%   lapse   - lapse rate (percent of trials making a random choice regardless of stimulus).
+%             Alternately, set lapse_1 and lapse_2 for separate 'low' and 'high' lapse rates.
 %   samples - effective "dimensionality" of x; how many independent measurements we get of x 
 %             per update (e.g. multiple independent sampling chains). Only used in IS model.
 %   step_size - What percent of the "full update" to log(q(C=+1)/q(C=-1)) to apply each step. Only
 %               used in VB model.
-%   bound   - when LPO hits +/- this value, stop integrating (in ITB model only)
+%   bound   - when LPO hits +/- this value, stop integrating. Only used in ITB model.
+% FITTING PARAMETERS
+%   allow_gamma_neg - flag.. if true, fit gamma may be in [-1,1]
+%   signal_scale - sets scale of 'signals' vs 'evidence' in fitting functions. Only relevant when
+%                  fitting models to human data.
 
 params = struct(...
     'save_dir', fullfile('+Model', 'saved results'), ...
@@ -48,7 +55,6 @@ params = struct(...
     'prior_C', 0.5, ...
     'var_x', 0.1, ...
     'gamma', 0, ...
-    'allow_gamma_neg', false, ...
     'gammafun', [], ...
     'updates', 5, ...
     'noise', 0, ...
@@ -57,7 +63,9 @@ params = struct(...
     'importance_norm', true, ...
     'bound', inf, ...
     'step_size', 0.1, ...
-    'temperature', 0);
+    'temperature', 0, ...
+    'allow_gamma_neg', false, ...
+    'signal_scale', 1);
 
 % Parse any extra (..., 'key', value, ...) pairs passed in through
 % varargin.
