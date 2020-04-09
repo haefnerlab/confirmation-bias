@@ -7,3 +7,5 @@
 *.err.txt
 *.out.txt
 *.sbatch
+*.fig
+*.pdf
