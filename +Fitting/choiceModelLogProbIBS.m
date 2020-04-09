@@ -55,7 +55,7 @@ log_prior = 0;
 prior_fields = fieldnames(prior_info);
 for iF=1:length(prior_fields)
     field = prior_fields{iF};
-    val = Fitting.getParamsFields(params(1), field);
+    val = Fitting.getParamsFields(params, field);
     if isfield(prior_info.(field), 'logpriorpdf')
         log_prior = log_prior + prior_info.(field).logpriorpdf(val);
     else

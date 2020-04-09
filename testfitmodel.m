@@ -195,6 +195,43 @@ for iRun=10:-1:1
     drawnow;
 end
 
+%% Demo parameter tying across multiple conditions
+% (Rather, *untying* gamma in two separate conditions
+
+true_params = Model.newModelParams('model', 'itb', 'trials', 100, 'temperature', 0.05, ...
+    'bound', 1.2, 'gammafun', @(ci,si) (1-ci), 'noise', 0.35, 'updates', 1);
+lshc_params = Model.setCategorySensoryInfo(true_params, .9, .6);
+hslc_params = Model.setCategorySensoryInfo(true_params, .6, .9);
+
+% Combine em
+joint_params = [lshc_params, hslc_params];
+joint_data = {Model.genDataWithParams(lshc_params), Model.genDataWithParams(hslc_params)};
+joint_results = [Model.runVectorized(lshc_params, joint_data{1}), Model.runVectorized(hslc_params, joint_data{2})];
+joint_choices = {joint_results.choices};
+
+fprintf('True params gamma values = [%.2f, %.2f]\n', lshc_params.gamma, hslc_params.gamma);
+
+fit_fields = {'prior_C', 'log_temperature', 'gamma_1', 'gamma_2'};
+distribs = Fitting.defaultDistributions(fit_fields, true, true);
+init_vals = Fitting.getParamsFields(joint_params, fit_fields);
+
+LB  = cellfun(@(f) distribs.(f).lb,  fit_fields);
+UB  = cellfun(@(f) distribs.(f).ub,  fit_fields);
+PLB = cellfun(@(f) distribs.(f).plb, fit_fields);
+PUB = cellfun(@(f) distribs.(f).pub, fit_fields);
+
+opts = bads('defaults');
+opts.UncertaintyHandling = true;
+opts.NonlinearScaling = false;
+best_vals = bads(...
+    @(x) -Fitting.choiceModelLogProbIBS(Fitting.setParamsFields(joint_params, fit_fields, x), distribs, joint_data, joint_choices, [], 10), ...
+    init_vals, LB, UB, PLB, PUB, [], opts);
+
+disp(['Truth: [' strjoin(fit_fields, ', ') ']']);
+disp(Fitting.getParamsFields(joint_params, fit_fields));
+disp('Fit:');
+disp(best_vals);
+
 %% Load subject data and try to estimate s->e slope for each difficulty level
 
 % Uppercase constants copied from @PaperFigures
@@ -373,7 +410,7 @@ for iPara=1:length(ideal_fields)
     plot(domain, ideal_prior_info.(f).logpriorpdf(domain), '-k');
     xl = xlim; yl = ylim;
     plot(xl, lb*[1 1], '--k');
-    plot(Fitting.getParamsFields(ideal_params(1), f)*[1 1], yl, '--b');
+    plot(Fitting.getParamsFields(ideal_params, f)*[1 1], yl, '--b');
     xlim(xl); ylim(yl);
     legend('log posterior', 'log likelihood', 'log prior', 'lower bound');
     title(strrep(f, '_', ' '));
