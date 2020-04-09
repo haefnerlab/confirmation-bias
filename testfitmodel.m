@@ -272,7 +272,7 @@ signals = LoadOrRun(@ComputeFrameSignals, {SubjectData, kernel_kappa}, ...
 
 internal_noise = 3;
 base_params = Model.newModelParams('model', 'itb');
-[params_set, stim_set, choice_set, trial_set] = SubjectDataToModelParams(SubjectData, kernel_kappa, internal_noise, base_params, DATADIR);
+[params_set, stim_set, choice_set, trial_set] = GetSubjectDataForFitting(SubjectData, kernel_kappa, internal_noise, base_params, DATADIR);
 
 % Subselect: low(ish) signals only
 lowsigcutoff = 0.85;

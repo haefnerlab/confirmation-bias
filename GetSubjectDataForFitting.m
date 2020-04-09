@@ -1,4 +1,4 @@
-function [param_set, stim_set, choice_set, trial_set] = SubjectDataToModelParams(SubjectData, kernel_kappa, sensor_noise, base_params, datadir)
+function [param_set, stim_set, choice_set, trial_set] = GetSubjectDataForFitting(SubjectData, kernel_kappa, signal_scale, base_params, datadir)
 
 if ~exist('datadir', 'var'), datadir=fullfile(pwd, '../RawData'); end
 memodir = fullfile(datadir, '../Precomputed');
