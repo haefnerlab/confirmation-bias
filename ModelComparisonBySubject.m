@@ -38,7 +38,7 @@ parfor ii=1:numel(aic)
     end
 
     prefix = [subjectIds{iSubject} '-' num2str(kernel_kappa) '-' num2str(phases{iPhase})];
-    [aic(ii), aic_err(ii), ~, ~] = ModelComparison(this_params, sigs, choices, prefix, model_names{iModel});
+    [aic(ii), aic_err(ii)] = ModelComparison(this_params, sigs, choices, true, prefix, model_names{iModel});
 end
 
 %% Plot result

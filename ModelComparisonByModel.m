@@ -57,12 +57,12 @@ parfor ii=1:3*length(ground_truths)*length(model_names)
     switch iCondition
         case 1
             prefix = ['gt-' Model.getModelStringID(lshc_params{iTruth}, true) '-lshc'];
-            [aic, ~, model_info, sampleses] = ModelComparison(lshc_params{iTruth}, lshc_data{iTruth}, lshc_res{iTruth}.choices, prefix, model_names(iModel));
+            [aic, ~, model_info] = ModelComparison(lshc_params{iTruth}, lshc_data{iTruth}, lshc_res{iTruth}.choices, false, prefix, model_names(iModel));
         case 2
             prefix = ['gt-' Model.getModelStringID(hslc_params{iTruth}, true) '-hslc'];
-            [aic, ~, model_info, sampleses] = ModelComparison(hslc_params{iTruth}, hslc_data{iTruth}, hslc_res{iTruth}.choices, prefix, model_names(iModel));
+            [aic, ~, model_info] = ModelComparison(hslc_params{iTruth}, hslc_data{iTruth}, hslc_res{iTruth}.choices, false, prefix, model_names(iModel));
         case 3
             prefix = ['gt-' Model.getModelStringID(lshc_params{iTruth}, true) '-both'];
-            [aic, ~, model_info, sampleses] = ModelComparison(both_params{iTruth}, both_data{iTruth}, {both_res{iTruth}.choices}, prefix, model_names(iModel));
+            [aic, ~, model_info] = ModelComparison(both_params{iTruth}, both_data{iTruth}, {both_res{iTruth}.choices}, false, prefix, model_names(iModel));
     end
 end
