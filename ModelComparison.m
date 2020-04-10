@@ -55,7 +55,7 @@ parfor iModel=1:length(model_info)
     else
         nTrials = length(choices);
     end
-    [~, mle(iModel), ll_var(iModel)] = Fitting.choiceModelLogProbIBS(optim_results.gp_mle_params, signals, choices, distribs, [], round(sqrt(nTrials)));
+    [~, mle(iModel), ll_var(iModel)] = Fitting.choiceModelLogProbIBS(optim_results.gp_mle_params, distribs, signals, choices, [], round(sqrt(nTrials)));
     npara(iModel) = length(fields);
 end
 
