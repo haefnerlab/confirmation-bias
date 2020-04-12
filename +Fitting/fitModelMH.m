@@ -15,6 +15,8 @@ else
     nTrials = length(choices);
 end
 chkpt = fullfile('sample-checkpoints', sprintf('%x', input_id));
+max_eval_per_point = round(10*sqrt(nTrials));
+ibs_repeats = 5;
 
 stoch = Model.isStochastic(base_params);
 if stoch
@@ -24,38 +26,37 @@ if stoch
     
     % Step 1A: sample. Note that stochastic models with finite repetitions will result in posteriors
     % that are wider than the true posterior because each LH evaluation is corrupted by noise
-    disp('fitModelMH: stochastic step A');
-    [samples, ~, sample_scores] = Fitting.sampleModelMH(signals, choices, base_params, 2000, distribs, 5, 50, 10, chkpt);
-    
-    % Step 1B: Get a rough estimate of the log probabilities at each (unique) sample
-    disp('fitModelMH: stochastic step B');
-    stretch = 3;
-    [uSamples, ~, idxExpand] = unique(samples, 'rows');
-    for iSamp=size(uSamples, 1):-1:1
-        est_ll(iSamp) = mean(sample_scores.loglike(idxExpand == iSamp));
-        est_lp(iSamp) = mean(sample_scores.logpdf(idxExpand == iSamp));
-        est_var(iSamp) = mean(sample_scores.variance(idxExpand == iSamp)) / sum(idxExpand == iSamp);
-    end
-    upper_conf = est_ll + stretch*sqrt(est_var);
-    lower_conf = est_ll - stretch*sqrt(est_var);
+    disp('fitModelMH: draw samples');
+    [samples, ~, sample_scores] = Fitting.sampleModelMH(signals, choices, base_params, 2000, distribs, ibs_repeats, 50, 10, chkpt);
     
     % Step 1C: Search for the best sample (maximum likelihood)
-    disp('fitModelMH: stochastic step C');
-    
     refine_file = [chkpt '-refine.mat'];
     if exist(refine_file, 'file')
+        disp('fitModelMH: load refine from file');
         ld = load(refine_file);
         samples = ld.samples;
         sample_scores = ld.sample_scores;
-        est_ll = sample_scores.loglike;
-        est_lp = sample_scores.logpdf;
-        est_var = sample_scores.variance;
+        [uSamples, ~, idxExpand] = unique(samples, 'rows');
+        for iSamp=size(uSamples, 1):-1:1
+            est_ll(iSamp) = mean(sample_scores.loglike(idxExpand == iSamp));
+            est_lp(iSamp) = mean(sample_scores.logpdf(idxExpand == iSamp));
+            est_var(iSamp) = mean(sample_scores.variance(idxExpand == iSamp));
+        end
     else
+        % Step 1B: Get a rough estimate of the log probabilities at each (unique) sample
+        disp('fitModelMH: refine');
+        stretch = 3;
+        [uSamples, ~, idxExpand] = unique(samples, 'rows');
+        for iSamp=size(uSamples, 1):-1:1
+            est_ll(iSamp) = mean(sample_scores.loglike(idxExpand == iSamp));
+            est_lp(iSamp) = mean(sample_scores.logpdf(idxExpand == iSamp));
+            est_var(iSamp) = mean(sample_scores.variance(idxExpand == iSamp)) / sum(idxExpand == iSamp);
+            n_evals_per(iSamp) = ibs_repeats * sum(idxExpand == iSamp);
+        end
+        upper_conf = est_ll + stretch*sqrt(est_var);
+        lower_conf = est_ll - stretch*sqrt(est_var);
         allidx = 1:size(uSamples,1);
         [~, ibest] = max(est_ll);
-        
-        max_eval_per_point = round(sqrt(nTrials));
-        n_evals_per = ones(size(upper_conf));
         
         % Loop until our *lower* bound on the best point is better than the *upper* bound on all other
         % points
@@ -69,26 +70,27 @@ if stoch
             tmp_uc(~eligible) = -inf;
             [~, ieval] = max(tmp_uc);
             
-            % DEBUG FIGURE
-            cla; hold on;
-            errorbar(1:size(uSamples,1), est_ll, 2*sqrt(est_var));
-            [~,ibest] = max(est_ll);
-            errorbar(ibest, est_ll(ibest), 2*sqrt(est_var(ibest)), '-r');
-            plot(ieval, est_ll(ieval), 'og');
-            drawnow;
-
-            % Compute a better estimate of the log prob for this point by using a larger number of
-            % repeats.
+            % % DEBUG FIGURE
+            % clf;
+            % yyaxis left; hold on;
+            % errorbar(1:size(uSamples,1), est_ll, 2*sqrt(est_var));
+            % [~,ibest] = max(est_ll);
+            % errorbar(ibest, est_ll(ibest), 2*sqrt(est_var(ibest)), '-r');
+            % plot(ieval, est_ll(ieval), 'og');
+            % yyaxis right;
+            % plot(n_evals_per, 'marker', '.');
+            % drawnow;
+            
+            % Compute a better estimate of the log prob for this point by evaluating IBS further
             [new_est_lp, new_est_ll, new_est_var] = Fitting.choiceModelLogProbIBS(...
-                Fitting.setParamsFields(base_params, fields, uSamples(ieval, :)), distribs, signals, choices, [], 5);
+                Fitting.setParamsFields(base_params, fields, uSamples(ieval, :)), distribs, signals, choices, [], ibs_repeats);
             
-            % Update stuff
-            n_evals_per(ieval) = n_evals_per(ieval) + 1;
+            est_ll(ieval) = (est_ll(ieval)*n_evals_per(ieval) + new_est_ll*ibs_repeats)/(n_evals_per(ieval) + ibs_repeats);
+            est_lp(ieval) = (est_lp(ieval)*n_evals_per(ieval) + new_est_lp*ibs_repeats)/(n_evals_per(ieval) + ibs_repeats);
+            est_var(ieval) = (est_var(ieval)*n_evals_per(ieval) + new_est_var*ibs_repeats)/(n_evals_per(ieval) + ibs_repeats);
+            n_evals_per(ieval) = n_evals_per(ieval) + ibs_repeats;
             
-            est_ll(ieval) = (est_ll(ieval)*new_est_var + new_est_ll*(est_var(ieval))) / (est_var(ieval) + new_est_var);
-            est_lp(ieval) = (est_lp(ieval)*new_est_var + new_est_lp*(est_var(ieval))) / (est_var(ieval) + new_est_var);
-            est_var(ieval) = 1./(1./est_var(ieval) + 1./new_est_var);
-            
+            % Update bounds
             upper_conf(ieval) = est_ll(ieval) + stretch*sqrt(est_var(ieval));
             lower_conf(ieval) = est_ll(ieval) - stretch*sqrt(est_var(ieval));
         end
@@ -98,7 +100,7 @@ if stoch
         sample_scores.logpdf = est_lp(idxExpand);
         sample_scores.variance = est_var(idxExpand);
         
-        save(refine_file, 'samples', 'sample_scores');
+        save(refine_file, 'samples', 'sample_scores', 'n_evals_per');
     end
     
     gp_args = {'Sigma', sqrt(mean(est_var)), 'SigmaLowerBound', min(sqrt(est_var)), 'ConstantSigma', false};
@@ -115,12 +117,11 @@ else
     for iSamp=size(uSamples, 1):-1:1
         est_ll(iSamp) = mean(sample_scores.loglike(idxExpand == iSamp));
         est_lp(iSamp) = mean(sample_scores.logpdf(idxExpand == iSamp));
-        est_var(iSamp) = mean(sample_scores.variance(idxExpand == iSamp)) / sum(idxExpand == iSamp);
     end
     
     gp_args = {'Sigma', .01, 'ConstantSigma', true};
 end
-        
+
 % Penultimate step: find maximum likelihood and MAP sample
 [~, best_ll_idx] = max(sample_scores.loglike);
 optim_results.mle_params = Fitting.setParamsFields(base_params, fields, samples(best_ll_idx, :));
@@ -148,5 +149,18 @@ gp_lp = fitrgp(uSamples, est_lp, 'KernelFunction', 'ardsquaredexponential', ...
 gp_map = fmincon(@(x) -gp_lp.predict(x), samples(best_lp_idx, :), [], [], [], [], ...
     cellfun(@(f) distribs.(f).lb, fields), cellfun(@(f) distribs.(f).ub, fields));
 optim_results.gp_map_params = Fitting.setParamsFields(base_params, fields, gp_map);
+
+%% Re-run and store final evaluations for each model
+[optim_results.mle_params.lp, optim_results.mle_params.ll, optim_results.mle_params.ll_var] = ...
+    Fitting.choiceModelLogProbIBS(optim_results.mle_params, distribs, signals, choices, [], max_eval_per_point);
+
+[optim_results.map_params.lp, optim_results.map_params.ll, optim_results.map_params.ll_var] = ...
+    Fitting.choiceModelLogProbIBS(optim_results.map_params, distribs, signals, choices, [], max_eval_per_point);
+
+[optim_results.gp_mle_params.lp, optim_results.gp_mle_params.ll, optim_results.gp_mle_params.ll_var] = ...
+    Fitting.choiceModelLogProbIBS(optim_results.gp_mle_params, distribs, signals, choices, [], max_eval_per_point);
+
+[optim_results.gp_map_params.lp, optim_results.gp_map_params.ll, optim_results.gp_map_params.ll_var] = ...
+    Fitting.choiceModelLogProbIBS(optim_results.gp_map_params, distribs, signals, choices, [], max_eval_per_point);
 
 end
