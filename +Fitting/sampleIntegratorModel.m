@@ -1,19 +1,13 @@
-function [samples, accept, base_params] = sampleIntegratorModel(signals, choices, n_samples, fields, allow_gamma_neg, distribs, varargin)
+function [samples, accept, base_params] = sampleIntegratorModel(signals, choices, n_samples, fields, distribs, varargin)
 %% Handle inputs
 
 default_fields = {'prior_C', 'gamma', 'bound', 'log_temperature', 'log_lapse1', 'log_lapse2'};
 default_values = [.5 0 inf 0 -inf -inf];
 
 if nargin < 4 || isempty(fields), fields = default_fields; end
-if nargin < 5 || isempty(allow_gamma_neg), allow_gamma_neg = true; end
-if nargin < 6 || isempty(distribs), distribs = Fitting.defaultDistributions(fields, false, allow_gamma_neg); end
+if nargin < 5 || isempty(distribs), distribs = Fitting.defaultDistributions(fields, false); end
 
-unrecognized_fields = setdiff(fields, default_fields);
-if ~isempty(unrecognized_fields)
-    warning('The following fields are not recognized and will be ignored: {%s}', strjoin(unrecognized_fields, ', '));
-end
-
-base_params = struct('allow_gamma_neg', allow_gamma_neg);
+base_params = struct();
 base_params = Fitting.setParamsFields(base_params, default_fields, default_values);
 
 %% Set up composite proposal / density functions
@@ -23,7 +17,9 @@ base_params = Fitting.setParamsFields(base_params, default_fields, default_value
 % be compensated for by raising the temperature. We therefore adjust the proposal distribution using
 % the regressed nearly-linear relationship between them, which has the following slope empirically:
 log_temp_per_gamma = -4.8;
-prop_adjust_gamma_temp = all(ismember({'gamma', 'log_temperature'}, fields));
+is_gamma = cellfun(@(f) contains(f, 'gamma'), fields);
+is_temp = cellfun(@(f) contains(f, 'log_temperature'), fields);
+prop_adjust_gamma_temp = any(has_gamma) && any(has_temp);
 
     function xnew = proprnd(xold)
         xnew = xold;
@@ -33,10 +29,8 @@ prop_adjust_gamma_temp = all(ismember({'gamma', 'log_temperature'}, fields));
         if prop_adjust_gamma_temp
             % Treat log_temperature proposal as a 'delta' away from the regression line with slope
             % log_temp_per_gamma.
-            gIdx = strcmpi(fields, 'gamma');
-            ltIdx = strcmpi(fields, 'log_temperature');
-            delta_gam = xnew(gIdx) - xold(gIdx);
-            xnew(ltIdx) = xnew(ltIdx) + delta_gam * log_temp_per_gamma;
+            delta_gam = xnew(is_gamma) - xold(is_gamma);
+            xnew(is_temp) = xnew(is_temp) + delta_gam * log_temp_per_gamma;
         end
     end
 
@@ -44,10 +38,8 @@ prop_adjust_gamma_temp = all(ismember({'gamma', 'log_temperature'}, fields));
         logp = 0;
         if prop_adjust_gamma_temp
             % Undo shift of log_temperature in the corresponding block of 'proprnd'
-            gIdx = strcmpi(fields, 'gamma');
-            ltIdx = strcmpi(fields, 'log_temperature');
-            delta_gam = xnew(gIdx) - xold(gIdx);
-            xnew(ltIdx) = xnew(ltIdx) - delta_gam * log_temp_per_gamma;
+            delta_gam = xnew(is_gamma) - xold(is_gamma);
+            xnew(is_temp) = xnew(is_temp) - delta_gam * log_temp_per_gamma;
         end
         for iField=1:length(fields)
             if isfield(distribs.(fields{iField}), 'logproppdf')

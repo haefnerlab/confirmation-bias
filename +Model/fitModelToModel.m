@@ -1,8 +1,7 @@
-function [fit_params, fit_vals, nll, exitflag] = fitModelToModel(true_params, modeltofit, fields, allow_gamma_neg)
+function [fit_params, fit_vals, nll, exitflag] = fitModelToModel(true_params, modeltofit, fields)
 base_params = true_params;
 base_params.model = lower(modeltofit);
-base_params.allow_gamma_neg = allow_gamma_neg;
-distribs = Fitting.defaultDistributions(fields, true, allow_gamma_neg);
+distribs = Fitting.defaultDistributions(fields, true);
 
 data = Model.genDataWithParams(true_params);
 true_res = Model.runVectorized(true_params, data);

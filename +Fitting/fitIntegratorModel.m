@@ -1,19 +1,13 @@
-function [best_params, map_value, ll_train, ll_test] = fitIntegratorModel(train_signals, train_choices, fields, allow_gamma_neg, priors, test_signals, test_choices)
+function [best_params, map_value, ll_train, ll_test] = fitIntegratorModel(train_signals, train_choices, fields, priors, test_signals, test_choices)
 %% Handle inputs
 
 default_fields = {'prior_C', 'gamma', 'bound', 'log_temperature', 'log_lapse1', 'log_lapse2'};
 default_values = [.5 0 inf 0 -inf -inf];
 
 if nargin < 3 || isempty(fields), fields = default_fields; end
-if nargin < 4 || isempty(allow_gamma_neg), allow_gamma_neg = true; end
-if nargin < 5 || isempty(priors), priors = Fitting.defaultDistributions(fields, true, allow_gamma_neg); end
+if nargin < 4 || isempty(priors), priors = Fitting.defaultDistributions(fields, true); end
 
-unrecognized_fields = setdiff(fields, default_fields);
-if ~isempty(unrecognized_fields)
-    warning('The following fields are not recognized and will be ignored: {%s}', strjoin(unrecognized_fields, ', '));
-end
-
-base_params = struct('allow_gamma_neg', allow_gamma_neg);
+base_params = struct();
 base_params = Fitting.setParamsFields(base_params, default_fields, default_values);
 
 %% Objective function(s)

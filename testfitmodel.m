@@ -5,7 +5,6 @@ rng('shuffle');
 true_params = Model.newModelParams('model', 'is', ...
     'var_x', 0.1, ...
     'gamma', .05, ...
-    'allow_gamma_neg', false, ...
     'save_dir', 'tmp', ...
     'trials', 1000, ...
     'updates', 5, ...
@@ -18,10 +17,10 @@ true_params = Model.newModelParams('model', 'is', ...
     'seed', randi(1e9));
 
 % Get default distributions over all fittable parameters (priors and bounds plotted in the next
-% block). 3rd argument to defaultDistributions is whether gamma may be negative.
-fittable_parameters = {'prior_C', 'lapse', 'gamma', 'signal_scale', 'var_x', 'noise', ...
+% block).
+fittable_parameters = {'prior_C', 'lapse', 'gamma', 'neggamma', 'signal_scale', 'var_x', 'noise', ...
     'temperature', 'bound', 'updates', 'samples'};
-distribs = Fitting.defaultDistributions(fittable_parameters, [], false);
+distribs = Fitting.defaultDistributions(fittable_parameters);
 
 % The next lines demonstrate that log(x) can be fit instead of x. The semantics of the prior change
 % depending on whether we're doing MAP fitting (e.g. with BADS) or full posterior fitting (e.g. with
@@ -111,7 +110,7 @@ sgtitle(strrep(Model.getModelStringID(true_params), '_', ' '));
 %% Compare bias and variance as a function of # likelihood evaluations
 
 fields = {'prior_C', 'temperature', 'lapse'};
-distribs = Fitting.defaultDistributions(fields, false, false);
+distribs = Fitting.defaultDistributions(fields, false);
 for i=1:40
     disp([i 40]);
     for irep=1:3
@@ -148,7 +147,7 @@ legend([arrayfun(@(i) ['avg. p run ' num2str(i)], 1:size(logpost_p,2), 'uniformo
 %% MH inference fitting model to itself
 
 fields = {'prior_C'};
-distribs = Fitting.defaultDistributions(fields, false, true_params.allow_gamma_neg);
+distribs = Fitting.defaultDistributions(fields, false);
 smpls(:,1) = Fitting.sampleModelMH(data, results.choices, true_params, 500, distribs, 1);
 smpls(:,2) = Fitting.sampleModelMH(data, results.choices, true_params, 500, distribs, 5);
 smpls(:,3) = Fitting.sampleModelMH(data, results.choices, true_params, 500, distribs, 10);
@@ -157,10 +156,9 @@ plot(smpls);
 %% MAP inference fitting model to itself with BADS
 
 test_params = true_params;
-test_params.allow_gamma_neg = true;
 fields = {'prior_C', 'gamma', 'log_temperature', 'log_bound', 'log_lapse'};
 nF = length(fields);
-prior_info = Fitting.defaultDistributions(fields, true, test_params.allow_gamma_neg);
+prior_info = Fitting.defaultDistributions(fields, true);
 
 LB = cellfun(@(f) prior_info.(f).lb, fields);
 UB = cellfun(@(f) prior_info.(f).ub, fields);
@@ -211,8 +209,8 @@ joint_choices = {joint_results.choices};
 
 fprintf('True params gamma values = [%.2f, %.2f]\n', lshc_params.gamma, hslc_params.gamma);
 
-fit_fields = {'prior_C', 'log_temperature', 'gamma_1', 'gamma_2'};
-distribs = Fitting.defaultDistributions(fit_fields, true, true);
+fit_fields = {'prior_C', 'log_temperature', 'neggamma_1', 'neggamma_2'};
+distribs = Fitting.defaultDistributions(fit_fields, true);
 init_vals = Fitting.getParamsFields(joint_params, fit_fields);
 
 LB  = cellfun(@(f) distribs.(f).lb,  fit_fields);
@@ -422,7 +420,7 @@ end
 % Prepare model fields, priors, etc for fitting
 fields_to_fit = {'prior_C', 'gamma', 'log_temperature', 'log_bound', 'log_lapse'};
 nF = length(fields_to_fit);
-prior_info = Fitting.defaultDistributions(fields_to_fit, true, false);
+prior_info = Fitting.defaultDistributions(fields_to_fit, true);
 
 LB  = cellfun(@(f) prior_info.(f).lb,  fields_to_fit);
 UB  = cellfun(@(f) prior_info.(f).ub,  fields_to_fit);
