@@ -8,10 +8,10 @@ fields = fieldnames(distribs);
 if iscell(signals)
     allsigs = vertcat(signals{:});
     allchoices = vertcat(choices{:});
-    input_id = string2hash([base_params(1).model, strjoin(fieldnames(distribs)), num2str([allsigs(:)' allchoices'])]);
+    input_id = string2hash([base_params(1).model, strjoin(fields), num2str([allsigs(:)' allchoices'])]);
     nTrials = length(allchoices);
 else
-    input_id = string2hash([base_params(1).model, strjoin(fieldnames(distribs)), num2str([signals(:)' choices'])]);
+    input_id = string2hash([base_params(1).model, strjoin(fields), num2str([signals(:)' choices'])]);
     nTrials = length(choices);
 end
 chkpt = fullfile('sample-checkpoints', sprintf('%x', input_id));
