@@ -4,7 +4,7 @@ ground_truths = {
 };
 
 % Names copied from @ModelComparison
-model_names = {'is', 'vb', 'itb', 'itb-gamma', 'ideal'};
+model_names = {'is', 'vb', 'itb', 'itb-gamma', 'itb-split', 'itb-gamma-split', 'ideal'};
 
 
 lshc_params = cell(size(ground_truths));
@@ -56,9 +56,11 @@ parfor ii=1:3*length(ground_truths)*length(model_names)
 
     switch iCondition
         case 1
+            if contains(model_names{iModel}, 'split'), continue; end
             prefix = ['gt-' Model.getModelStringID(lshc_params{iTruth}, true) '-lshc'];
             [aic, ~, model_info] = ModelComparison(lshc_params{iTruth}, lshc_data{iTruth}, lshc_res{iTruth}.choices, false, prefix, model_names(iModel));
         case 2
+            if contains(model_names{iModel}, 'split'), continue; end
             prefix = ['gt-' Model.getModelStringID(hslc_params{iTruth}, true) '-hslc'];
             [aic, ~, model_info] = ModelComparison(hslc_params{iTruth}, hslc_data{iTruth}, hslc_res{iTruth}.choices, false, prefix, model_names(iModel));
         case 3
