@@ -37,12 +37,12 @@ fprintf('\tpercent correct = %.1f%%\n', 100*mean(res.choices == true_cat));
 
 %% Fit other models to the reference model
 
-model_names = {'IS', 'gamma', 'ITB', 'ideal'};
+model_names = {'IS', 'ITB-gamma', 'ITB', 'ideal'};
 % 'model_args' are arguments passed to @fit_helper below
-model_args(1,:) = {'is',    {'log_temperature', 'log_lapse', 'prior_C', 'gamma', 'samples'}, true};
-model_args(2,:) = {'ITB',   {'log_temperature', 'log_lapse', 'prior_C', 'gamma'},            true};
-model_args(3,:) = {'ITB',   {'log_temperature', 'log_lapse', 'prior_C', 'gamma', 'bound'},   false};
-model_args(4,:) = {'ideal', {'log_temperature', 'log_lapse', 'prior_C'},                     false};
+model_args(1,:) = {'is',    {'log_temperature', 'log_lapse', 'prior_C', 'gamma', 'samples'}};
+model_args(2,:) = {'ITB',   {'log_temperature', 'log_lapse', 'prior_C', 'neggamma'}};
+model_args(3,:) = {'ITB',   {'log_temperature', 'log_lapse', 'prior_C', 'gamma', 'bound'}};
+model_args(4,:) = {'ideal', {'log_temperature', 'log_lapse', 'prior_C'}};
 
 nModels = size(model_args, 1);
 for iModel=nModels:-1:1
@@ -105,14 +105,14 @@ end
 
 %% Helper function to get fit
 
-function bestfit_params = fit_helper(true_params, model, fields, allow_gamma_neg)
+function bestfit_params = fit_helper(true_params, model, fields)
 uid = Model.getModelStringID(true_params);
 fields_uid = strjoin(fields, '-');
 
 parfor iRep=1:10
-    memo_file = fullfile(true_params.save_dir, ['bestfit-' model '-' uid '-' fields_uid '-' num2str(allow_gamma_neg) '-rep' num2str(iRep) '.mat']);
+    memo_file = fullfile(true_params.save_dir, ['bestfit-' model '-' uid '-' fields_uid '-rep' num2str(iRep) '.mat']);
     [fit_params(iRep), fit_vals(iRep, :), nll(iRep), exitflag(iRep)] = LoadOrRun(@Model.fitModelToModel, ...
-        {true_params, model, fields, allow_gamma_neg}, memo_file);
+        {true_params, model, fields}, memo_file);
 end
 
 nll(exitflag <= 0) = inf;
