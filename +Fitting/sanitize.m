@@ -10,11 +10,7 @@ for iF=1:length(fields)
     elseif startsWith(fields{iF}, 'temperature', 'IgnoreCase', true)
         params.(fields{iF}) = clip(params.(fields{iF}), 1e-9, inf);
     elseif startsWith(fields{iF}, 'gamma', 'IgnoreCase', true)
-        if isfield(params, 'allow_gamma_neg') && params.allow_gamma_neg
-            params.gamma = clip(params.gamma, -1, 1);
-        else
-            params.gamma = clip(params.gamma, 0, 1);
-        end
+        params.gamma = clip(params.gamma, -1, 1);
     elseif startsWith(fields{iF}, 'var_x', 'IgnoreCase', true)
         params.(fields{iF}) = clip(params.(fields{iF}), 1e-9, inf);
     elseif startsWith(fields{iF}, 'updates', 'IgnoreCase', true)

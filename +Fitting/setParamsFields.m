@@ -32,6 +32,9 @@ for iF=1:length(fields)
         values(iF) = exp(values(iF));
         fields{iF} = strrep(fields{iF}, 'log_', '');
     end
+    
+    % Handle 'neggamma' as a special case - it really means the 'gamma' parameter
+    fields{iF} = strrep(fields{iF}, 'neggamma', 'gamma');
 
     % If the field is, e.g. gamma_1 or gamma_2, that indicates that this parameter should be
     % applied to only one of the array of parameters, e.g. params(1).gamma = gamma_1 and
