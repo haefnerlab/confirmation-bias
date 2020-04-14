@@ -6,7 +6,6 @@ ground_truths = {
 % Names copied from @ModelComparison
 model_names = {'is', 'vb', 'itb', 'itb-gamma', 'itb-split', 'itb-gamma-split', 'ideal'};
 
-
 lshc_params = cell(size(ground_truths));
 lshc_data = cell(size(ground_truths));
 lshc_res = cell(size(ground_truths));
@@ -19,6 +18,9 @@ both_params = cell(size(ground_truths));
 both_data = cell(size(ground_truths));
 both_res = cell(size(ground_truths));
 
+% Note: because genDataWithParams() contains seed-setting, the model's internal dynamics are also
+% determined by the seed. TODO: save model signals and choices to a file so we don't rely on
+% side-effects of rng() for this to work.
 for iTruth=1:length(ground_truths)
     true_params = ground_truths{iTruth};
     sens_cat_pts = Model.getThresholdPoints(0.51:0.02:0.99, true_params, .7, 5);
@@ -57,12 +59,12 @@ parfor ii=1:3*length(ground_truths)*length(model_names)
     switch iCondition
         case 1
             if contains(model_names{iModel}, 'split'), continue; end
-            prefix = ['gt-' Model.getModelStringID(lshc_params{iTruth}, true) '-lshc'];
-            [aic, ~, model_info] = ModelComparison(lshc_params{iTruth}, lshc_data{iTruth}, lshc_res{iTruth}.choices, false, prefix, model_names(iModel));
-        case 2
-            if contains(model_names{iModel}, 'split'), continue; end
             prefix = ['gt-' Model.getModelStringID(hslc_params{iTruth}, true) '-hslc'];
             [aic, ~, model_info] = ModelComparison(hslc_params{iTruth}, hslc_data{iTruth}, hslc_res{iTruth}.choices, false, prefix, model_names(iModel));
+        case 2
+            if contains(model_names{iModel}, 'split'), continue; end
+            prefix = ['gt-' Model.getModelStringID(lshc_params{iTruth}, true) '-lshc'];
+            [aic, ~, model_info] = ModelComparison(lshc_params{iTruth}, lshc_data{iTruth}, lshc_res{iTruth}.choices, false, prefix, model_names(iModel));
         case 3
             prefix = ['gt-' Model.getModelStringID(lshc_params{iTruth}, true) '-both'];
             [aic, ~, model_info] = ModelComparison(both_params{iTruth}, both_data{iTruth}, {both_res{iTruth}.choices}, false, prefix, model_names(iModel));
