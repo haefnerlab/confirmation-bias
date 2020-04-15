@@ -26,7 +26,7 @@ parfor ii=1:numel(aic)
         continue;
     end
     
-    prefix = ['gt-' Model.getModelStringID(params, true) '-' lower(phase_names{iPhase})];
+    prefix = ['gt-' Model.getModelStringID(params(1), true) '-' lower(phase_names{iPhase})];
     [aic(ii), aic_err(ii)] = ModelComparison(params, sigs, choices, false, prefix, model_names(iModel));
 end
 

@@ -127,18 +127,16 @@ end
 optim_results.gp_map_params = Fitting.setParamsFields(base_params, fields, gp_map(end,:));
 
 %% Re-run and store final evaluations for each model
-disp('fitModelMH: final evals');
-[optim_results.mle_params.lp, optim_results.mle_params.ll, optim_results.mle_params.ll_var] = ...
-    eval_fun(optim_results.mle_params, distribs, signals, choices, final_eval_args{:});
-
-[optim_results.map_params.lp, optim_results.map_params.ll, optim_results.map_params.ll_var] = ...
-    eval_fun(optim_results.map_params, distribs, signals, choices, final_eval_args{:});
-
-[optim_results.gp_mle_params.lp, optim_results.gp_mle_params.ll, optim_results.gp_mle_params.ll_var] = ...
-    eval_fun(optim_results.gp_mle_params, distribs, signals, choices, final_eval_args{:});
-
-[optim_results.gp_map_params.lp, optim_results.gp_map_params.ll, optim_results.gp_map_params.ll_var] = ...
-    eval_fun(optim_results.gp_map_params, distribs, signals, choices, final_eval_args{:});
+fit_names = fieldnames(optim_results);
+for iFit=1:length(fit_names)
+    fprintf('fitModelMH: final evals [%s]\n', fit_names{iFit});
+    [lp, ll, ll_var] = eval_fun(optim_results.(fit_names{iFit}), distribs, signals, choices, final_eval_args{:});
+    for iP=1:length(optim_results.(fit_names{iFit}))
+        optim_results.(fit_names{iFit})(iP).lp = lp;
+        optim_results.(fit_names{iFit})(iP).ll = ll;
+        optim_results.(fit_names{iFit})(iP).ll_var = ll_var;
+    end
+end
 
 end
 
