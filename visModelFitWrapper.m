@@ -52,7 +52,7 @@ mle = Fitting.getParamsFields(fits.mle_params, fields);
 map = Fitting.getParamsFields(fits.map_params, fields);
 gp_mle = Fitting.getParamsFields(fits.gp_mle_params, fields);
 gp_map = Fitting.getParamsFields(fits.gp_map_params, fields);
-if strcmpi(truemodel, fitmodel)
+if contains(fitmodel, truemodel, 'ignorecase', true)
     gt = Fitting.getParamsFields(params, fields);
 else
     gt = nan(size(mle));

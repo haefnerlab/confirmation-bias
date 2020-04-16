@@ -1,6 +1,5 @@
 function fig = ModelComparisonByModel(memodir)
-% gt_names = {'IS', 'ITB'};
-gt_names = {'ITB'};
+gt_names = {'IS', 'ITB'};
 nTruth = length(gt_names);
 
 % Note that for legacy reasons, model data are concatenated in {lshc, hslc} order, which is the
@@ -31,16 +30,18 @@ parfor ii=1:numel(aic)
 end
 
 %% Plot result
+fig = figure;
 for iPhase=1:nPhases
-    fig = figure; hold on;
+    ax = subplot(nPhases, 1, iPhase); hold on;
     h = bar(aic(:,:,iPhase)); drawnow;
     for s=1:nTruth
-        errorbar(h(s).XData+h(s).XOffset, aic(s,:,iPhase), aic_err(s,:,iPhase), 'ok');
+        errorbar(h(1).XData(s)+[h.XOffset], aic(s,:,iPhase), aic_err(s,:,iPhase), '.k');
     end
-    legend(model_names, 'Location', 'best');
+    if iPhase == 1, legend(model_names, 'Location', 'best'); end
     set(gca, 'XTick', 1:nTruth, 'XTickLabel', gt_names);
     grid on;
+    ylim([min(min(aic(:,:,iPhase), [], 2)) inf]-50);
     ylabel('AIC');
-    title(['Phase: ' num2str(phases{iPhase})]);
+    title(phase_names{iPhase});
 end
 end
