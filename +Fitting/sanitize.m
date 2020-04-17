@@ -21,16 +21,6 @@ for iF=1:length(fields)
         params.(fields{iF}) = clip(params.(fields{iF}), 1e-9, inf);
     end
 end
-
-% During fitting of IS model, var_s and samples are highly correlated, so we reparameterize var_s as
-% variance per sample.
-if isfield(params, 'var_s_per_sample')
-    params.var_s_per_sample = clip(params.var_s_per_sample, 1e-9, inf);
-    params.var_s = params.var_s_per_sample * params.samples;
-elseif isfield(params, 'var_s')
-    params.var_s = clip(params.var_s, 1e-9, inf);
-    params.var_s_per_sample = params.var_s / params.samples;
-end
 end
 
 function val = clip(val, lo, hi)

@@ -9,7 +9,7 @@ nPhases = length(phases);
 phase_names = {'LSHC', 'HSLC', 'both'};
 
 % Names copied from @ModelComparison
-model_names = {'is', 'vb', 'itb', 'itb-gamma', 'itb-split', 'itb-gamma-split', 'ideal'};
+model_names = {'ideal', 'is', 'vb', 'itb', 'itb-gamma', 'itb-split', 'itb-gamma-split'};
 nModels = length(model_names);
 %%
 
@@ -37,7 +37,7 @@ for iPhase=1:nPhases
     for s=1:nTruth
         errorbar(h(1).XData(s)+[h.XOffset], aic(s,:,iPhase), aic_err(s,:,iPhase), '.k');
     end
-    if iPhase == 1, legend(model_names, 'Location', 'best'); end
+    if iPhase == 3, legend(model_names, 'Location', 'best'); end
     set(gca, 'XTick', 1:nTruth, 'XTickLabel', gt_names);
     grid on;
     ylim([min(min(aic(:,:,iPhase), [], 2)) inf]-50);
