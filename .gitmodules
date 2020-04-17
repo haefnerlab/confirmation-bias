@@ -1,9 +1,9 @@
 [submodule "tools"]
 	path = tools
-	url = git@bitbucket.org:haefnerlab/tools.git
+	url = https://bitbucket.org/haefnerlab/tools
 [submodule "vbmc"]
 	path = vbmc
 	url = https://github.com/lacerbi/vbmc
 [submodule "bads"]
 	path = bads
-	url = git@github.com:lacerbi/bads.git
+	url = https://github.com/lacerbi/bads
