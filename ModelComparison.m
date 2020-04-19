@@ -31,9 +31,11 @@ end
 use_cache =  nargin >= 4 && ~isempty(prefix);
 for iModel=1:length(model_info)
     this_params = base_params;
-    fields = model_info(iModel).fields;
     if fit_scale
-        fields = [fields {'log_signal_scale'}];
+        scale_fields = arrayfun(@(phz) sprintf('log_signal_scale_%d', phz), 1:length(base_params), 'uniformoutput', false);
+        fields = [model_info(iModel).fields scale_fields];
+    else
+        fields = model_info(iModel).fields;
     end
     for iP=1:length(this_params)
         % params may be a struct array

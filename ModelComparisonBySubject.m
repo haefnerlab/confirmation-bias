@@ -9,7 +9,7 @@ if ~exist(memodir, 'dir'), mkdir(memodir); end
 if ~iscell(subjectIds), subjectIds = {subjectIds}; end
 if ~iscell(phases), phases = {phases}; end
 % Names copied from @ModelComparison
-model_names = {'is', 'vb', 'itb', 'itb-gamma', 'itb-split', 'itb-gamma-split', 'ideal'};
+model_names = {'ideal', 'is', 'vb', 'itb', 'itb-gamma', 'itb-split', 'itb-gamma-split'};
 
 nSubjects = length(subjectIds);
 nPhases = length(phases);
@@ -42,25 +42,31 @@ parfor ii=1:numel(aic)
 end
 
 %% Plot result
+short_names = cellfun(@(s) regexprep(s, '[\w-]+(subject\d+)', '$1'), subjectIds, 'uniformoutput', false);
+fig = figure;
+baseline = aic(:,strcmpi(model_names, 'ideal'),:);
 for iPhase=1:nPhases
-    fig = figure; hold on;
+    ax = subplot(nPhases, 1, iPhase);
+    hold on;
     if startsWith(group_by, 's')
-        h = bar(aic(:,:,iPhase)); drawnow;
-        for s=1:nSubjects
-            errorbar(h(s).XData+h(s).XOffset, aic(s,:,iPhase), aic_err(s,:,iPhase), 'ok');
+        valid = ~all(isnan(aic(:,:,iPhase)), 1);
+        thisaic = aic(:,valid,:);
+        h = bar(ax, thisaic(:,:,iPhase)-baseline(:,1,iPhase)); drawnow;
+        for m=1:length(h)
+            errorbar(ax, h(m).XData+h(m).XOffset, thisaic(:,m,iPhase)-baseline(:,1,iPhase), aic_err(:,m,iPhase), 'o', 'Color', h(m).FaceColor/3);
         end
-        legend(model_names, 'Location', 'best');
-        set(gca, 'XTick', 1:nSubjects, 'XTickLabel', subjectIds);
+        legend(model_names(valid), 'Location', 'best');
+        set(ax, 'XTick', 1:nSubjects, 'XTickLabel', short_names);
     elseif startsWith(group_by, 'm')
-        h = bar(aic(:,:,iPhase)'); drawnow;
-        for m=1:nModels
-            errorbar(h(m).XData+h(m).XOffset, aic(:,m,iPhase), aic_err(:,m,iPhase), 'ok');
+        h = bar(ax, aic(:,:,iPhase)'-baseline(:,:,iPhase)'); drawnow;
+        for s=1:length(h)
+            errorbar(ax, h(s).XData+h(s).XOffset, aic(s,:,iPhase)-baseline(:,:,iPhase), aic_err(s,:,iPhase), 'o', 'Color', h(s).FaceColor/3);
         end
         legend(subjectIds, 'Location', 'best');
-        set(gca, 'XTick', 1:nModels, 'XTickLabel', model_names);
+        set(ax, 'XTick', 1:nModels, 'XTickLabel', model_names);
     end
     grid on;
-    ylabel('AIC');
+    ylabel(ax, 'relative AIC - ideal');
     title(['Phase: ' num2str(phases{iPhase})]);
 end
 end
