@@ -7,7 +7,7 @@ function choice = psychoBernoulliSimulator(x,x_center,params)
 % it would be set to default value
 sensitivity = params(1);
 bias = params(2);
-if length(parms)<3
+if length(params)<3
     % defalut value
     Noise_ratio = 0.05; 
 end
