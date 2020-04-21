@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Sun Feb 23 15:26:46 2020
+Created on Mon Apr 20 09:39:03 2020
 
 @author: liushizhao
 """
@@ -47,11 +47,12 @@ def ConfirmationBiasSimulator(xval,fieldstofit,params, dataPath, engine):
 
 class ConfirmationBias(BaseSimulator):
     
-    def __init__(self, dataPath, fieldstofit,params,engine, seed = None):
+    def __init__(self, dataPath,signals,fieldstofit,params,engine, seed = None):
         
-        dim_param = 5
+        dim_param = 4
         super().__init__(dim_param = dim_param,seed = seed)
         self.dataPath = dataPath
+        self.signals = signals
         self.simulate = ConfirmationBiasSimulator
         self.engine = engine
         self.fieldstofit = fieldstofit
@@ -59,17 +60,23 @@ class ConfirmationBias(BaseSimulator):
         
     def gen_single(self,xval):
         
-        sim_results = self.simulate(xval,self.fieldstofit,self.params,self.dataPath, self.engine)
-        return sim_results
+        choice = self.simulate(xval,self.fieldstofit,self.params,self.dataPath, self.engine)
+        return {'choice':choice,'signals':self.signals}
 #%%
 
 class ConfirmationBiasStats(BaseSummaryStats):
     def __init__(self):
-        self.n_summary = 1
-    def calc(self,choice):
-        stats = choice
-
-     
+        self.n_summary = 2
+    def calc(self,repetition_list):
+        stats = []
+        for r in range(len(repetition_list)):
+            x = repetition_list[r]
+            choice = np.asarray(x['choice'])
+            #signals = np.asarray(x['signals']).flatten('C')
+            
+            #sum_stats_vec = np.concatenate((np.asarray(choice),np.asarray(signals)))
+            
+            stats.append(np.asarray(choice))
         return stats
 #%%
 def runAPTinference(dataname,fieldstofit,prior,hyperparameters):
@@ -78,7 +85,7 @@ def runAPTinference(dataname,fieldstofit,prior,hyperparameters):
     data = loadmat(dataname)
     choice = np.squeeze(np.asarray(data['sim_results']['choices']))
     params = data['params']
-
+    signals = data['signals']
     
     # inference parameters
     seed_inf = 1
@@ -87,7 +94,7 @@ def runAPTinference(dataname,fieldstofit,prior,hyperparameters):
     n_train = hyperparameters['n_train']
     n_rounds =  hyperparameters['n_rounds']
     # fitting setup
-    minibatch = 100
+    minibatch = 500
     epochs = 100
     val_frac =  hyperparameters['val_frac']
     # network setup
@@ -111,14 +118,15 @@ def runAPTinference(dataname,fieldstofit,prior,hyperparameters):
     
     ps = engine.genpath('/gpfs/fs2/scratch/sliu88/APT')
     engine.addpath(ps)
-    m = ConfirmationBias(dataname, fieldstofit,params,engine, seeds_m[0])
+    m = ConfirmationBias(dataname, signals,fieldstofit,params,engine, seeds_m[0])
     g = dg.Default(model=m, prior=prior, summary=s)
     
-
+    obs = {'choice':choice,'signals':signals}
+    obs_stats = s.calc([obs])
     # do inference
     # inference object
     res = infer.SNPEC(g,
-                    obs=choice,
+                    obs=obs_stats,
                     n_hiddens=n_hiddens,
                     seed=seed_inf,
                     pilot_samples=pilot_samples,
@@ -133,7 +141,7 @@ def runAPTinference(dataname,fieldstofit,prior,hyperparameters):
                         minibatch=minibatch,
                     epochs=epochs,
                     silent_fail=False,
-                    proposal='prior',
+                    proposal='mog',
                     val_frac=val_frac,
                     verbose=True,)
     return log,posterior
@@ -152,22 +160,23 @@ if __name__ == "__main__":
     logname = 'inferenceAPT' + currentTime
     logging.basicConfig(filename = logname,level = logging.DEBUG)
     # create a savefolder
-    savefolder = '../dscData/resultsSyntheticDataCB'+ currentTime
-    os.mkdir(savefolder)
+    savefolder = '../dscData/resultsSyntheticDataCB_debug/'
+    if not os.path.exists(savefolder):  
+        os.mkdir(savefolder)
     
     # set some hyperparameters
     # training schedule
-    n_train = 2000
+    n_train = 8000
     n_rounds = 3
     # fitting setup
 
     val_frac = 0.05
     # network setup
     
-    n_hiddens = [50,50]
+    n_hiddens = [200,50,50]
 
     # MAF parameters
-    density = 'maf'
+    density = 'mog'
     n_mades = 5         # number of MADES
     
     hyperparameters = dict()
@@ -179,42 +188,44 @@ if __name__ == "__main__":
     hyperparameters['n_mades'] = n_mades
                     
     # save inference method settings (hyperparameters)
-    savemat(os.path.join(savefolder,'hyperparameters'),{'hyperparameters':hyperparameters})
-    priorC_list = [1,2,3]
-    gamma_list = [1,2,3]
-    lapse_list = [1,2,3]
-    samples_list = [1,2,3]
-    for s in samples_list:
-        for l in lapse_list:
-            for g in gamma_list:
-                for C in priorC_list:
-                   
-                    # load data
-                    datafolder = '../dscData/syntheticDataCB'
-                    filename = 'Trial1priorC%dgamma%dlapse%dsamples%d.mat' %(C,g,l,s)
-                    dataname = os.path.join(datafolder,filename)
-                    
-                    
-                    # define prior over model parameters
-                    fieldstofit = ['prior_C','gamma','lapse','samples']
-                   
-                    prior_min = np.array([0,0,0,1])
-                    prior_max = np.array([1,1,1,100])
-                   
-                    seed_p = 2
-                    prior =  dd.Uniform(lower = prior_min , upper = prior_max,seed = seed_p)
-                
-                
-                    logging.info('Running %dpriorC %dgamma %dlapse %dsamples' %(C,g,l,s))
-                    log,posterior = runAPTinference(dataname,fieldstofit,prior,hyperparameters)
-                    
-                    #%%
-                    # generate 1000 samples from posterior
-                    posteriorSamples = posterior[0].gen(1000)
-                    # save these samples to a .matfile
-                    
-                   
-                    
-                    savename ='res'+ filename
-                    savemat(os.path.join(savefolder,savename),{'posterSamples':posteriorSamples,'log':log})
-                    logging.info('Finished %dpriorC %dgamma %dlapse %dsamples' %(C,g,l,s))
+    savemat(os.path.join(savefolder,'hyperparameters.mat'),{'hyperparameters':hyperparameters})
+    C = 1
+    g = 2
+    l = 2
+    s = 2
+
+   
+    # load data
+    datafolder = '../dscData/syntheticDataCB'
+    filename = 'Trial1priorC%dgamma%dlapse%dsamples%d.mat' %(C,g,l,s)
+    dataname = os.path.join(datafolder,filename)
+    savename =os.path.join(savefolder,'res'+ filename)
+    if not os.path.isfile(savename):
+        # load mat
+        data = loadmat(dataname)
+        choice = np.squeeze(np.asarray(data['sim_results']['choices']))
+      
+        # define prior over model parameters
+        fieldstofit = ['prior_C']
+       
+        prior_min = np.array([0])
+        prior_max = np.array([1])
+       
+        seed_p = 2
+        prior =  dd.Uniform(lower = prior_min , upper = prior_max,seed = seed_p)
+    #%%
+       # print('Running %dpriorC %dgamma %dlapse %dsamples' %(C,g,l,s))
+        logging.info('Running %dpriorC %dgamma %dlapse %dsamples' %(C,g,l,s))
+        log,posterior = runAPTinference(dataname,fieldstofit,prior,hyperparameters)
+        
+        
+        # generate 1000 samples from posterior
+        posteriorSamples = posterior[0].gen(2000)
+        # save these samples to a .matfile
+        
+       
+        
+        
+        savemat(savename,{'posterSamples':posteriorSamples,'log':log})
+        logging.info('Finished %dpriorC %dgamma %dlapse %dsamples' %(C,g,l,s))
+

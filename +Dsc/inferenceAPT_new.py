@@ -110,10 +110,7 @@ def runAPTinference(dataname,fieldstofit,prior,hyperparameters):
     
     # define generator class
     s = ConfirmationBiasStats()
-   
-    n_processes = 2
-    seeds_m = np.arange(1,n_processes+1,1)
-    
+
     #
     engine = matlab.engine.start_matlab()
     
