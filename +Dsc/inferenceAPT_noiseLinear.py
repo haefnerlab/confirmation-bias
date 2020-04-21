@@ -28,7 +28,7 @@ def linearNoiseSimulator(x, params, seed=None):
     beta = params[1]
     sigma = params[2]
     N = x.shape[0]
-    np.random.seed(123)
+    #np.random.seed(123)
     y = x * alpha + beta + sigma * np.random.randn(N)
      
     return y
@@ -51,35 +51,35 @@ class linearNoiseModel(BaseSimulator):
 
         y = self.simulate(self.x, params, seed=hh_seed)
 
-        return {'x':self.x,'y': y.reshape(-1)}
+        return {'y': y.reshape(-1)}
 class linearNoiseStats(BaseSummaryStats):
     
-    def __init__(self):
-        pass
+    def __init__(self,x):
+        self.x = x
     def calc(self,repetition_list):
         seg = 100
         stats = []
     
         for r in range(len(repetition_list)):
-            data = repetition_list[r]
-            x = np.asarray(data['x'])
-            y = np.asarray(data['y'])
-            
-            sum_stats_vec = np.concatenate((x,y))
-            stats.append(sum_stats_vec)
             # data = repetition_list[r]
             # x = np.asarray(data['x'])
             # y = np.asarray(data['y'])
-            # N = x.shape[0]
-            # x_sorted = [x for x,y in sorted(zip(x,y))]
-            # y_sorted = [y for x,y in sorted(zip(x,y))]
-            # sum_stats_vec = []
-            # for i in np.arange(seg):
-            #     ind = np.arange(i,(i+1)*int(N/seg))
-            #     y_min = np.min(y_sorted[ind])
-            #     y_max = np.max(y_sorted[ind])
-            #     sum_stats_vec.extend([x_sorted[ind[0]], x_sorted[ind[-1]], y_min,y_max])
+            
+            # sum_stats_vec = np.concatenate((x,y))
             # stats.append(sum_stats_vec)
+            data = repetition_list[r]
+            x = self.x
+            y = np.asarray(data['y'])
+            N = x.shape[0]
+            x_sorted = np.asarray([x for x,y in sorted(zip(x,y))])
+            y_sorted = np.asarray([y for x,y in sorted(zip(x,y))])
+            sum_stats_vec = []
+            for i in np.arange(seg):
+                ind = np.arange(i,(i+1)*int(N/seg)).astype(int)
+                y_min = np.min(y_sorted[ind])
+                y_max = np.max(y_sorted[ind])
+                sum_stats_vec.extend([x_sorted[ind[0]], x_sorted[ind[-1]], y_min,y_max])
+            stats.append(sum_stats_vec)
         return stats
 #%%   
 if __name__ == "__main__":
@@ -100,7 +100,7 @@ if __name__ == "__main__":
     # generate and show observation
     obs0 = m.gen_single(true_params)
     plt.figure()
-    plt.plot(obs0['x'],obs0['y'])
+    plt.plot(x0,obs0['y'])
     
     # define prior
     prior_min = np.array([-10,-10,0])
@@ -108,7 +108,7 @@ if __name__ == "__main__":
     seed_p = 2
     prior =  dd.Uniform(lower = prior_min , upper = prior_max,seed = seed_p)
     
-    s = linearNoiseStats()
+    s = linearNoiseStats(x0)
     g = dg.Default(model=m, prior=prior, summary=s)
     
     # define statsitics summary of observation 
