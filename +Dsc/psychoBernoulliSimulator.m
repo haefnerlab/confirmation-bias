@@ -5,19 +5,35 @@ function choice = psychoBernoulliSimulator(x,x_center,params)
 % params(2) should be bias
 % Another parameter is noise level of p. if this is not assigned by user,
 % it would be set to default value
-sensitivity = params(1);
-bias = params(2);
+if iscell(params)
+    sensitivity = params{1};
+    bias = params{2};
+else
+    sensitivity = params(1);
+    bias = params(2);
+end
+if iscell(x)
+    for n = 1:numel(x)
+        x_temp(n,1) = x{n};
+    end
+    x = x_temp;
+end
+if iscell(x_center)
+    x_center = x_center{1};
+end
 if length(params)<3
     % defalut value
-    Noise_ratio = 0.05; 
+    Noise_ratio = 0; 
 end
 if size(x,2) > 1
-    error('x should be a N*1 vector');
+    warning('x should be a N*1 vector');
+    x = x';
 end
 
 N = size(x,1);
 % probability of making choice as +1
-p = (1 + exp(-  (bias+sensitivity*(x-x_center)) )).^-1;
+
+p = (1 + exp(-(bias+sensitivity*(x-x_center)) )).^-1;
 
 
 p_noisy = p +  Noise_ratio * randn(N,1);

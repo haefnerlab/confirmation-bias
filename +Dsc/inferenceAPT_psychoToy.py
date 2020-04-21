@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Mon Apr 20 13:12:21 2020
+Created on Tue Apr 21 11:21:47 2020
 
 @author: liushizhao
 """
@@ -23,24 +23,21 @@ from scipy.io import savemat
 import matplotlib.pyplot as plt
 from delfi.utils.viz import samples_nd
 
-def linearNoiseSimulator(x, params, seed=None):
-    alpha = params[0]
-    beta = params[1]
-    sigma = params[2]
-    N = x.shape[0]
-    #np.random.seed(123)
-    y = x * alpha + beta + sigma * np.random.randn(N)
-     
-    return y
-class linearNoiseModel(BaseSimulator):
-    def __init__(self, x,dim_param, seed = None):
+
+def psychoToySimulator(x,x_center,params, engine,seed=None):
+    choice = engine.Dsc.psychoBernoulliSimulator(x.tolist(),x_center,params.tolist())
+    sim_choice = np.squeeze(np.asarray(choice))
+    return sim_choice
+class psychoToyModel(BaseSimulator):
+    def __init__(self, x, x_center,engine,dim_param,seed = None):
 
 
         super().__init__(dim_param=dim_param, seed=seed)
         self.x = x
-        self.simulate = linearNoiseSimulator
-        
-    def gen_single(self, params):
+        self.x_center = x_center
+        self.simulate = psychoToySimulator
+        self.engine = engine
+    def gen_single(self,params):
 
         params = np.asarray(params)
 
@@ -48,82 +45,89 @@ class linearNoiseModel(BaseSimulator):
 
         hh_seed = self.gen_newseed()
 
-        y = self.simulate(self.x, params, seed=hh_seed)
+        choice = self.simulate(self.x, self.x_center,params, self.engine, seed=hh_seed)
 
-        return {'y': y.reshape(-1)}
-class linearNoiseStats(BaseSummaryStats):
+        return {'choice': choice}
+    
+class psychoToyStats(BaseSummaryStats):
     
     def __init__(self,x):
         self.x = x
     def calc(self,repetition_list):
-        seg = 100
+        seg = 10
         stats = []
     
         for r in range(len(repetition_list)):
-            # data = repetition_list[r]
-            # x = np.asarray(data['x'])
-            # y = np.asarray(data['y'])
-            
-            # sum_stats_vec = np.concatenate((x,y))
-            # stats.append(sum_stats_vec)
+
             data = repetition_list[r]
             x = self.x
-            y = np.asarray(data['y'])
+            choice = np.asarray(data['choice'])
             N = x.shape[0]
-            x_sorted = np.asarray([x for x,y in sorted(zip(x,y))])
-            y_sorted = np.asarray([y for x,y in sorted(zip(x,y))])
+            x_sorted = np.asarray([x for x,choice in sorted(zip(x,choice))])
+            choice_sorted = np.asarray([choice for x,choice in sorted(zip(x,choice))])
             sum_stats_vec = []
             for i in np.arange(seg):
                 ind = np.arange(i*int(N/seg),(i+1)*int(N/seg)).astype(int)
-                y_min = np.min(y_sorted[ind])
-                y_max = np.max(y_sorted[ind])
-                sum_stats_vec.extend([x_sorted[ind[0]], x_sorted[ind[-1]], y_min,y_max])
+                p_empirical = np.mean(choice_sorted[ind])
+
+                sum_stats_vec.extend([p_empirical])
             stats.append(sum_stats_vec)
         return stats
-#%%   
+#%%
 if __name__ == "__main__":
     
-    # ground truth of parameters
-    alpha = 2
-    beta = 1
-    sigma = 0.5
-    true_params = [alpha,beta,sigma]
-    labels_params = ['alpha','beta','sigma']
+    sensitivity = 1.0
+    bias = 3.0
+
+    true_params = [sensitivity ,bias]
+    labels_params = ['sensitivity' ,'bias']
     # generate observation
     N = 1000
-    x0 = np.random.uniform(0, 10, N)
+    x0 = np.random.uniform(0, 20, N)
+    x_center = 10.0
+    engine = matlab.engine.start_matlab()
     
     # define linear noise model
-    m = linearNoiseModel(x0,dim_param = 3)
+    m = psychoToyModel( x0, x_center,engine,dim_param = 2)
     
     # generate and show observation
     obs0 = m.gen_single(true_params)
     plt.figure()
-    plt.plot(x0,obs0['y'])
-    
+    plt.plot(x0,obs0['choice'],'bo')
+    # run multiple times
+    # check the match between empirical p and theorical p
+    nRun = 20
+    obs0Multi = np.zeros((N,nRun))
+   
+    for i in range(nRun):
+        obs0Multi[:,i] = m.gen_single(true_params)['choice']
+    plt.figure()
+    plt.plot(x0,np.mean(obs0Multi,axis = 1),'bo')    
     # define prior
-    prior_min = np.array([-10,-10,0])
-    prior_max = np.array([10,10,5])
+    prior_min = np.array([0,-10])
+    prior_max = np.array([5,10])
     seed_p = 2
     prior =  dd.Uniform(lower = prior_min , upper = prior_max,seed = seed_p)
     
-    s = linearNoiseStats(x0)
+    s = psychoToyStats(x0)
     g = dg.Default(model=m, prior=prior, summary=s)
     
     # define statsitics summary of observation 
     obs_stats = s.calc([obs0])
-#%%    
+    
+    #%%
+    
     # set hyparameters 
     # training schedule
     n_train = 5000
-    n_rounds = 3
+    n_rounds = 2
     seed_inf = 1
     pilot_samples = 2000
 
 
     val_frac = 0.05
     # network setup
-    n_hiddens = [200,50,50]
+    n_hiddens = [50,50]
     minibatch = 500
     epochs = 100
     
@@ -209,21 +213,3 @@ if __name__ == "__main__":
                            points_colors=[col['GT']],
                            title='');
         
-        
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
