@@ -43,7 +43,7 @@ distribs = Fitting.defaultDistributions(fields, false);
 this_params = Fitting.setParamsFields(this_params, fields, cellfun(@(f) distribs.(f).priorrnd(1), fields));
 [fits, samples, ~, ~] = LoadOrRun(@Fitting.fitModelMH, ...
     {this_params, sigs, choices, distribs, struct('prefix', prefix)}, ...
-    fullfile('../Precomputed', ['mhfit-' prefix '-' model_info.name '.mat']));
+    fullfile('../Precomputed', ['qrgfit-' prefix '-' model_info.name '.mat']));
 
 %% Plot - full model
 

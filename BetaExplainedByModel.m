@@ -31,7 +31,7 @@ for iTruth=nTruth:-1:1
             {sigs, choices, 500, false}, memo_file_beta);
         
         for iModel=nModels:-1:1
-            memo_file_fit = fullfile(MEMODIR, ['mhfit-' prefix '-' model_names{iModel} '.mat']);
+            memo_file_fit = fullfile(MEMODIR, ['qrgfit-' prefix '-' model_names{iModel} '.mat']);
             if exist(memo_file_fit, 'file')
                 memo_file_beta = fullfile(MEMODIR, ['pk-beta-explained-' prefix '-' model_names{iModel} '.mat']);
                 ld = load(memo_file_fit);
