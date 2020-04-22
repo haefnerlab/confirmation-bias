@@ -99,7 +99,8 @@ tolerance = cellfun(@(f) (distribs.(f).pub-distribs.(f).plb)/1000, fields)';
 
 % Fit Gaussian process to all log likelihood evaluations
 gp_ll = fitrgp(grid_points, grid_scores.loglike, 'KernelFunction', 'ardsquaredexponential', ...
-    'KernelParameters', [init_scale std(grid_scores.loglike)], 'Sigma', max(0.01, mean(grid_scores.variance)));
+    'KernelParameters', [init_scale std(grid_scores.loglike)], 'Sigma', max(0.01, mean(grid_scores.variance)), ...
+    'PredictMethod', 'exact');
 
 % Search the GP fit for a better maximum
 opts = optimoptions('fmincon', 'display', 'none');
@@ -135,7 +136,8 @@ disp('fitModelQRG: GP MAP');
 
 % Fit Gaussian process to all log likelihood evaluations
 gp_lp = fitrgp(grid_points, grid_scores.logpdf, 'KernelFunction', 'ardsquaredexponential', ...
-    'KernelParameters', [init_scale std(grid_scores.logpdf)], 'Sigma', max(0.01, mean(grid_scores.variance)));
+    'KernelParameters', [init_scale std(grid_scores.logpdf)], 'Sigma', max(0.01, mean(grid_scores.variance)), ...
+    'PredictMethod', 'exact');
 
 % Search the GP fit for a better maximum
 opts = optimoptions('fmincon', 'display', 'none');
@@ -210,5 +212,6 @@ else
 end
 
 newmdl = fitrgp(Xall, Yall, 'Sigma', sigma, 'Beta', beta, 'KernelParameters', ...
-    kernelparams, 'KernelFunction', kernelfun, 'FitMethod', fitarg, 'ConstantSigma', constsig);
+    kernelparams, 'KernelFunction', kernelfun, 'FitMethod', fitarg, 'ConstantSigma', constsig, ...
+    'PredictMethod', 'exact');
 end
