@@ -32,16 +32,18 @@ end
 %% Plot result
 fig = figure;
 for iPhase=1:nPhases
-    ax = subplot(nPhases, 1, iPhase); hold on;
-    h = bar(aic(:,:,iPhase)); drawnow;
-    for s=1:nTruth
-        errorbar(h(1).XData(s)+[h.XOffset], aic(s,:,iPhase), aic_err(s,:,iPhase), '.k');
+    for iTruth=1:nTruth
+        ax = subplot(nPhases, nTruth, (iPhase-1)*nTruth+iTruth); hold on;
+        h = bar(ax, [1 nan], [aic(iTruth,:,iPhase); nan(1, nModels)]);
+        drawnow;
+        errorbar(ax, h(1).XData(1)+[h.XOffset], aic(iTruth,:,iPhase), 3*aic_err(iTruth,:,iPhase), '.k');
+        
+        if iPhase == nPhases && iTruth == nTruth, legend(model_names, 'Location', 'best'); end
+        grid on;
+        set(ax, 'XTick', []);
+        ylim([min(min(aic(iTruth,:,iPhase), [], 2)) inf]-50);
+        ylabel('AIC');
+        title([gt_names{iTruth} ' ' phase_names{iPhase}]);
     end
-    if iPhase == 3, legend(model_names, 'Location', 'best'); end
-    set(gca, 'XTick', 1:nTruth, 'XTickLabel', gt_names);
-    grid on;
-    ylim([min(min(aic(:,:,iPhase), [], 2)) inf]-50);
-    ylabel('AIC');
-    title(phase_names{iPhase});
 end
 end

@@ -1,14 +1,17 @@
-function [fig, model_names] = ModelComparisonBySubject(subjectIds, phases, group_by, datadir)
+function [fig, model_names] = ModelComparisonBySubject(subjectIds, datadir)
 %% Setup
-if nargin < 3, group_by = 'subject'; end % or 'model'
-if nargin < 4, datadir = fullfile(pwd, '..', 'PublishData'); end
+if nargin < 2, datadir = fullfile(pwd, '..', 'PublishData'); end
 
 memodir = fullfile(datadir, '..', 'Precomputed');
 if ~exist(memodir, 'dir'), mkdir(memodir); end
 
 if ~iscell(subjectIds), subjectIds = {subjectIds}; end
-if ~iscell(phases), phases = {phases}; end
-% Names copied from @ModelComparison
+
+% Note that for legacy reasons, subject data in 'both' conditions are concatenated in {hslc, lshc}
+% order, which is the opposite of how we order model data
+phases = {2, 1, [1 2]};
+phase_names = {'LSHC', 'HSLC', 'both'};
+
 model_names = {'ideal', 'is', 'vb', 'itb', 'itb-gamma', 'itb-split', 'itb-gamma-split'};
 
 nSubjects = length(subjectIds);
@@ -44,29 +47,19 @@ end
 %% Plot result
 short_names = cellfun(@(s) regexprep(s, '[\w-]+(subject\d+)', '$1'), subjectIds, 'uniformoutput', false);
 fig = figure;
-baseline = aic(:,strcmpi(model_names, 'ideal'),:);
 for iPhase=1:nPhases
-    ax = subplot(nPhases, 1, iPhase);
-    hold on;
-    if startsWith(group_by, 's')
-        valid = ~all(isnan(aic(:,:,iPhase)), 1);
-        thisaic = aic(:,valid,:);
-        h = bar(ax, thisaic(:,:,iPhase)-baseline(:,1,iPhase)); drawnow;
-        for m=1:length(h)
-            errorbar(ax, h(m).XData+h(m).XOffset, thisaic(:,m,iPhase)-baseline(:,1,iPhase), aic_err(:,m,iPhase), 'o', 'Color', h(m).FaceColor/3);
-        end
-        legend(model_names(valid), 'Location', 'best');
-        set(ax, 'XTick', 1:nSubjects, 'XTickLabel', short_names);
-    elseif startsWith(group_by, 'm')
-        h = bar(ax, aic(:,:,iPhase)'-baseline(:,:,iPhase)'); drawnow;
-        for s=1:length(h)
-            errorbar(ax, h(s).XData+h(s).XOffset, aic(s,:,iPhase)-baseline(:,:,iPhase), aic_err(s,:,iPhase), 'o', 'Color', h(s).FaceColor/3);
-        end
-        legend(subjectIds, 'Location', 'best');
-        set(ax, 'XTick', 1:nModels, 'XTickLabel', model_names);
+    for iSubject=1:nSubjects
+        ax = subplot(nPhases, nSubjects, (iPhase-1)*nSubjects+iSubject); hold on;
+        h = bar(ax, [1 nan], [aic(iSubject,:,iPhase); nan(1, nModels)]);
+        drawnow;
+        errorbar(ax, h(1).XData(1)+[h.XOffset], aic(iSubject,:,iPhase), 3*aic_err(iSubject,:,iPhase), '.k');
+        
+        if iPhase == nPhases && iSubject == nSubjects, legend(model_names, 'Location', 'best'); end
+        if iSubject == 1, ylabel('AIC'); end
+        grid on;
+        set(ax, 'XTick', []);
+        ylim([min(min(aic(iSubject,:,iPhase), [], 2)) inf]-10);
+        title([short_names{iSubject} ' ' phase_names{iPhase}]);
     end
-    grid on;
-    ylabel(ax, 'relative AIC - ideal');
-    title(['Phase: ' num2str(phases{iPhase})]);
 end
 end
