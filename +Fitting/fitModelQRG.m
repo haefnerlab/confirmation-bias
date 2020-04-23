@@ -83,10 +83,12 @@ clear logpdf loglike variance;
 %% Find best grid point based on existing (rough) scores
 disp('fitModelQRG: search grid');
 
-[~, best_ll_idx] = max(grid_scores.loglike);
+[~, sort_ll] = sort(grid_scores.loglike, 'descend');
+best_ll_idx = sort_ll(1);
 optim_results.mle_params = Fitting.setParamsFields(base_params, fields, grid_points(best_ll_idx, :));
 
-[~, best_lp_idx] = max(grid_scores.logpdf);
+[~, sort_lp] = sort(grid_scores.logpdf, 'descend');
+best_lp_idx = sort_lp(1);
 optim_results.map_params = Fitting.setParamsFields(base_params, fields, grid_points(best_lp_idx, :));
 
 %% Search LL landscape with GP
@@ -102,11 +104,15 @@ gp_ll = fitrgp(grid_points, grid_scores.loglike, 'KernelFunction', 'ardsquaredex
     'KernelParameters', [init_scale std(grid_scores.loglike)], 'Sigma', max(0.01, mean(grid_scores.variance)), ...
     'PredictMethod', 'exact');
 
+% Each iteration, restart the search from the 10 best samples from above
+searchpoints = grid_points(sort_ll(1:10), :);
+nsearchjitter = 10;
+
 % Search the GP fit for a better maximum
 opts = optimoptions('fmincon', 'display', 'none');
 lb = cellfun(@(f) distribs.(f).lb, fields);
 ub = cellfun(@(f) distribs.(f).ub, fields);
-gp_mle(1,:) = gpmax(gp_ll, grid_points(best_ll_idx, :), [], [], [], [], lb, ub, [], opts);
+gp_mle(1,:) = gpmax(gp_ll, searchpoints, nsearchjitter, [], [], [], [], lb, ub, [], opts);
 
 itr = 1;
 delta = inf;
@@ -123,7 +129,7 @@ while ~all(abs(delta) < tolerance)
     fprintf('\tactual_mle=%.1f+/-%.1f\n', new_ll, sqrt(new_var));
     
     % Search again for the new best point
-    gp_mle(itr+1,:) = gpmax(gp_ll, gp_mle(itr,:), [], [], [], [], lb, ub, [], opts);
+    gp_mle(itr+1,:) = gpmax(gp_ll, searchpoints, nsearchjitter, [], [], [], [], lb, ub, [], opts);
     
     delta = gp_mle(itr+1,:) - gp_mle(itr,:);
     itr = itr+1;
@@ -139,9 +145,13 @@ gp_lp = fitrgp(grid_points, grid_scores.logpdf, 'KernelFunction', 'ardsquaredexp
     'KernelParameters', [init_scale std(grid_scores.logpdf)], 'Sigma', max(0.01, mean(grid_scores.variance)), ...
     'PredictMethod', 'exact');
 
+% Each iteration, restart the search from the 10 best samples from above
+searchpoints = grid_points(sort_lp(1:10), :);
+nsearchjitter = 10;
+
 % Search the GP fit for a better maximum
 opts = optimoptions('fmincon', 'display', 'none');
-gp_map(1,:) = gpmax(gp_lp, grid_points(best_lp_idx, :), [], [], [], [], lb, ub, [], opts);
+gp_map(1,:) = gpmax(gp_ll, searchpoints, nsearchjitter, [], [], [], [], lb, ub, [], opts);
 
 itr = 1;
 delta = inf;
@@ -158,7 +168,7 @@ while ~all(abs(delta) < tolerance)
     fprintf('\tactual_logp=%.1f+/-%.1f\n', new_lp, sqrt(new_var));
     
     % Search again for the new best point
-    gp_map(itr+1,:) = gpmax(gp_lp, gp_map(itr,:), [], [], [], [], lb, ub, [], opts);
+    gp_map(itr+1,:) = gpmax(gp_ll, searchpoints, nsearchjitter, [], [], [], [], lb, ub, [], opts);
     
     delta = gp_map(itr+1,:) - gp_map(itr,:);
     itr = itr+1;
@@ -180,13 +190,25 @@ end
 
 end
 
-function [bestx, bestval] = gpmax(gp, start, varargin)
-% Helper to search around a point to find the maximum of a GP
+function [bestx, bestval] = gpmax(gp, startpts, jitters, varargin)
+% Helper to search around a set of seed points to find the maximum of a GP
 scale = gp.KernelInformation.KernelParameters(1:end-1)';
-for i=50:-1:1
-    [xval(i,:), fval(i,:)] = fmincon(@(x) -gp.predict(x), start+randn(size(scale)).*scale, varargin{:});
+
+xval = zeros(size(startpts,1)*(1+jitters), size(startpts, 2));
+fval = zeros(size(xval,1),1);
+
+idx = 1;
+for istart=1:size(startpts,1)
+    % Start a search exactly at the ith 'seed' point
+    [xval(idx,:), fval(idx,:)] = fmincon(@(x) -gp.predict(x), startpts(istart,:), varargin{:});
+    idx = idx+1;
+
+    % Jitter around this point 'jitters' number of times and start a search at each one
+    for ijit=1:jitters
+        [xval(idx,:), fval(idx,:)] = fmincon(@(x) -gp.predict(x), startpts(istart,:)+randn(size(scale)).*scale, varargin{:});
+        idx = idx+1;
+    end
 end
-[xval(end+1,:), fval(end+1,:)] = fmincon(@(x) -gp.predict(x), start, varargin{:});
 [bestval, idxbest] = min(fval);
 bestx = xval(idxbest,:);
 bestval = -bestval;
