@@ -1,41 +1,82 @@
-rng('default')
-kk= 20;
-param = rand(kk,3);
 
-xx = 10*[1:100]';
-yy = (xx * param(1,1) + param(1,2)) +rand(1);
-
-data = [xx, yy];
-
-prior = ones(kk,1)/sum(ones(kk,1));
-
-% function posterior = analytical_posterior(data,param,prior)
+%% test
+% clear
+% x = 20*[1:10]
+% y = 2*x+3+randn(size(x))
+% data = [x',y'];
+% param_domin = [0,10; 0,10; 0,1];
+% binsz = 0.1;
+% [a,b,s]= analytical_posterior(data,param_domin,binsz);
+% subplot(1,3,1)
+% plot(a)
+% subplot(1,3,2)
+% plot(b)
+% subplot(1,3,3)
+% plot(s)
+%%
+function [post_a,post_b,post_s] = analytical_posterior(data,param_domin,binsz)
 % Input:
-    % data: [x,y] should be n-by-1 vector
-    % x = [x1,...,xn]', y = [y1,...,yn]'
-    % param: [alpha,beta,sigma] should be m-by-1 vector
-    % prior: m-by-1 vector
-% Output: (m-by-1 vector)
-    % posterior: for all the point in the parameter space
-x = data(:,1);
-y = data(:,2);
-alpha = param(:,1);
-beta = param(:,2);
-sigma = param(:,3);
-% length of the params
-Len = length(alpha);
-% initial value before doing product
-norm_likelihood = ones(1,Len); % 1-by-m vector
-for i = 1: Len  
-    for n = 1: length(y)
-        mu = alpha(i) * x(n) + beta(i);
-        % tmp = p(xn,yn| theta_i)
-        tmp = exp(-0.5 * ((y(n) - mu)/sigma(i)).^2) / (sqrt(2*pi) * sigma(i));
-        % likelihood = p(x1,y1| theta_i) * p(x2,y2| theta_i) *... p(xn,yn| theta_i)
-        norm_likelihood(i) = norm_likelihood(i) * tmp;
-    end
+% data: [x,y] should be n-by-1 vector
+% x = [x1,...,xn]', y = [y1,...,yn]'
+% prior: m-by-3 vector
+
+% Output: (m-by-3 vector)
+% posterior: for all the point in the parameter space
+xx = data(:,1);
+yy = data(:,2);
+
+% param: [alpha,beta,sigma] should be m-by-1 vector
+alpha_space = linspace (param_domin(1,1),param_domin(1,2), abs(param_domin(1,1)- param_domin(1,2))/binsz);
+beta_space = linspace (param_domin(2,1),param_domin(2,2), abs(param_domin(2,1)- param_domin(2,2))/binsz);
+SIG_space = linspace (param_domin(3,1),param_domin(3,2), abs(param_domin(3,1)- param_domin(3,2))/binsz);
+% sanity check: sigma can't be negative (lower bound is 0)
+SIG_space ( (SIG_space<0) ) = 0;
+
+% grids in parms space
+pairs = GridSpace(alpha_space,beta_space,SIG_space);
+
+% likelihood function:
+% vary the pair of params {alpha_0,beta_0,sigma_0} in params space
+for i = 1: length(pairs)
+    alpha = pairs(i,1);
+    beta = pairs(i,2);
+    SIG = pairs(i,3);
+    % for a specific (fixed) pair of params: {alpha_0,beta_0,sigma_0}
+    % compute the likelihood: for [x1,...,xn]', [y1,...,yn]'
+     mu = (alpha * xx + beta);
+    n_joint_likeli(:,i) = normpdf(yy,mu,SIG); 
 end
-% posterior: m-by-1 vector
-unnormalized_post = norm_likelihood'.* prior;
-posterior = unnormalized_post /sum(unnormalized_post);
-% test
+
+% replace the NaN value with 0
+n_joint_likeli(isnan(n_joint_likeli)) = 0;
+
+
+% need cumprod: \pi p(xn,yn| alpha_i,beta_i,sigma_i): 
+% for a sepcific params {alpha_i,beta_i,sigma_i}
+before_cumprod_joint = cumprod(n_joint_likeli);
+joint_likelihood = before_cumprod_joint (end,:)';
+
+% likelihood for alpha beta sigma
+[uval,~,subs] = unique(pairs(:,1));
+LL_a = accumarray(subs,joint_likelihood);
+
+[uval,~,subs] = unique(pairs(:,2));
+LL_b = accumarray(subs,joint_likelihood);
+
+[uval,~,subs] = unique(pairs(:,3));
+LL_s = accumarray(subs,joint_likelihood);
+
+% normalized posterior
+post_a = LL_a / sum(LL_a);
+post_b = LL_b / sum(LL_b);
+post_s = LL_s / sum(LL_s);
+end
+
+
+
+
+
+
+
+
+
