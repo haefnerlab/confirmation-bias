@@ -46,14 +46,21 @@ for iPara=1:length(fields)
     ps = exp(log_ps - max(log_ps));
     ps = ps / sum(ps);
     
+    xicdf = d.priorinv(linspace(0,1,length(xs)+1));
+    pxicdf = 1./diff(xicdf);
+    pxicdf = pxicdf / max(pxicdf) * max(ps);
+    xicdf = (xicdf(1:end-1)+xicdf(2:end))/2;
+    
     checkps = d.priorpdf(xs);
     checkps = checkps / sum(checkps);
     
     subplotsquare(length(fields), iPara); hold on;
     plot(xs, ps, '-k', 'LineWidth', 2);
     plot(xs, checkps, '--r', 'LineWidth', 1);
+    plot(xicdf, pxicdf, 'y', 'linestyle', ':', 'linewidth', 2);
     plot(d.plb*[1 1], ylim, '--b');
     plot(d.pub*[1 1], ylim, '--g');
+    plot(0,0);
     title([strrep(fields{iPara}, '_', ' ') ' prior']);
     
     if iPara == length(fields)
