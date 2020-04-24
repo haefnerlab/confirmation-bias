@@ -1,5 +1,6 @@
 function fig = ModelComparisonByModel(memodir)
 gt_names = {'IS', 'ITB'};
+gt_nparams = [4, 5];
 nTruth = length(gt_names);
 
 % Note that for legacy reasons, model data are concatenated in {lshc, hslc} order, which is the
@@ -28,6 +29,25 @@ parfor ii=1:numel(aic)
     prefix = ['gt-' Model.getModelStringID(params(1), true) '-' lower(phase_names{iPhase})];
     [aic(ii), aic_err(ii)] = ModelComparison(params, sigs, choices, false, prefix, model_names(iModel));
 end
+
+%% Add ground-truth evaluations on themselves for reference
+for iTruth=1:nTruth
+    for iPhase=1:length(phases)
+        [params, sigs, choices] = LoadOrRun(@GetGroundTruthSimData, {gt_names{iTruth}, phases{iPhase}}, ...
+            fullfile(memodir, ['gt-sim-' gt_names{iTruth} '-' phase_names{iPhase} '.mat']));
+        prefix = ['gt-' Model.getModelStringID(params(1), true) '-' lower(phase_names{iPhase})];
+        
+        [~, gt_ll, gt_ll_var] = LoadOrRun(@Fitting.choiceModelLogProbIBS, ...
+            {params, struct(), sigs, choices, [], round(10*sqrt(sum([params.trials])))}, ...
+            fullfile(memodir, ['gt-ll-ibs-' prefix '.mat']));
+        
+        aic(iTruth, nModels+1, iPhase) = aicbic(gt_ll, gt_nparams(iTruth));
+        aic_err(iTruth, nModels+1, iPhase) = sqrt(gt_ll_var);
+    end
+end
+
+nModels = nModels + 1;
+model_names{end+1} = 'truth';
 
 %% Plot result
 fig = figure;
