@@ -1,4 +1,4 @@
-function [optim_results, grid_points, grid_scores, metadata] = fitModelQRG(base_params, signals, choices, distribs, metadata)
+function [optim_results, grid_points, grid_scores, gauss_fit, metadata] = fitModelQRG(base_params, signals, choices, distribs, metadata)
 %FITTING.FITMODELQRG Strategy for fitting inference models by inverse-CDF sampling from the prior
 %using a quasi-random grid (QRG), then maximizing a gaussian-process fit to those points.
 
@@ -91,18 +91,67 @@ optim_results.mle_params = Fitting.setParamsFields(base_params, fields, grid_poi
 best_lp_idx = sort_lp(1);
 optim_results.map_params = Fitting.setParamsFields(base_params, fields, grid_points(best_lp_idx, :));
 
-%% Search LL landscape with GP
-disp('fitModelQRG: GP MLE');
+%% Estimate moment-matched gaussian posterior
+disp('fitModelQRG: Gauss fit');
+
+relative_ll = grid_scores.loglike - max(grid_scores.loglike);
+% Equation (41) in "Unbiased and Efficient Log-Likelihood Estimation with Inverse Binomial Sampling"
+est_likelihood = exp(relative_ll + 1/2*grid_scores.variance);
+weight = est_likelihood / sum(est_likelihood);
+
+% Since 'grid_points' are from the prior, we construct an estimator of posterior moments by
+% weighting each point by an estimate of the likelihood
+mu = weight' * grid_points;
+
+% Subtract mean and compute 2nd moment (covariance)
+grid0 = grid_points - mu;
+
+gauss_fit.mu = mu;
+gauss_fit.Sigma = squeeze(sum(weight .* grid0 .* reshape(grid0, [], 1, length(fields))));
+
+optim_results.mean_params = Fitting.setParamsFields(base_params, fields, mu);
+
+%% Prepare GP stuff
+disp('fitModelQRG: GP Prep');
 
 % Set initial length scales as 1/20th of the range of plausible bounds for each parameter
 init_scale = cellfun(@(f) (distribs.(f).pub-distribs.(f).plb)/20, fields)';
 % Set convergence tolerance as 1/1000th of the plausible range
 tolerance = cellfun(@(f) (distribs.(f).pub-distribs.(f).plb)/1000, fields)';
 
+% The GP fit shouldn't waste time trying to get the tails right, and the defaults for fitrgp only
+% select 2000 points anyway. So, only bother trying to fit the top 2000 scoring points (plus keep
+% around 100 of them for cross validation).
+gp_idx = sort_ll(1:2100);
+gp_holdout = 100/2100;
+
+% Estimate how much variance to ascribe to each term in the GP. Majority of the variance of 'logpdf'
+% and 'loglike' themselves comes from the quadratic basis, which we can estimate by directly fitting
+% a quadratic model to the log probabilties.
+mdl = fitlm(grid_points(gp_idx,:), grid_scores.loglike(gp_idx), 'purequadratic');
+residual_variance = var(grid_scores.loglike(gp_idx) - mdl.predict());
+
+% Divide up the unexplained variance per each parameter's marginal
+init_sigma = sqrt(residual_variance / length(fields)) * ones(1, length(fields));
+
+% Create initial kernel params: vertical stack alternating scale/sigma once per field, then at the
+% final index 2*|fields|+1, the 'sigma' corresponding to the joint prob fluctuations that aren't
+% explained by the sum of marginals.
+init_gp_kernel_params = [init_scale(:)'; init_sigma];
+init_gp_kernel_params = [init_gp_kernel_params(:); init_sigma(1)];
+% Kernel expects *log* scales and *log* sigmas
+init_gp_kernel_params = log(init_gp_kernel_params);
+
+gp_args = {'Sigma', max(0.01, sqrt(dot(weight, grid_scores.variance))), 'ConstantSigma', true, 'PredictMethod', 'exact', ...
+    'Basis', 'PureQuadratic', 'Beta', mdl.Coefficients.Estimate, 'HoldOut', gp_holdout, 'KernelFunction', @Fitting.marginalJointKernel, ...
+    'KernelParameters', init_gp_kernel_params};
+
+%% Search LL landscape with GP
+disp('fitModelQRG: GP Fit [LL]');
+
 % Fit Gaussian process to all log likelihood evaluations
-gp_ll = fitrgp(grid_points, grid_scores.loglike, 'KernelFunction', 'ardsquaredexponential', ...
-    'KernelParameters', [init_scale std(grid_scores.loglike)], 'Sigma', max(0.01, mean(grid_scores.variance)), ...
-    'PredictMethod', 'exact');
+gp_ll = fitrgp(grid_points(gp_idx, :), grid_scores.loglike(gp_idx), gp_args{:});
+gp_ll = gp_ll.Trained{1};
 
 % Each iteration, restart the search from the 10 best samples from above
 searchpoints = grid_points(sort_ll(1:10), :);
@@ -114,6 +163,8 @@ lb = cellfun(@(f) distribs.(f).lb, fields);
 ub = cellfun(@(f) distribs.(f).ub, fields);
 gp_mle(1,:) = gpmax(gp_ll, searchpoints, nsearchjitter, [], [], [], [], lb, ub, [], opts);
 
+disp('fitModelQRG: GP Search [LL]');
+
 itr = 1;
 delta = inf;
 while ~all(abs(delta) < tolerance)
@@ -123,8 +174,8 @@ while ~all(abs(delta) < tolerance)
     % Evaluate the current max point and update the GP
     [~, new_ll, new_var] = eval_fun(Fitting.setParamsFields(base_params, fields, gp_mle(itr,:)), ...
         distribs, signals, choices, eval_args{:});
-    refit = mod(itr,20)==0;
-    gp_ll = updateGPRMdl(gp_ll, gp_mle(itr,:), new_ll, refit);
+
+    gp_ll = updateGPRMdl(gp_ll, gp_mle(itr,:), new_ll, mod(itr,20)==0);
     
     fprintf('\tactual_mle=%.1f+/-%.1f\n', new_ll, sqrt(new_var));
     
@@ -138,12 +189,11 @@ end
 optim_results.gp_mle_params = Fitting.setParamsFields(base_params, fields, gp_mle(end,:));
 
 %% Repeat the above for the MAP
-disp('fitModelQRG: GP MAP');
+disp('fitModelQRG: GP Fit [MAP]');
 
 % Fit Gaussian process to all log likelihood evaluations
-gp_lp = fitrgp(grid_points, grid_scores.logpdf, 'KernelFunction', 'ardsquaredexponential', ...
-    'KernelParameters', [init_scale std(grid_scores.logpdf)], 'Sigma', max(0.01, mean(grid_scores.variance)), ...
-    'PredictMethod', 'exact');
+gp_lp = fitrgp(grid_points(gp_idx,:), grid_scores.logpdf(gp_idx), gp_args{:});
+gp_lp = gp_lp.Trained{1};
 
 % Each iteration, restart the search from the 10 best samples from above
 searchpoints = grid_points(sort_lp(1:10), :);
@@ -152,6 +202,8 @@ nsearchjitter = 10;
 % Search the GP fit for a better maximum
 opts = optimoptions('fmincon', 'display', 'none');
 gp_map(1,:) = gpmax(gp_ll, searchpoints, nsearchjitter, [], [], [], [], lb, ub, [], opts);
+
+disp('fitModelQRG: GP Search [MAP]');
 
 itr = 1;
 delta = inf;
@@ -162,8 +214,8 @@ while ~all(abs(delta) < tolerance)
     % Evaluate the current max point and update the GP
     [new_lp, ~, new_var] = eval_fun(Fitting.setParamsFields(base_params, fields, gp_map(itr,:)), ...
         distribs, signals, choices, eval_args{:});
-    refit = mod(itr,20)==0;
-    gp_lp = updateGPRMdl(gp_lp, gp_map(itr,:), new_lp, refit);
+
+    gp_lp = updateGPRMdl(gp_lp, gp_map(itr,:), new_lp, mod(itr,20)==0);
     
     fprintf('\tactual_logp=%.1f+/-%.1f\n', new_lp, sqrt(new_var));
     
@@ -214,11 +266,11 @@ bestx = xval(idxbest,:);
 bestval = -bestval;
 end
 
-function newmdl = updateGPRMdl(mdl,Xadd,Yadd,refitHyperParameters)
+function newmdl = updateGPRMdl(mdl,Xadd,Yadd,refitHypers)
 %UPDATEGPRMDL Helper to 'add' a data point to a GP model without necessarily triggering a slow
 %hyperparameter update. Thanks to
 %https://www.mathworks.com/matlabcentral/answers/424553-how-to-add-points-to-a-trained-gp
-if nargin < 4, refitHyperParameters = true; end
+if nargin < 4, refitHypers = true; end
 kernelfun = mdl.KernelFunction;
 kernelparams = mdl.KernelInformation.KernelParameters;
 sigma = mdl.Sigma;
@@ -227,13 +279,14 @@ beta = mdl.Beta;
 Xall = [mdl.X; Xadd];
 Yall = [mdl.Y; Yadd];
 
-if refitHyperParameters
-    fitarg = 'exact';
+if ~refitHypers
+    fitarg = {'FitMethod', 'none'};
 else
-    fitarg = 'none';
+    % Let default fitting take care of it
+    fitarg = {};
 end
 
 newmdl = fitrgp(Xall, Yall, 'Sigma', sigma, 'Beta', beta, 'KernelParameters', ...
-    kernelparams, 'KernelFunction', kernelfun, 'FitMethod', fitarg, 'ConstantSigma', constsig, ...
-    'PredictMethod', 'exact');
+    kernelparams, 'KernelFunction', kernelfun, 'ConstantSigma', constsig, ...
+    'PredictMethod', 'exact', fitarg{:});
 end
