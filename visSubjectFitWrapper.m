@@ -1,4 +1,8 @@
-function visModelFitWrapper(truemodel, fitmodel, phase)
+function visSubjectFitWrapper(subjectId, phase)
+% model = {'is', 'vb', 'itb', 'itb-gamma', 'itb-split', 'itb-gamma-split', 'ideal'};
+
+kernel_kappa = 0.16;
+
 % Copied from @ModelComparison
 model_info = struct(...
     'name', {'is', 'vb', 'itb', 'itb-gamma', 'itb-split', 'itb-gamma-split', 'ideal'}, ...
@@ -11,88 +15,67 @@ model_info = struct(...
               {'prior_C', 'log_lapse', 'neggamma_1', 'neggamma_2', 'bound', 'log_noise'}, ...
               {'prior_C', 'log_lapse'}});
 
-model_info = model_info(strcmpi(fitmodel, {model_info.name}));
+%% Load fit data - full model
+prefix = [subjectId '-' num2str(kernel_kappa) '-' num2str(phase)];
 
-switch lower(phase)
-    case 'lshc'
-        phaseid = 2;
-        phase = 'LSHC';
-    case 'hslc'
-        phaseid = 1;
-        phase = 'HSLC';
-    case 'both'
-        phaseid = [2 1];
-        phase = 'both';
-    otherwise
-        error('bad phase');
+for iMod=length(model_info):-1:1
+    cache_file = fullfile('../Precomputed', ['qrgfit-' prefix '-' model_info(iMod).name '.mat']);
+    if ~exist(cache_file, 'file')
+        disp(['Skipping ' cache_file]);
+        model_info(iMod).complete = false;
+        continue;
+    end
+    disp(['Loading ' cache_file]);
+    model_info(iMod).complete = true;
+    ld = load(cache_file);
+    model_info(iMod).fit = ld.results{1};
+    [~,srt] = sort(ld.results{3}.loglike);
+    model_info(iMod).samples = ld.results{2}(srt, :);
+    model_info(iMod).loglike = ld.results{3}.loglike(srt);
+    if length(phase) == 1
+        model_info(iMod).fields = [model_info(iMod).fields {'log_signal_scale'}];
+    else
+        model_info(iMod).fields = [model_info(iMod).fields {'log_signal_scale_1', 'log_signal_scale_2'}];
+    end
 end
 
-%% Copy logic of ModelComparisonByModel
-[params, sigs, choices] = LoadOrRun(@GetGroundTruthSimData, {truemodel, phaseid}, ...
-    fullfile('../Precomputed', ['gt-sim-' upper(truemodel) '-' phase '.mat']));
-prefix = ['gt-' Model.getModelStringID(params(1), true) '-' lower(phase)];
-
-%% Copy logic of ModelComparison
-this_params = params;
-fields = model_info.fields;
-for iP=1:length(this_params)
-    % params may be a struct array
-    this_params(iP).model = model_info.type;
-end
-distribs = Fitting.defaultDistributions(fields, false);
-this_params = Fitting.setParamsFields(this_params, fields, cellfun(@(f) distribs.(f).priorrnd(1), fields));
-[fits, grid_points, grid_scores, ~, ~] = LoadOrRun(@Fitting.fitModelQRG, ...
-    {this_params, sigs, choices, distribs, struct('prefix', prefix)}, ...
-    fullfile('../Precomputed', ['qrgfit-' prefix '-' model_info.name '.mat']));
-
-[~, srt] = sort(grid_scores.logpdf);
-grid_points = grid_points(srt,:);
-grid_scores.loglike = grid_scores.loglike(srt);
+model_info = model_info([model_info.complete]);
 
 %% Plot - full model
-
-figure;
-mle = Fitting.getParamsFields(fits.mle_params, fields);
-map = Fitting.getParamsFields(fits.map_params, fields);
-gp_mle = Fitting.getParamsFields(fits.gp_mle_params, fields);
-gp_map = Fitting.getParamsFields(fits.gp_map_params, fields);
-if contains(fitmodel, truemodel, 'ignorecase', true)
-    gt = Fitting.getParamsFields(params, fields);
-else
-    gt = nan(size(mle));
-end
-nF = length(fields);
-for iF=1:nF
-    for jF=1:iF
-        subplot(nF, nF, (iF-1)*nF+jF); hold on;
-        if iF==jF
-            histogram(grid_points(:,iF), 50);
-            yl = ylim;
-            plot(mle(jF)*[1 1], yl, '-r', 'LineWidth', 2);
-            plot(map(jF)*[1 1], yl, '-y', 'LineWidth', 2);
-            plot(gp_mle(jF)*[1 1], yl, '--r', 'LineWidth', 2);
-            plot(gp_map(jF)*[1 1], yl, '--y', 'LineWidth', 2);
-            plot(gt(jF)*[1 1], yl, '-g', 'LineWidth', 2);
-        else
-            sz = 1+30./(1+exp(-zscore(grid_scores.loglike)));
-            c = grid_scores.loglike;
-            scatter(grid_points(:,jF), grid_points(:,iF), sz, c, 'filled');
-            yl = ylim; xl = xlim;
-            plot(mle(jF)*[1 1], yl, '-r', 'LineWidth', 2, 'DisplayName', 'MLE');
-            plot(xl, mle(iF)*[1 1], '-r', 'LineWidth', 2, 'HandleVisibility', 'off');
-            plot(map(jF)*[1 1], yl, '-y', 'LineWidth', 2, 'DisplayName', 'MAP');
-            plot(xl, map(iF)*[1 1], '-y', 'LineWidth', 2, 'HandleVisibility', 'off');
-            plot(gp_mle(jF)*[1 1], yl, '--r', 'LineWidth', 2, 'DisplayName', 'GP-MLE');
-            plot(xl, gp_mle(iF)*[1 1], '--r', 'LineWidth', 2, 'HandleVisibility', 'off');
-            plot(gp_map(jF)*[1 1], yl, '--y', 'LineWidth', 2, 'DisplayName', 'GP-MAP');
-            plot(xl, gp_map(iF)*[1 1], '--y', 'LineWidth', 2, 'HandleVisibility', 'off');
-            plot(gt(jF)*[1 1], yl, '-g', 'LineWidth', 2, 'DisplayName', 'Ground Truth');
-            plot(xl, gt(iF)*[1 1], '-g', 'LineWidth', 2, 'HandleVisibility', 'off');
+for iMod=1:length(model_info)
+    figure;
+    mle = Fitting.getParamsFields(model_info(iMod).fit.mle_params, model_info(iMod).fields);
+    map = Fitting.getParamsFields(model_info(iMod).fit.map_params, model_info(iMod).fields);
+    gp_mle = Fitting.getParamsFields(model_info(iMod).fit.gp_mle_params, model_info(iMod).fields);
+    gp_map = Fitting.getParamsFields(model_info(iMod).fit.gp_map_params, model_info(iMod).fields);
+    nF = length(model_info(iMod).fields);
+    for iF=1:nF
+        for jF=1:iF
+            subplot(nF, nF, (iF-1)*nF+jF); hold on;
+            if iF==jF
+                histogram(model_info(iMod).samples(:,iF), 50);
+                plot(mle(jF)*[1 1], ylim, '-r', 'LineWidth', 2);
+                plot(map(jF)*[1 1], ylim, '-y', 'LineWidth', 2);
+                plot(gp_mle(jF)*[1 1], ylim, '--r', 'LineWidth', 2);
+                plot(gp_map(jF)*[1 1], ylim, '--y', 'LineWidth', 2);
+            else
+                sz = 1+30./(1+exp(-zscore(model_info(iMod).loglike)));
+                c = model_info(iMod).loglike;
+                scatter(model_info(iMod).samples(:,jF), model_info(iMod).samples(:,iF), sz, c, 'filled');                yl = ylim; xl = xlim;
+                plot(mle(jF)*[1 1], yl, '-r', 'LineWidth', 2);
+                plot(xl, mle(iF)*[1 1], '-r', 'LineWidth', 2);
+                plot(map(jF)*[1 1], yl, '-y', 'LineWidth', 2);
+                plot(xl, map(iF)*[1 1], '-y', 'LineWidth', 2);
+                plot(gp_mle(jF)*[1 1], yl, '--r', 'LineWidth', 2);
+                plot(xl, gp_mle(iF)*[1 1], '--r', 'LineWidth', 2);
+                plot(gp_map(jF)*[1 1], yl, '--y', 'LineWidth', 2);
+                plot(xl, gp_map(iF)*[1 1], '--y', 'LineWidth', 2);
+            end
+            if iF==nF, xlabel(model_info(iMod).fields{jF}); end
+            if jF==1, ylabel(model_info(iMod).fields{iF}); end
         end
-        if iF==2 && jF == 1, legend(); end
-        if iF==nF, xlabel(fields{jF}); end
-        if jF==1, ylabel(fields{iF}); end
     end
+    sgtitle([model_info(iMod).name ' :: LL = ' num2str(model_info(iMod).fit.gp_mle_params.ll)]);
 end
 
 %% Load data - Integrator
@@ -162,7 +145,7 @@ end
 % title('Inferred bound crossings');
 %
 % subplot(1,5,3); hold on;
-% errorbar(true_pk, true_pk_err, '-k', 'LineWidth', 2, 'DisplayName', 'MLE');
+% errorbar(true_pk, true_pk_err, '-k', 'LineWidth', 2);
 % errorbar(mean(itb_pk), std(itb_pk)/sqrt(size(itb_pk,1)), 'Color', h(idx_itb).FaceColor);
 % errorbar(mean(gamma_pk), std(gamma_pk)/sqrt(size(gamma_pk,1)), 'Color', h(idx_gamma).FaceColor);
 % errorbar(mean(both_pk), std(both_pk)/sqrt(size(both_pk,1)), 'Color', h(idx_both).FaceColor);
