@@ -184,7 +184,8 @@ scale = 2.^(-2:.25:2);
 kernel_arg_idx = find(strcmpi(gp_args, 'KernelParameters'))+1;
 
 % Keep a record of how parameters changed each iteration (debugging)
-record(1, :) = init_gp_kernel_params;
+record(1, :) = init_gp_kernel_params(sigidx);
+record_sd(1,1:length(sigidx)) = 0;
 
 for iter=1:20
     loss = zeros(length(sigidx), length(scale));
@@ -203,29 +204,33 @@ for iter=1:20
             gp_ll_xv = fitrgp(grid_points(gp_idx(idxtrain), :), grid_scores.loglike(gp_idx(idxtrain)), gp_args{:});
             
             % Compute squared error on held out points
-            loss(isig,iscale) = sum((gp_ll_xv.predict(grid_points(gp_idx(idxtest), :)) - grid_scores.loglike(gp_idx(idxtest))).^2);
+            loss(isig,iscale) = mean((gp_ll_xv.predict(grid_points(gp_idx(idxtest), :)) - grid_scores.loglike(gp_idx(idxtest))).^2);
         end
-        % Apply some smoothing to the loss to avoid chasing spurious minima
-        loss(isig, :) = smooth(loss(isig, :), 5);
+        % Select best by treating exp(-loss) as a distribution and taking the mean
+        rel_loss = (loss(isig,:) - max(loss(isig,:))) / std(loss(isig,:));
+        loss_p = exp(-rel_loss) / sum(exp(-rel_loss));
+        log_mean_scale = dot(loss_p, log(scale));
+        init_gp_kernel_params(sigidx(isig)) = init_gp_kernel_params(sigidx(isig)) + log_mean_scale;
+        
+        log_std_scale = sqrt(dot(loss_p, (log(scale)-log_mean_scale).^2));
+        record(iter+1, isig) = init_gp_kernel_params(sigidx(isig));
+        record_sd(iter+1, isig) = log_std_scale;
     end
-    % Select best 'scale' along each dimension
-    [~,ibest] = min(loss, [], 2);
-    init_gp_kernel_params(sigidx) = init_gp_kernel_params(sigidx) + log(scale(ibest))';
     scale = exp(log(scale) * .9);
     
-    record(iter+1, :) = init_gp_kernel_params;
-    clf;
-    subplot(2,1,1);
-    plot(record(:,sigidx), 'marker', '.');
-    xlabel('iteration');
-    ylabel('log(\sigma)');
-    legend([fields' {'joint'}], 'location', 'best');
-    subplot(2,1,2);
-    imagesc(loss); axis image; colorbar;
-    drawnow;
+    % DEBUG PLOT
+    % clf;
+    % subplot(2,1,1); hold on;
+    % for i=1:length(sigidx)
+    %     errorbar(1:iter+1, record(:,i), record_sd(:,i), 'marker', '.');
+    % end
+    % xlabel('iteration');
+    % ylabel('log(\sigma)');
+    % legend([fields' {'joint'}], 'location', 'best');
+    % subplot(2,1,2);
+    % imagesc(loss); axis image; colorbar;
+    % drawnow;
 end
-
-keyboard;
 
 % Set args to use the best sigmas
 gp_args{kernel_arg_idx} = init_gp_kernel_params;
