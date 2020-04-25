@@ -114,16 +114,18 @@ optim_results.mean_params = Fitting.setParamsFields(base_params, fields, mu);
 %% Prepare GP stuff
 disp('fitModelQRG: GP Prep');
 
-% Set initial length scales as 1/20th of the range of plausible bounds for each parameter
-init_scale = cellfun(@(f) (distribs.(f).pub-distribs.(f).plb)/8, fields)';
+% Set initial length scales as 1/4th of the range of plausible bounds for each parameter (this was
+% chosen after fittting the GP many times and observing that 1/4 was a good estimate of where it
+% would converge to anyway).
+init_scale = cellfun(@(f) (distribs.(f).pub-distribs.(f).plb)/4, fields)';
 % Set convergence tolerance as 1/1000th of the plausible range
 tolerance = cellfun(@(f) (distribs.(f).pub-distribs.(f).plb)/1000, fields)';
 
+observation_variance = max(.01, dot(weight, grid_scores.variance));
+
 % The GP fit shouldn't waste time trying to get the tails right, and the defaults for fitrgp only
-% select 2000 points anyway. So, only bother trying to fit the top 2000 scoring points (plus keep
-% around 100 of them for cross validation).
-gp_idx = sort_ll(1:2100);
-gp_holdout = 100/2100;
+% select 2000 points anyway. So, only bother trying to fit the top 2000 scoring points.
+gp_idx = sort_ll(1:2000);
 
 % The basis (mean) function for the GP will be a quadratic model, H*beta, where H is [1 x x.^2].
 % (This is what happens inside fitrgp with the 'PureQuadratic' basis flag). Here we guess beta
@@ -145,7 +147,7 @@ fit_beta = fmincon(@(beta) sum((grid_scores.loglike(gp_idx) - H*beta).^2), gauss
 % Estimate how much variance to ascribe to each term in the GP. Majority of the variance of 'logpdf'
 % and 'loglike' themselves comes from the quadratic basis, which we first subtract out to get the
 % 'residual' variance that the GP ought to explain.
-residual_variance = var(grid_scores.loglike(gp_idx) - H*fit_beta);
+residual_variance = max(.01, var(grid_scores.loglike(gp_idx) - H*fit_beta) - observation_variance);
 
 % Divide up the unexplained variance per each parameter's marginal.
 init_sigma = sqrt(residual_variance / length(fields)) * ones(1, length(fields));
@@ -158,16 +160,81 @@ init_gp_kernel_params = [init_gp_kernel_params(:); init_sigma(1)];
 % Kernel expects *log* scales and *log* sigmas
 init_gp_kernel_params = log(init_gp_kernel_params);
 
-gp_args = {'Sigma', max(0.01, sqrt(dot(weight, grid_scores.variance))), 'ConstantSigma', true, 'PredictMethod', 'exact', ...
-    'Basis', 'PureQuadratic', 'Beta', fit_beta, 'HoldOut', gp_holdout, 'KernelFunction', @Fitting.marginalJointKernel, ...
-    'KernelParameters', init_gp_kernel_params};
+gp_args = {'Sigma', sqrt(observation_variance), 'ConstantSigma', true, 'PredictMethod', 'exact', ...
+    'KernelFunction', @Fitting.marginalJointKernel, 'KernelParameters', init_gp_kernel_params, ...
+    'Basis', 'PureQuadratic', 'Beta', fit_beta, 'FitMethod', 'none'};
+
+%% Optimize GP kernel
+
+% The GP has 3 distinct sets of hyperparameters: scalar 'Sigma' or observation noise, vector 'Beta'
+% parameterizing the mean or basis function, and the kernel hyperparameters. At this point, beta has
+% been fit by least squares, and 'Sigma' is set according to grid_scores.variance.  The GP scale is
+% set according to the prior bounds and will not be messed-with. These should not be changed. The
+% final parameters to optimize are the variances of the GP series themselves, i.e. the kernel
+% sigmas. Since built-in fitrgp either optimizes all hyperparameters or none of them, we do our own
+% search here ot optimize only the sigmas.
+
+% Indices into init_gp_kernel_params containing log(sigma)s (see @Fitting.marginalJointKernel)
+sigidx = [2:2:length(init_gp_kernel_params) length(init_gp_kernel_params)];
+
+% Initially search a range from 0.25x to 4x the initial guess. This will shrink each iteration.
+scale = 2.^(-2:.25:2);
+
+% Get index into the big 'gp_args' cell array containing init_gp_kernel_params
+kernel_arg_idx = find(strcmpi(gp_args, 'KernelParameters'))+1;
+
+% Keep a record of how parameters changed each iteration (debugging)
+record(1, :) = init_gp_kernel_params;
+
+for iter=1:20
+    loss = zeros(length(sigidx), length(scale));
+    for isig=1:length(sigidx)
+        for iscale=1:length(scale)
+            % Set the value of sigma(isig) scaled by scale(iscale) (parameter is log(sigma))
+            this_para = init_gp_kernel_params;
+            this_para(sigidx(isig)) = this_para(sigidx(isig)) + log(scale(iscale));
+            
+            % Construct a new random train/test split (90%/10%)
+            idxtrain = randperm(length(gp_idx), round(0.9*length(gp_idx)));
+            idxtest = setdiff(1:length(gp_idx), idxtrain);
+            
+            % Create ('train') this GP
+            gp_args{kernel_arg_idx} = this_para;
+            gp_ll_xv = fitrgp(grid_points(gp_idx(idxtrain), :), grid_scores.loglike(gp_idx(idxtrain)), gp_args{:});
+            
+            % Compute squared error on held out points
+            loss(isig,iscale) = sum((gp_ll_xv.predict(grid_points(gp_idx(idxtest), :)) - grid_scores.loglike(gp_idx(idxtest))).^2);
+        end
+        % Apply some smoothing to the loss to avoid chasing spurious minima
+        loss(isig, :) = smooth(loss(isig, :), 5);
+    end
+    % Select best 'scale' along each dimension
+    [~,ibest] = min(loss, [], 2);
+    init_gp_kernel_params(sigidx) = init_gp_kernel_params(sigidx) + log(scale(ibest))';
+    scale = exp(log(scale) * .9);
+    
+    record(iter+1, :) = init_gp_kernel_params;
+    clf;
+    subplot(2,1,1);
+    plot(record(:,sigidx), 'marker', '.');
+    xlabel('iteration');
+    ylabel('log(\sigma)');
+    legend([fields' {'joint'}], 'location', 'best');
+    subplot(2,1,2);
+    imagesc(loss); axis image; colorbar;
+    drawnow;
+end
+
+keyboard;
+
+% Set args to use the best sigmas
+gp_args{kernel_arg_idx} = init_gp_kernel_params;
 
 %% Search LL landscape with GP
 disp('fitModelQRG: GP Fit [LL]');
 
 % Fit Gaussian process to all log likelihood evaluations
 gp_ll = fitrgp(grid_points(gp_idx, :), grid_scores.loglike(gp_idx), gp_args{:});
-gp_ll = gp_ll.Trained{1};
 
 % Each iteration, restart the search from the 10 best samples from above
 searchpoints = grid_points(sort_ll(1:10), :);
@@ -204,12 +271,13 @@ end
 
 optim_results.gp_mle_params = Fitting.setParamsFields(base_params, fields, gp_mle(end,:));
 
+metadata.gp_ll = gp_ll;
+
 %% Repeat the above for the MAP
 disp('fitModelQRG: GP Fit [MAP]');
 
 % Fit Gaussian process to all log likelihood evaluations
 gp_lp = fitrgp(grid_points(gp_idx,:), grid_scores.logpdf(gp_idx), gp_args{:});
-gp_lp = gp_lp.Trained{1};
 
 % Each iteration, restart the search from the 10 best samples from above
 searchpoints = grid_points(sort_lp(1:10), :);
@@ -243,6 +311,8 @@ while ~all(abs(delta) < tolerance)
 end
 
 optim_results.gp_map_params = Fitting.setParamsFields(base_params, fields, gp_map(end,:));
+
+metadata.gp_map = gp_map;
 
 %% Re-run and store final evaluations for each model
 fit_names = fieldnames(optim_results);
@@ -288,10 +358,11 @@ function mdl = updateGPModel(mdl,Xadd,Yadd)
 kernelfun = mdl.KernelFunction;
 kernelparams = mdl.KernelInformation.KernelParameters;
 sigma = mdl.Sigma;
+basis = mdl.BasisFunction;
 beta = mdl.Beta;
 Xall = [mdl.X; Xadd];
 Yall = [mdl.Y; Yadd];
 
-mdl = fitrgp(Xall, Yall, 'Sigma', sigma, 'Beta', beta, 'KernelParameters', kernelparams, ...
+mdl = fitrgp(Xall, Yall, 'Sigma', sigma, 'Basis', basis, 'Beta', beta, 'KernelParameters', kernelparams, ...
     'KernelFunction', kernelfun, 'ConstantSigma', true, 'PredictMethod', 'exact', 'FitMethod', 'none');
 end
