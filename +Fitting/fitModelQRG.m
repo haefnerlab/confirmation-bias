@@ -115,7 +115,7 @@ optim_results.mean_params = Fitting.setParamsFields(base_params, fields, mu);
 disp('fitModelQRG: GP Prep');
 
 % Set initial length scales as 1/20th of the range of plausible bounds for each parameter
-init_scale = cellfun(@(f) (distribs.(f).pub-distribs.(f).plb)/20, fields)';
+init_scale = cellfun(@(f) (distribs.(f).pub-distribs.(f).plb)/8, fields)';
 % Set convergence tolerance as 1/1000th of the plausible range
 tolerance = cellfun(@(f) (distribs.(f).pub-distribs.(f).plb)/1000, fields)';
 
@@ -125,13 +125,29 @@ tolerance = cellfun(@(f) (distribs.(f).pub-distribs.(f).plb)/1000, fields)';
 gp_idx = sort_ll(1:2100);
 gp_holdout = 100/2100;
 
-% Estimate how much variance to ascribe to each term in the GP. Majority of the variance of 'logpdf'
-% and 'loglike' themselves comes from the quadratic basis, which we can estimate by directly fitting
-% a quadratic model to the log probabilties.
-mdl = fitlm(grid_points(gp_idx,:), grid_scores.loglike(gp_idx), 'purequadratic');
-residual_variance = var(grid_scores.loglike(gp_idx) - mdl.predict());
+% The basis (mean) function for the GP will be a quadratic model, H*beta, where H is [1 x x.^2].
+% (This is what happens inside fitrgp with the 'PureQuadratic' basis flag). Here we guess beta
+% according to the gaussian parameters estimate above, then refine it by least squares fitting
+H = [ones(length(gp_idx),1) grid_points(gp_idx, :) grid_points(gp_idx, :).^2];
+% The following reparameterizes -1/2*(x-mu)^2/sigma^2 into H*beta format.
+gauss_beta = [max(grid_scores.loglike) - sum(gauss_fit.mu'.^2./diag(gauss_fit.Sigma))/2;
+    gauss_fit.mu'./diag(gauss_fit.Sigma);
+    -1./(2*diag(gauss_fit.Sigma))];
+% Optimize 'beta' parameter with constraint that quadratic terms are negative (enforcing bounded
+% (gaussian) probability.
+lb = -inf(size(gauss_beta));
+ub = inf(size(gauss_beta));
+ub(length(fields)+2:end) = 0;
+opts = optimoptions('fmincon', 'display', 'none');
+fit_beta = fmincon(@(beta) sum((grid_scores.loglike(gp_idx) - H*beta).^2), gauss_beta, ...
+    [], [], [], [], lb, ub, [], opts);
 
-% Divide up the unexplained variance per each parameter's marginal
+% Estimate how much variance to ascribe to each term in the GP. Majority of the variance of 'logpdf'
+% and 'loglike' themselves comes from the quadratic basis, which we first subtract out to get the
+% 'residual' variance that the GP ought to explain.
+residual_variance = var(grid_scores.loglike(gp_idx) - H*fit_beta);
+
+% Divide up the unexplained variance per each parameter's marginal.
 init_sigma = sqrt(residual_variance / length(fields)) * ones(1, length(fields));
 
 % Create initial kernel params: vertical stack alternating scale/sigma once per field, then at the
@@ -143,7 +159,7 @@ init_gp_kernel_params = [init_gp_kernel_params(:); init_sigma(1)];
 init_gp_kernel_params = log(init_gp_kernel_params);
 
 gp_args = {'Sigma', max(0.01, sqrt(dot(weight, grid_scores.variance))), 'ConstantSigma', true, 'PredictMethod', 'exact', ...
-    'Basis', 'PureQuadratic', 'Beta', mdl.Coefficients.Estimate, 'HoldOut', gp_holdout, 'KernelFunction', @Fitting.marginalJointKernel, ...
+    'Basis', 'PureQuadratic', 'Beta', fit_beta, 'HoldOut', gp_holdout, 'KernelFunction', @Fitting.marginalJointKernel, ...
     'KernelParameters', init_gp_kernel_params};
 
 %% Search LL landscape with GP
@@ -244,7 +260,7 @@ end
 
 function [bestx, bestval] = gpmax(gp, startpts, jitters, varargin)
 % Helper to search around a set of seed points to find the maximum of a GP
-scale = gp.KernelInformation.KernelParameters(1:end-1)';
+scale = exp(gp.KernelInformation.KernelParameters(1:2:end-2))';
 
 xval = zeros(size(startpts,1)*(1+jitters), size(startpts, 2));
 fval = zeros(size(xval,1),1);
