@@ -191,7 +191,7 @@ while ~all(abs(delta) < tolerance)
     [~, new_ll, new_var] = eval_fun(Fitting.setParamsFields(base_params, fields, gp_mle(itr,:)), ...
         distribs, signals, choices, eval_args{:});
 
-    gp_ll = updateGPRMdl(gp_ll, gp_mle(itr,:), new_ll, mod(itr,20)==0);
+    gp_ll = updateGPModel(gp_ll, gp_mle(itr,:), new_ll);
     
     fprintf('\tactual_mle=%.1f+/-%.1f\n', new_ll, sqrt(new_var));
     
@@ -231,7 +231,7 @@ while ~all(abs(delta) < tolerance)
     [new_lp, ~, new_var] = eval_fun(Fitting.setParamsFields(base_params, fields, gp_map(itr,:)), ...
         distribs, signals, choices, eval_args{:});
 
-    gp_lp = updateGPRMdl(gp_lp, gp_map(itr,:), new_lp, mod(itr,20)==0);
+    gp_lp = updateGPModel(gp_lp, gp_map(itr,:), new_lp);
     
     fprintf('\tactual_logp=%.1f+/-%.1f\n', new_lp, sqrt(new_var));
     
@@ -282,27 +282,16 @@ bestx = xval(idxbest,:);
 bestval = -bestval;
 end
 
-function newmdl = updateGPRMdl(mdl,Xadd,Yadd,refitHypers)
-%UPDATEGPRMDL Helper to 'add' a data point to a GP model without necessarily triggering a slow
-%hyperparameter update. Thanks to
+function mdl = updateGPModel(mdl,Xadd,Yadd)
+%UPDATEGPMoDeL Helper to 'add' a data point to a GP model without updating hyperparameters. Thanks to
 %https://www.mathworks.com/matlabcentral/answers/424553-how-to-add-points-to-a-trained-gp
-if nargin < 4, refitHypers = true; end
 kernelfun = mdl.KernelFunction;
 kernelparams = mdl.KernelInformation.KernelParameters;
 sigma = mdl.Sigma;
-constsig = mdl.ModelParameters.ConstantSigma;
 beta = mdl.Beta;
 Xall = [mdl.X; Xadd];
 Yall = [mdl.Y; Yadd];
 
-if ~refitHypers
-    fitarg = {'FitMethod', 'none'};
-else
-    % Let default fitting take care of it
-    fitarg = {};
-end
-
-newmdl = fitrgp(Xall, Yall, 'Sigma', sigma, 'Beta', beta, 'KernelParameters', ...
-    kernelparams, 'KernelFunction', kernelfun, 'ConstantSigma', constsig, ...
-    'PredictMethod', 'exact', fitarg{:});
+mdl = fitrgp(Xall, Yall, 'Sigma', sigma, 'Beta', beta, 'KernelParameters', kernelparams, ...
+    'KernelFunction', kernelfun, 'ConstantSigma', true, 'PredictMethod', 'exact', 'FitMethod', 'none');
 end
