@@ -46,11 +46,11 @@ for iModel=1:length(model_info)
     % 'noise' is a parameter even if base_params.noise=0. But it also just seems like good practice.
     this_params = Fitting.setParamsFields(this_params, fields, cellfun(@(f) distribs.(f).priorrnd(1), fields));
     if use_cache
-        [fits(iModel), sampleses{iModel}, ~, ~, ~] = LoadOrRun(@Fitting.fitModelQRG, ...
+        [fits(iModel), sampleses{iModel}, ~, ~] = LoadOrRun(@Fitting.fitModelQRG, ...
             {this_params, signals, choices, distribs, struct('prefix', prefix)}, ...
             fullfile('../Precomputed', ['qrgfit-' prefix '-' model_info(iModel).name '.mat']));
     else
-        [fits(iModel), sampleses{iModel}, ~, ~, ~] = Fitting.fitModelQRG(this_params, signals, choices, distribs, struct('prefix', prefix));
+        [fits(iModel), sampleses{iModel}, ~, ~] = Fitting.fitModelQRG(this_params, signals, choices, distribs, struct('prefix', prefix));
     end
     
     % We have 4 fits: best sample (ML/MAP) and GP fit (ML/MAP). For added robustness, we select here

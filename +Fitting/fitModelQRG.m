@@ -1,4 +1,4 @@
-function [optim_results, grid_points, grid_scores, gauss_fit, metadata] = fitModelQRG(base_params, signals, choices, distribs, metadata)
+function [optim_results, grid_points, grid_scores, metadata] = fitModelQRG(base_params, signals, choices, distribs, metadata)
 %FITTING.FITMODELQRG Strategy for fitting inference models by inverse-CDF sampling from the prior
 %using a quasi-random grid (QRG), then maximizing a gaussian-process fit to those points.
 
