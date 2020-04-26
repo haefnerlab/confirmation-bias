@@ -56,6 +56,7 @@ mle = Fitting.getParamsFields(fits.mle_params, fields);
 map = Fitting.getParamsFields(fits.map_params, fields);
 gp_mle = Fitting.getParamsFields(fits.gp_mle_params, fields);
 gp_map = Fitting.getParamsFields(fits.gp_map_params, fields);
+mu = Fitting.getParamsFields(fits.mean_params, fields);
 if contains(fitmodel, truemodel, 'ignorecase', true)
     gt = Fitting.getParamsFields(params, fields);
 else
@@ -63,7 +64,7 @@ else
 end
 nF = length(fields);
 for iF=1:nF
-    for jF=1:iF
+    for jF=1:nF
         subplot(nF, nF, (iF-1)*nF+jF); hold on;
         if iF==jF
             histogram(grid_points(:,iF), 50);
@@ -72,10 +73,11 @@ for iF=1:nF
             plot(map(jF)*[1 1], yl, '-y', 'LineWidth', 2);
             plot(gp_mle(jF)*[1 1], yl, '--r', 'LineWidth', 2);
             plot(gp_map(jF)*[1 1], yl, '--y', 'LineWidth', 2);
+            plot(mu(jF)*[1 1], yl, '-b', 'LineWidth', 2);
             plot(gt(jF)*[1 1], yl, '-g', 'LineWidth', 2);
         else
             sz = 1+30./(1+exp(-zscore(grid_scores.loglike)));
-            c = grid_scores.loglike;
+            c = max(grid_scores.loglike, median(grid_scores.loglike));
             scatter(grid_points(:,jF), grid_points(:,iF), sz, c, 'filled');
             yl = ylim; xl = xlim;
             plot(mle(jF)*[1 1], yl, '-r', 'LineWidth', 2, 'DisplayName', 'MLE');
@@ -86,6 +88,8 @@ for iF=1:nF
             plot(xl, gp_mle(iF)*[1 1], '--r', 'LineWidth', 2, 'HandleVisibility', 'off');
             plot(gp_map(jF)*[1 1], yl, '--y', 'LineWidth', 2, 'DisplayName', 'GP-MAP');
             plot(xl, gp_map(iF)*[1 1], '--y', 'LineWidth', 2, 'HandleVisibility', 'off');
+            plot(mu(jF)*[1 1], yl, '-b', 'LineWidth', 2, 'DisplayName', '\mu');
+            plot(xl, mu(iF)*[1 1], '-b', 'LineWidth', 2, 'HandleVisibility', 'off');
             plot(gt(jF)*[1 1], yl, '-g', 'LineWidth', 2, 'DisplayName', 'Ground Truth');
             plot(xl, gt(iF)*[1 1], '-g', 'LineWidth', 2, 'HandleVisibility', 'off');
         end

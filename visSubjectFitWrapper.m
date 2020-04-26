@@ -48,9 +48,10 @@ for iMod=1:length(model_info)
     map = Fitting.getParamsFields(model_info(iMod).fit.map_params, model_info(iMod).fields);
     gp_mle = Fitting.getParamsFields(model_info(iMod).fit.gp_mle_params, model_info(iMod).fields);
     gp_map = Fitting.getParamsFields(model_info(iMod).fit.gp_map_params, model_info(iMod).fields);
+    mu = Fitting.getParamsFields(model_info(iMod).fit.mean_params, model_info(iMod).fields);
     nF = length(model_info(iMod).fields);
     for iF=1:nF
-        for jF=1:iF
+        for jF=1:nF
             subplot(nF, nF, (iF-1)*nF+jF); hold on;
             if iF==jF
                 histogram(model_info(iMod).samples(:,iF), 50);
@@ -58,21 +59,25 @@ for iMod=1:length(model_info)
                 plot(map(jF)*[1 1], ylim, '-y', 'LineWidth', 2);
                 plot(gp_mle(jF)*[1 1], ylim, '--r', 'LineWidth', 2);
                 plot(gp_map(jF)*[1 1], ylim, '--y', 'LineWidth', 2);
+                plot(mu(jF)*[1 1], ylim, '-b', 'LineWidth', 2);
             else
                 sz = 1+30./(1+exp(-zscore(model_info(iMod).loglike)));
-                c = model_info(iMod).loglike;
+                c = max(model_info(iMod).loglike, median(model_info(iMod).loglike));
                 scatter(model_info(iMod).samples(:,jF), model_info(iMod).samples(:,iF), sz, c, 'filled');                yl = ylim; xl = xlim;
-                plot(mle(jF)*[1 1], yl, '-r', 'LineWidth', 2);
-                plot(xl, mle(iF)*[1 1], '-r', 'LineWidth', 2);
-                plot(map(jF)*[1 1], yl, '-y', 'LineWidth', 2);
-                plot(xl, map(iF)*[1 1], '-y', 'LineWidth', 2);
-                plot(gp_mle(jF)*[1 1], yl, '--r', 'LineWidth', 2);
-                plot(xl, gp_mle(iF)*[1 1], '--r', 'LineWidth', 2);
-                plot(gp_map(jF)*[1 1], yl, '--y', 'LineWidth', 2);
-                plot(xl, gp_map(iF)*[1 1], '--y', 'LineWidth', 2);
+                plot(mle(jF)*[1 1], yl, '-r', 'LineWidth', 2, 'DisplayName', 'MLE');
+                plot(xl, mle(iF)*[1 1], '-r', 'LineWidth', 2, 'HandleVisibility', 'off');
+                plot(map(jF)*[1 1], yl, '-y', 'LineWidth', 2, 'DisplayName', 'MAP');
+                plot(xl, map(iF)*[1 1], '-y', 'LineWidth', 2, 'HandleVisibility', 'off');
+                plot(mu(jF)*[1 1], yl, '-b', 'LineWidth', 2, 'DisplayName', 'mean');
+                plot(xl, mu(iF)*[1 1], '-b', 'LineWidth', 2, 'HandleVisibility', 'off');
+                plot(gp_mle(jF)*[1 1], yl, '--r', 'LineWidth', 2, 'DisplayName', 'GP MLE');
+                plot(xl, gp_mle(iF)*[1 1], '--r', 'LineWidth', 2, 'HandleVisibility', 'off');
+                plot(gp_map(jF)*[1 1], yl, '--y', 'LineWidth', 2, 'DisplayName', 'GP MAP');
+                plot(xl, gp_map(iF)*[1 1], '--y', 'LineWidth', 2, 'HandleVisibility', 'off');
             end
             if iF==nF, xlabel(model_info(iMod).fields{jF}); end
             if jF==1, ylabel(model_info(iMod).fields{iF}); end
+            if iF==nF && jF==1, legend('location', 'best'); end
         end
     end
     sgtitle([model_info(iMod).name ' :: LL = ' num2str(model_info(iMod).fit.gp_mle_params.ll)]);

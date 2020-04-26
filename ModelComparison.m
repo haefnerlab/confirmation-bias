@@ -55,7 +55,7 @@ for iModel=1:length(model_info)
     
     % We have 4 fits: best sample (ML/MAP) and GP fit (ML/MAP). For added robustness, we select here
     % whichever of the 4 models had the highest log likelihood
-    fit_names = {'mle_params', 'map_params', 'gp_mle_params', 'gp_map_params'};
+    fit_names = fieldnames(fits);
     fit_lls = cellfun(@(name) fits(iModel).(name).ll, fit_names);
     [mle(iModel), iBest] = max(fit_lls);
     ll_var(iModel) = fits(iModel).(fit_names{iBest}).ll_var;

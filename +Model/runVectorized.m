@@ -76,7 +76,6 @@ else
 end
 
 prior_C = params.prior_C;
-lapse = params.lapse;
 
 %% Initialize return values
 

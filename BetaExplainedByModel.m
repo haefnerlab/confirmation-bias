@@ -1,8 +1,6 @@
 gt_names = {'IS', 'ITB'};
 nTruth = length(gt_names);
 
-% Note that for legacy reasons, model data are concatenated in {lshc, hslc} order, which is the
-% opposite of how we usually concatenate human data
 phases = {2, 1};
 nPhases = length(phases);
 phase_names = {'LSHC', 'HSLC'};
@@ -35,7 +33,12 @@ for iTruth=nTruth:-1:1
             if exist(memo_file_fit, 'file')
                 memo_file_beta = fullfile(MEMODIR, ['pk-beta-explained-' prefix '-' model_names{iModel} '.mat']);
                 ld = load(memo_file_fit);
-                bestfit_params = ld.results{1}.gp_mle_params;
+                fits = ld.results{1};
+                fit_names = fieldnames(fits);
+                fit_lls = cellfun(@(name) fits.(name).ll, fit_names);
+                [~, iBest] = max(fit_lls);
+                bestfit_params = fits.(fit_names{iBest});
+                
                 [betaExplained{iTruth, iPhase, iModel}, ablation{iPhase, iModel}] = LoadOrRun(@PKShapeExplained, ...
                     {sigs, bestfit_params, model_test_fields{iModel}, model_all_fields{iModel}}, memo_file_beta);
             else
@@ -79,6 +82,8 @@ for iCondition=1:nTruth*nPhases
             xtickangle(60);
             
             title([gt_names{iTruth} ' ' phase_names{iPhase} ' [' model_names{iModel} ']']);
+            
+            ylim([-.25 .25]);
         end
     end
 end
