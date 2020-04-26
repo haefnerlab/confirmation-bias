@@ -3,6 +3,7 @@ function [optim_results, grid_points, grid_scores, gauss_fit, metadata] = fitMod
 %using a quasi-random grid (QRG), then maximizing a gaussian-process fit to those points.
 
 fields = fieldnames(distribs);
+nF = length(fields);
 
 % Get a UID for the model being fit, signals, and choices so that we can restart from checkpoints
 if iscell(signals)
@@ -45,11 +46,11 @@ if exist(chkpt, 'file')
     fprintf('fitModelQRG :: %s\tloaded %d of %d evaluations\n', chkpt, sum(~isnan(loglike)), length(loglike));
 else
     % Start with a QRG on the unit hypercube
-    hyperQRG = lhsdesign(10000, length(fields));
+    hyperQRG = lhsdesign(10000, nF);
     
     % Use points inside hypercube to get grid on actual parameters via inverse CDF of each field's prior
     grid_points = zeros(size(hyperQRG));
-    for iF=1:length(fields)
+    for iF=1:nF
         grid_points(:,iF) = distribs.(fields{iF}).priorinv(hyperQRG(:,iF));
     end
     
@@ -92,24 +93,46 @@ best_lp_idx = sort_lp(1);
 optim_results.map_params = Fitting.setParamsFields(base_params, fields, grid_points(best_lp_idx, :));
 
 %% Estimate moment-matched gaussian posterior
-disp('fitModelQRG: Gauss fit');
+disp('fitModelQRG: Quad fit');
 
-relative_ll = grid_scores.loglike - max(grid_scores.loglike);
-% Equation (41) in "Unbiased and Efficient Log-Likelihood Estimation with Inverse Binomial Sampling"
-est_likelihood = exp(relative_ll + 1/2*grid_scores.variance);
-weight = est_likelihood / sum(est_likelihood);
+% Fits shouldn't waste time trying to get the tails right, and the defaults for fitrgp only select
+% 2000 points anyway. So, only bother trying to fit the top 2000 scoring points.
+fit_idx = sort_ll(1:2000);
 
-% Since 'grid_points' are from the prior, we construct an estimator of posterior moments by
-% weighting each point by an estimate of the likelihood
-mu = weight' * grid_points;
+% Fit a gaussian, i.e. fit a quadratic function to the log-likelihood. ll≈H*beta, where H is a
+% quadratic basis.
+x0 = ones(length(fit_idx), 1);
+x1 = grid_points(fit_idx,:);
+x2 = grid_points(fit_idx,:).^2;
+% Construct regressors H
+H = [x0 x1 x2];
 
-% Subtract mean and compute 2nd moment (covariance)
-grid0 = grid_points - mu;
+% Set up constrained least-squares fit to the log likelihood, constrained so that the curvature is
+% downward (ensuring probability under the implied gaussian is bounded).
+lb = -inf(size(H, 2), 1);
+ub = inf(size(lb));
+ub(nF+2:end) = 0; % the coefficients on the variances (a*x_i^2) must be negative (a<0)
+init_beta = [mean(grid_scores.loglike(fit_idx));
+    zeros(2*nF,1)];
+init_beta(ub==0) = -1;
 
-gauss_fit.mu = mu;
-gauss_fit.Sigma = squeeze(sum(weight .* grid0 .* reshape(grid0, [], 1, length(fields))));
+% Use 'fit_weight' to encourage fit to focus on the higher LL points, but only slightly.
+fit_weight = 1./(1+exp(-zscore(grid_scores.logpdf(fit_idx))));
+fit_weight = fit_weight / sum(fit_weight);
 
-optim_results.mean_params = Fitting.setParamsFields(base_params, fields, mu);
+% Do optimization
+opts = optimoptions('fmincon', 'display', 'final', 'MaxFunctionEvaluations', inf);
+fit_beta = fmincon(@(beta) sum(fit_weight.*(grid_scores.loglike(fit_idx) - H*beta).^2), init_beta, ...
+    [], [], [], [], lb, ub, [], opts);
+
+% Create local function x -> baseline replicating H*beta above
+    function b = quadBasis(x)
+        b = [ones(size(x,1),1) x x.^2] * fit_beta;
+    end
+
+% Use best-fit quadratic function as the basis of the GP fit... implemented by subtracting off the
+% quadratic prediction then fitting a constant-baseline GP to the residuals
+residual_loglike = grid_scores.loglike(fit_idx) - quadBasis(grid_points(fit_idx, :));
 
 %% Prepare GP stuff
 disp('fitModelQRG: GP Prep');
@@ -121,36 +144,14 @@ init_scale = cellfun(@(f) (distribs.(f).pub-distribs.(f).plb)/4, fields)';
 % Set convergence tolerance as 1/1000th of the plausible range
 tolerance = cellfun(@(f) (distribs.(f).pub-distribs.(f).plb)/1000, fields)';
 
-observation_variance = max(.01, dot(weight, grid_scores.variance));
-
-% The GP fit shouldn't waste time trying to get the tails right, and the defaults for fitrgp only
-% select 2000 points anyway. So, only bother trying to fit the top 2000 scoring points.
-gp_idx = sort_ll(1:2000);
-
-% The basis (mean) function for the GP will be a quadratic model, H*beta, where H is [1 x x.^2].
-% (This is what happens inside fitrgp with the 'PureQuadratic' basis flag). Here we guess beta
-% according to the gaussian parameters estimate above, then refine it by least squares fitting
-H = [ones(length(gp_idx),1) grid_points(gp_idx, :) grid_points(gp_idx, :).^2];
-% The following reparameterizes -1/2*(x-mu)^2/sigma^2 into H*beta format.
-gauss_beta = [max(grid_scores.loglike) - sum(gauss_fit.mu'.^2./diag(gauss_fit.Sigma))/2;
-    gauss_fit.mu'./diag(gauss_fit.Sigma);
-    -1./(2*diag(gauss_fit.Sigma))];
-% Optimize 'beta' parameter with constraint that quadratic terms are negative (enforcing bounded
-% (gaussian) probability.
-lb = -inf(size(gauss_beta));
-ub = inf(size(gauss_beta));
-ub(length(fields)+2:end) = 0;
-opts = optimoptions('fmincon', 'display', 'none');
-fit_beta = fmincon(@(beta) sum((grid_scores.loglike(gp_idx) - H*beta).^2), gauss_beta, ...
-    [], [], [], [], lb, ub, [], opts);
+observation_variance = max(1, dot(fit_weight, grid_scores.variance(fit_idx)));
 
 % Estimate how much variance to ascribe to each term in the GP. Majority of the variance of 'logpdf'
-% and 'loglike' themselves comes from the quadratic basis, which we first subtract out to get the
-% 'residual' variance that the GP ought to explain.
-residual_variance = max(.01, var(grid_scores.loglike(gp_idx) - H*fit_beta) - observation_variance);
+% and 'loglike' themselves comes from the quadratic basis which was subtracted out above.
+residual_variance = max(1, var(residual_loglike) - observation_variance);
 
 % Divide up the unexplained variance per each parameter's marginal.
-init_sigma = sqrt(residual_variance / length(fields)) * ones(1, length(fields));
+init_sigma = sqrt(residual_variance / nF) * ones(1, nF);
 
 % Create initial kernel params: vertical stack alternating scale/sigma once per field, then at the
 % final index 2*|fields|+1, the 'sigma' corresponding to the joint prob fluctuations that aren't
@@ -162,84 +163,13 @@ init_gp_kernel_params = log(init_gp_kernel_params);
 
 gp_args = {'Sigma', sqrt(observation_variance), 'ConstantSigma', true, 'PredictMethod', 'exact', ...
     'KernelFunction', @Fitting.marginalJointKernel, 'KernelParameters', init_gp_kernel_params, ...
-    'Basis', 'PureQuadratic', 'Beta', fit_beta, 'FitMethod', 'none'};
-
-%% Optimize GP kernel
-
-% The GP has 3 distinct sets of hyperparameters: scalar 'Sigma' or observation noise, vector 'Beta'
-% parameterizing the mean or basis function, and the kernel hyperparameters. At this point, beta has
-% been fit by least squares, and 'Sigma' is set according to grid_scores.variance.  The GP scale is
-% set according to the prior bounds and will not be messed-with. These should not be changed. The
-% final parameters to optimize are the variances of the GP series themselves, i.e. the kernel
-% sigmas. Since built-in fitrgp either optimizes all hyperparameters or none of them, we do our own
-% search here ot optimize only the sigmas.
-
-% Indices into init_gp_kernel_params containing log(sigma)s (see @Fitting.marginalJointKernel)
-sigidx = [2:2:length(init_gp_kernel_params) length(init_gp_kernel_params)];
-
-% Initially search a range from 0.25x to 4x the initial guess. This will shrink each iteration.
-scale = 2.^(-2:.25:2);
-
-% Get index into the big 'gp_args' cell array containing init_gp_kernel_params
-kernel_arg_idx = find(strcmpi(gp_args, 'KernelParameters'))+1;
-
-% Keep a record of how parameters changed each iteration (debugging)
-record(1, :) = init_gp_kernel_params(sigidx);
-record_sd(1,1:length(sigidx)) = 0;
-
-for iter=1:20
-    loss = zeros(length(sigidx), length(scale));
-    for isig=1:length(sigidx)
-        for iscale=1:length(scale)
-            % Set the value of sigma(isig) scaled by scale(iscale) (parameter is log(sigma))
-            this_para = init_gp_kernel_params;
-            this_para(sigidx(isig)) = this_para(sigidx(isig)) + log(scale(iscale));
-            
-            % Construct a new random train/test split (90%/10%)
-            idxtrain = randperm(length(gp_idx), round(0.9*length(gp_idx)));
-            idxtest = setdiff(1:length(gp_idx), idxtrain);
-            
-            % Create ('train') this GP
-            gp_args{kernel_arg_idx} = this_para;
-            gp_ll_xv = fitrgp(grid_points(gp_idx(idxtrain), :), grid_scores.loglike(gp_idx(idxtrain)), gp_args{:});
-            
-            % Compute squared error on held out points
-            loss(isig,iscale) = mean((gp_ll_xv.predict(grid_points(gp_idx(idxtest), :)) - grid_scores.loglike(gp_idx(idxtest))).^2);
-        end
-        % Select best by treating exp(-loss) as a distribution and taking the mean
-        rel_loss = (loss(isig,:) - max(loss(isig,:))) / std(loss(isig,:));
-        loss_p = exp(-rel_loss) / sum(exp(-rel_loss));
-        log_mean_scale = dot(loss_p, log(scale));
-        init_gp_kernel_params(sigidx(isig)) = init_gp_kernel_params(sigidx(isig)) + log_mean_scale;
-        
-        log_std_scale = sqrt(dot(loss_p, (log(scale)-log_mean_scale).^2));
-        record(iter+1, isig) = init_gp_kernel_params(sigidx(isig));
-        record_sd(iter+1, isig) = log_std_scale;
-    end
-    scale = exp(log(scale) * .9);
-    
-    % DEBUG PLOT
-    % clf;
-    % subplot(2,1,1); hold on;
-    % for i=1:length(sigidx)
-    %     errorbar(1:iter+1, record(:,i), record_sd(:,i), 'marker', '.');
-    % end
-    % xlabel('iteration');
-    % ylabel('log(\sigma)');
-    % legend([fields' {'joint'}], 'location', 'best');
-    % subplot(2,1,2);
-    % imagesc(loss); axis image; colorbar;
-    % drawnow;
-end
-
-% Set args to use the best sigmas
-gp_args{kernel_arg_idx} = init_gp_kernel_params;
+    'Basis', 'constant', 'FitMethod', 'exact'};
 
 %% Search LL landscape with GP
-disp('fitModelQRG: GP Fit [LL]');
+disp('fitModelQRG: GP Fit');
 
 % Fit Gaussian process to all log likelihood evaluations
-gp_ll = fitrgp(grid_points(gp_idx, :), grid_scores.loglike(gp_idx), gp_args{:});
+gp_ll = fitrgp(grid_points(fit_idx, :), residual_loglike, gp_args{:});
 
 % Each iteration, restart the search from the 10 best samples from above
 searchpoints = grid_points(sort_ll(1:10), :);
@@ -247,9 +177,11 @@ nsearchjitter = 10;
 
 % Search the GP fit for a better maximum
 opts = optimoptions('fmincon', 'display', 'none');
+jitterscale = exp(gp_ll.KernelInformation.KernelParameters(1:2:end-2))';
 lb = cellfun(@(f) distribs.(f).lb, fields);
 ub = cellfun(@(f) distribs.(f).ub, fields);
-gp_mle(1,:) = gpmax(gp_ll, searchpoints, nsearchjitter, [], [], [], [], lb, ub, [], opts);
+gp_mle(1,:) = fminconrepeats(@(x) -(quadBasis(x)+gp_ll.predict(x)), searchpoints, nsearchjitter, jitterscale, ...
+    [], [], [], [], lb, ub, [], opts);
 
 disp('fitModelQRG: GP Search [LL]');
 
@@ -257,19 +189,24 @@ itr = 1;
 delta = inf;
 while ~all(abs(delta) < tolerance)
     [ypred, ypred_sd] = gp_ll.predict(gp_mle(itr,:));
-    fprintf('Iteration %d\tdelta=%.1e\test_mle=%.1f+/-%.1f', itr, max(abs(delta)), ypred, ypred_sd);
+    fprintf('Iteration %d\tdelta=%.1e\test_ll=%.1f+/-%.1f', itr, max(abs(delta)), quadBasis(gp_mle(itr,:))+ypred, ypred_sd);
     
     % Evaluate the current max point and update the GP
     [~, new_ll, new_var] = eval_fun(Fitting.setParamsFields(base_params, fields, gp_mle(itr,:)), ...
         distribs, signals, choices, eval_args{:});
 
-    gp_ll = updateGPModel(gp_ll, gp_mle(itr,:), new_ll);
+    gp_ll = updateGPModel(gp_ll, gp_mle(itr,:), new_ll-quadBasis(gp_mle(itr, :)));
     
-    fprintf('\tactual_mle=%.1f+/-%.1f\n', new_ll, sqrt(new_var));
+    dists = sum(((grid_points-gp_mle(itr,:))./exp(gp_ll.KernelInformation.KernelParameters(1:2:end-2))').^2,2);
+    [~,iclosest] = min(dists);
+    
+    fprintf('\tactual_ll=%.1f+/-%.1f\tclosest_ll=%.1f+/-%.1f\n', new_ll, sqrt(new_var), grid_scores.loglike(iclosest), sqrt(grid_scores.variance(iclosest)));
+    
+    disp([gp_mle(itr,:); grid_points(iclosest,:)]);
     
     % Search again for the new best point
-    gp_mle(itr+1,:) = gpmax(gp_ll, searchpoints, nsearchjitter, [], [], [], [], lb, ub, [], opts);
-    
+    gp_mle(itr+1,:) = fminconrepeats(@(x) -(quadBasis(x)+gp_ll.predict(x)), searchpoints, nsearchjitter, jitterscale, ...
+        [], [], [], [], lb, ub, [], opts);    
     delta = gp_mle(itr+1,:) - gp_mle(itr,:);
     itr = itr+1;
 end
@@ -277,47 +214,6 @@ end
 optim_results.gp_mle_params = Fitting.setParamsFields(base_params, fields, gp_mle(end,:));
 
 metadata.gp_ll = gp_ll;
-
-%% Repeat the above for the MAP
-disp('fitModelQRG: GP Fit [MAP]');
-
-% Fit Gaussian process to all log likelihood evaluations
-gp_lp = fitrgp(grid_points(gp_idx,:), grid_scores.logpdf(gp_idx), gp_args{:});
-
-% Each iteration, restart the search from the 10 best samples from above
-searchpoints = grid_points(sort_lp(1:10), :);
-nsearchjitter = 10;
-
-% Search the GP fit for a better maximum
-opts = optimoptions('fmincon', 'display', 'none');
-gp_map(1,:) = gpmax(gp_ll, searchpoints, nsearchjitter, [], [], [], [], lb, ub, [], opts);
-
-disp('fitModelQRG: GP Search [MAP]');
-
-itr = 1;
-delta = inf;
-while ~all(abs(delta) < tolerance)
-    [ypred, ypred_sd] = gp_lp.predict(gp_map(itr,:));
-    fprintf('Iteration %d\tdelta=%.1e\test_logp=%.1f+/-%.1f', itr, max(abs(delta)), ypred, ypred_sd);
-    
-    % Evaluate the current max point and update the GP
-    [new_lp, ~, new_var] = eval_fun(Fitting.setParamsFields(base_params, fields, gp_map(itr,:)), ...
-        distribs, signals, choices, eval_args{:});
-
-    gp_lp = updateGPModel(gp_lp, gp_map(itr,:), new_lp);
-    
-    fprintf('\tactual_logp=%.1f+/-%.1f\n', new_lp, sqrt(new_var));
-    
-    % Search again for the new best point
-    gp_map(itr+1,:) = gpmax(gp_ll, searchpoints, nsearchjitter, [], [], [], [], lb, ub, [], opts);
-    
-    delta = gp_map(itr+1,:) - gp_map(itr,:);
-    itr = itr+1;
-end
-
-optim_results.gp_map_params = Fitting.setParamsFields(base_params, fields, gp_map(end,:));
-
-metadata.gp_map = gp_map;
 
 %% Re-run and store final evaluations for each model
 fit_names = fieldnames(optim_results);
@@ -333,28 +229,25 @@ end
 
 end
 
-function [bestx, bestval] = gpmax(gp, startpts, jitters, varargin)
-% Helper to search around a set of seed points to find the maximum of a GP
-scale = exp(gp.KernelInformation.KernelParameters(1:2:end-2))';
-
+function [bestx, bestval] = fminconrepeats(fcn, startpts, jitters, jitterscale, varargin)
+% Helper to search around a set of seed points to find the maximum of a function
 xval = zeros(size(startpts,1)*(1+jitters), size(startpts, 2));
 fval = zeros(size(xval,1),1);
 
 idx = 1;
 for istart=1:size(startpts,1)
     % Start a search exactly at the ith 'seed' point
-    [xval(idx,:), fval(idx,:)] = fmincon(@(x) -gp.predict(x), startpts(istart,:), varargin{:});
+    [xval(idx,:), fval(idx,:)] = fmincon(fcn, startpts(istart,:), varargin{:});
     idx = idx+1;
 
     % Jitter around this point 'jitters' number of times and start a search at each one
     for ijit=1:jitters
-        [xval(idx,:), fval(idx,:)] = fmincon(@(x) -gp.predict(x), startpts(istart,:)+randn(size(scale)).*scale, varargin{:});
+        [xval(idx,:), fval(idx,:)] = fmincon(fcn, startpts(istart,:)+randn(size(jitterscale)).*jitterscale, varargin{:});
         idx = idx+1;
     end
 end
 [bestval, idxbest] = min(fval);
 bestx = xval(idxbest,:);
-bestval = -bestval;
 end
 
 function mdl = updateGPModel(mdl,Xadd,Yadd)
