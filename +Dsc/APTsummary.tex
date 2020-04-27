@@ -1,0 +1,66 @@
+\documentclass{article}
+\usepackage{enumerate}
+\usepackage{amsmath}
+
+
+
+
+\begin{document}
+\section{Summary of the simulation based inference methods}
+\subsection{Fast $\epsilon$ - free Inference of Simulation Models}
+We have synthetic data $x$, synthetic parameter $\theta$, and observed data $x_0$. We want to infer the posterior $p(\theta_0 | x_0)$, based on the proposed prior $\tilde{p}(\theta)$ from the simulation.
+
+\begin{enumerate}[Step 1:]
+\item Initiating a proposed prior $ \tilde{p}(\theta)$ which is updated in each iteration.
+\item For $i^{th}$ iteration, the a set of parameter $\theta_n$ is sampled from this round proposed prior: $\theta_n \sim \tilde{p}(\theta)$.
+
+\item Correspondingly, based on $\theta_n$ samples, we sample the synthetic data: $x_n \sim p(x|\theta_n)$ .
+
+\item We use simplified distributions (like mixture of Gaussian, with unknown parameter $\phi$ ), $q_\phi(\theta)$ to approximate the posterior: $q_\phi(\theta)  \approx p(\theta|x)$
+
+\item $q_\phi(\theta)$ could be computed by $q_\phi(\theta) = \tilde{p}(x) \cdot q_\phi(\theta|x) $, where $\tilde{p}(x)$ denotes a distribution over x, and $q_\phi(\theta|x) $ can be obtained by sampling from $\theta_n$: $q_\phi(\theta|x) = \prod_n q_\phi(\theta_n|x) $ 
+
+\item The optimization goal is to minimize the difference (quantified by KL divergence $D_{KL} \langle \ p(\theta|x) \ || \ q_\phi(\theta) \ \rangle $) between the approximated distribution $q_\phi(\theta)$ and the posterior $p(\theta|x)$ by adjusting the $\phi$.
+
+\item Then based on the Bayes rule, the above step is equivalent to: \\
+\begin{equation}\nonumber 
+\begin{aligned}
+&{} D_{KL} \langle \ \tilde{p}(\theta) p(x|\theta) \  || \ \tilde{p}(x) q_\phi(\theta|x) \  \rangle  \\ 
+&=\sum_{\theta} \tilde{p}(\theta) p(x|\theta) ln \frac{\tilde{p}(\theta) p(x|\theta)}{\tilde{p}(x) q_\phi(\theta|x)} \\
+&=\sum_{\theta} \tilde{p}(\theta) p(x|\theta) \cdot  ln( \tilde{p}(\theta) p(x|\theta)  - \sum_{\theta} \tilde{p}(\theta) p(x|\theta) \cdot ln ( \tilde{p}(x) q_\phi(\theta|x) )\\
+&= \langle ln( \tilde{p}(\theta) p(x|\theta)  \rangle_{\tilde{p}(\theta) p(x|\theta)} -  \langle  ln ( \tilde{p}(x) q_\phi(\theta|x) ) \rangle_{\tilde{p}(\theta) p(x|\theta)}
+\end{aligned}
+\end{equation}
+
+\item Finding the optimal $\phi$ that minimizes the above step is also equalivent to : $\mathop{\arg\min}_{\phi}  \  -  \langle \ ln \  ( q_\phi(\theta|x) )\  \rangle_{\tilde{p}(\theta) p(x|\theta)}$
+
+\item The above KL divergence $D_{KL} \langle \ p(\theta|x) \ || \ q_\phi(\theta) \ \rangle $) is minimized to 0 if and only if $\tilde{p}(\theta) p(x|\theta) \  = \tilde{p}(x) q_\phi(\theta|x) $ almost everywhere in $\theta$ space, which means $\tilde{p}(x) = \int_{\theta} \tilde{p}(\theta) p(x|\theta) d \theta $
+
+\item From last step:
+\begin{equation}\nonumber 
+\begin{aligned}
+ q_\phi(\theta|x) &= \frac{\tilde{p}(\theta) p(x|\theta)}{\tilde{p}(x) }
+=  \frac{\tilde{p}(\theta) }{\int_{\theta} \tilde{p}(\theta) p(x|\theta) d \theta} p(x|\theta)\\
+& =  \frac{\tilde{p}(\theta) }{\int_{\theta} \tilde{p}(\theta) p(x|\theta) d \theta} \frac{p(\theta|x) p(x) }{p(\theta)} = \frac{p(x) }{\int_{\theta} \tilde{p}(\theta) p(x|\theta) d \theta} \cdot \frac{\tilde{p}(\theta) }{p(\theta)}p(\theta|x) \\
+& = c_0 \cdot \frac{\tilde{p}(\theta) }{p(\theta)}p(\theta|x)\\
+& \propto \frac{\tilde{p}(\theta) }{p(\theta)}p(\theta|x)\
+\end{aligned}
+\end{equation}
+where $c_0$ is a constant with regard to $\theta$
+
+\item Training the neural network to find out the optimal $q_\phi$ on $ (\theta_n,x_n)$, so that we can estimate the posterior by $p(\theta|x=x_0) \propto \frac{p(\theta)}{\tilde{p}(\theta)}\cdot q_\phi(\theta|x=x_0)$.
+\item For updating the proposed prior: $\tilde{p}(\theta)$ is set to $\frac{p(\theta)}{\tilde{p}(\theta)}\cdot q_\phi(\theta|x=x_0)$, and do the next $i+1^{th}$ iteration, until $\tilde{p}(\theta)$ has converged.
+\end{enumerate}
+
+\subsection{Automatic Posterior Transformation (APT)}
+APT methods is mainly based on the above method but the major differences are the following two:
+
+\begin{enumerate}[1.]
+\item The proposed prior can be arbitrarily chosen in the beginning and updated (set to this round $q_{\phi}(\theta)$) at the end of each iterations.
+\item The parameter $\phi \leftarrow$
+$\mathop{\arg\min}_{\phi}  \sum_{i=1}^{r} \sum_{j=1}^{N} \ - ln \  ( q_\phi(\theta_{i,j}|x_{i,j}) )$. The reason for this is that since $q_{\phi}(\theta)=  p(\theta|x) $minimizes the expectation $E[L]$ for any proposal, APT can train on data from multiple rounds simply by adding their loss terms together.
+
+
+\end{enumerate}
+
+\end{document}
