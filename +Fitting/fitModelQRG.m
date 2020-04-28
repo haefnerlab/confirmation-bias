@@ -201,17 +201,18 @@ disp('fitModelQRG: GP Search [LL]');
 
 itr = 1;
 delta = inf;
-while ~all(abs(delta) < tolerance)
+accuracy = inf;
+while ~all(abs(delta) < tolerance) && accuracy > 1
     [ypred, ypred_sd] = gp_ll.predict(gp_mle(itr,:));
     fprintf('Iteration %d\tdelta=%.1e\test_ll=%.1f+/-%.1f', itr, max(abs(delta)), quadBasis(gp_mle(itr,:))+ypred, ypred_sd);
     
     % Evaluate the current max point and update the GP
     [~, new_ll, new_var] = eval_fun(Fitting.setParamsFields(base_params, fields, gp_mle(itr,:)), ...
         distribs, signals, choices, eval_args{:});
-
+    
     gp_ll = updateGPModel(gp_ll, gp_mle(itr,:), new_ll-quadBasis(gp_mle(itr, :)));
     
-    dists = sum(((grid_points-gp_mle(itr,:))./exp(gp_ll.KernelInformation.KernelParameters(1:2:end-2))').^2,2);
+    dists = sum(((grid_points-gp_mle(itr,:))./jitterscale).^2,2);
     [~,iclosest] = min(dists);
     
     fprintf('\tactual_ll=%.1f+/-%.1f\tclosest_ll=%.1f+/-%.1f\n', new_ll, sqrt(new_var), grid_scores.loglike(iclosest), sqrt(grid_scores.variance(iclosest)));
@@ -221,12 +222,16 @@ while ~all(abs(delta) < tolerance)
     % Search again for the new best point
     gp_mle(itr+1,:) = fminconrepeats(@(x) -(quadBasis(x)+gp_ll.predict(x)), searchpoints, nsearchjitter, jitterscale, ...
         [], [], [], [], lb, ub, [], opts);    
+    
+    % Prepare for next iteration / compute convergence metrics
     delta = gp_mle(itr+1,:) - gp_mle(itr,:);
+    accuracy = (ypred+quadBasis(gp_mle(itr,:))) / sqrt(new_var);
     itr = itr+1;
 end
 
 optim_results.gp_mle_params = Fitting.setParamsFields(base_params, fields, gp_mle(end,:));
 
+metadata.beta = fit_beta;
 metadata.gp_ll = gp_ll;
 
 %% Re-run and store final evaluations for each model
