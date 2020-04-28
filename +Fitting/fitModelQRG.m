@@ -34,6 +34,26 @@ end
 
 %% Evaluate parameters on a quasi-random grid (QRG)
 
+% The following parameters tend to dominate the log likelihood when purely sampled from the prior,
+% so instead sample these from the posterior and sample all other parameters from the prior.
+pre_sample_parameters = {'prior_C', 'lapse', 'signal_scale'};
+pre_prior = struct();
+is_mh_sampled = false(size(fields));
+for iF=1:length(fields)
+    for iPara=1:length(pre_sample_parameters)
+        is_mh_sampled(iF) = contains(fields{iF}, pre_sample_parameters{iPara});
+        if is_mh_sampled(iF)
+            pre_prior.(fields{iF}) = distribs.(fields{iF});
+            break
+        end
+    end
+end
+
+if any(is_mh_sampled)
+    % Backwards-compatible checkpoint file
+    chkpt = strrep(chkpt, '.mat', '-mhsamp.mat');
+end
+
 % To gracefully save/load from partially computed results, we initialize to NaN values, (maybe) load
 % from a file, then only evaluate those rows that are still NaN, with periodic checkpointing.
 if exist(chkpt, 'file')
@@ -52,6 +72,16 @@ else
     grid_points = zeros(size(hyperQRG));
     for iF=1:nF
         grid_points(:,iF) = distribs.(fields{iF}).priorinv(hyperQRG(:,iF));
+    end
+    
+    if any(is_mh_sampled)
+        ideal_params = base_params;
+        for iP=1:length(ideal_params)
+            ideal_params(iP).model = 'ideal';
+        end
+        fprintf('fitModelQRG :: ''Pre''sampling {%s}\n', strjoin(fields(is_mh_sampled), ', '));
+        ideal_samples = Fitting.sampleModelMH(signals, choices, ideal_params, 10000, pre_prior, 0, 100, 1);
+        grid_points(:, is_mh_sampled) = ideal_samples;
     end
     
     % Initialize all evaluations to NaN
