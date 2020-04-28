@@ -163,12 +163,26 @@ init_gp_kernel_params = log(init_gp_kernel_params);
 
 gp_args = {'Sigma', sqrt(observation_variance), 'ConstantSigma', true, 'PredictMethod', 'exact', ...
     'KernelFunction', @Fitting.marginalJointKernel, 'KernelParameters', init_gp_kernel_params, ...
-    'Basis', 'constant', 'FitMethod', 'exact'};
+    'Basis', 'constant', 'FitMethod', 'exact', 'CrossVal', 'on'};
 
 %% Search LL landscape with GP
 disp('fitModelQRG: GP Fit');
 
-% Fit Gaussian process to all log likelihood evaluations
+% Fit Gaussian process to all log likelihood evaluations, cross validated (default is 10-fold)
+xv_gp_ll = fitrgp(grid_points(fit_idx, :), residual_loglike, gp_args{:});
+
+% Aggregate kernel hyperparameters: take their geometric mean
+avg_gp_kernel_params = zeros(size(init_gp_kernel_params));
+nFold = length(xv_gp_ll.Trained);
+for iFold=1:nFold
+    avg_gp_kernel_params = avg_gp_kernel_params + xv_gp_ll.Trained{iFold}.KernelInformation.KernelParameters / nFold;
+end
+
+% Construct actual GP object that will be used for searching, with further hyperparameter tuning
+% turned off
+gp_args{find(strcmp(gp_args, 'KernelParameters'))+1} = avg_gp_kernel_params;
+gp_args{find(strcmp(gp_args, 'FitMethod'))+1} = 'none';
+gp_args{find(strcmp(gp_args, 'CrossVal'))+1} = 'off';
 gp_ll = fitrgp(grid_points(fit_idx, :), residual_loglike, gp_args{:});
 
 % Each iteration, restart the search from the 10 best samples from above
