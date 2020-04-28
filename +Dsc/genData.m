@@ -31,15 +31,28 @@ for i1 = 1:numel(genDataInfo.prior_C_list)
         for i3 = 1:numel(genDataInfo.lapse_list)
             for i4 = 1:numel(genDataInfo.samples_list)
 
-                        params = Model.newModelParams('model', 'is', ...
+                        base_params = Model.newModelParams('model', 'is', ...
                             'prior_C', genDataInfo.prior_C_list(i1),'gamma',genDataInfo.gamma_list(i2),...
                             'lapse',genDataInfo.lapse_list(i3),'samples',genDataInfo.samples_list(i4),...
                             'trials',genDataInfo.N_trials_list(i0));
-                        [signals, categories,seed] = Model.genDataWithParams(params);
-                        sim_results = Model.runVectorized(params, signals);
+                        % Find points along the 70% performance curve, ordered from lowest to highest sensory info
+                        performance_level = 0.7;
+                        si_ci_grid = 0.51:0.02:0.99;
+                        sens_cat_pts = Model.getThresholdPoints(si_ci_grid, base_params, performance_level, 5);
+                        % Set LSHC params to be equal to lowest of the above SI values at 70% performance
+                        lshc_params = Model.setCategorySensoryInfo(base_params, sens_cat_pts(1,2), sens_cat_pts(1,1));
+                        % Likewise for HSLC using highest of the SI values above
+                        hslc_params = Model.setCategorySensoryInfo(base_params, sens_cat_pts(end,2), sens_cat_pts(end,1));
+                        
+                        lshc_signals = Model.genDataWithParams(lshc_params);
+                        hslc_signals = Model.genDataWithParams(hslc_params);
+                        
+                        lshc_sim_results = Model.runVectorized(lshc_params, lshc_signals);
+                        hslc_sim_results = Model.runVectorized(hslc_params, hslc_signals);
                         dataName = sprintf('Trial%dpriorC%dgamma%dlapse%dsamples%d',...
                             i0,i1,i2,i3,i4);
-                        save([dataFolder,dataName],'signals','sim_results','params');
+                        save([dataFolder,dataName],'hslc_signals','lshc_signals','lshc_sim_results',...
+                            'hslc_sim_results','lshc_params','hslc_params');
 
             end
         end

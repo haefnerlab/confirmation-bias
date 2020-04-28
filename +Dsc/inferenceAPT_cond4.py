@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Sun Feb 23 15:26:46 2020
+Created on Wed Apr 15 11:11:52 2020
 
 @author: liushizhao
 """
+
+
 
 #%% 
 
@@ -133,7 +135,7 @@ def runAPTinference(dataname,fieldstofit,prior,hyperparameters):
                         minibatch=minibatch,
                     epochs=epochs,
                     silent_fail=False,
-                    proposal='prior',
+                    proposal='gaussian',
                     val_frac=val_frac,
                     verbose=True,)
     return log,posterior
@@ -152,12 +154,13 @@ if __name__ == "__main__":
     logname = 'inferenceAPT' + currentTime
     logging.basicConfig(filename = logname,level = logging.DEBUG)
     # create a savefolder
-    savefolder = '../dscData/resultsSyntheticDataCB'+ currentTime
-    os.mkdir(savefolder)
+    savefolder = '../dscData/resultsSyntheticDataCB_cond4/'
+    if not os.path.exists(savefolder):  
+        os.mkdir(savefolder)
     
     # set some hyperparameters
     # training schedule
-    n_train = 2000
+    n_train = 5000
     n_rounds = 3
     # fitting setup
 
@@ -167,7 +170,7 @@ if __name__ == "__main__":
     n_hiddens = [50,50]
 
     # MAF parameters
-    density = 'maf'
+    density = 'mog'
     n_mades = 5         # number of MADES
     
     hyperparameters = dict()
@@ -179,7 +182,7 @@ if __name__ == "__main__":
     hyperparameters['n_mades'] = n_mades
                     
     # save inference method settings (hyperparameters)
-    savemat(os.path.join(savefolder,'hyperparameters'),{'hyperparameters':hyperparameters})
+    savemat(os.path.join(savefolder,'hyperparameters.mat'),{'hyperparameters':hyperparameters})
     priorC_list = [1,2,3]
     gamma_list = [1,2,3]
     lapse_list = [1,2,3]
@@ -193,28 +196,29 @@ if __name__ == "__main__":
                     datafolder = '../dscData/syntheticDataCB'
                     filename = 'Trial1priorC%dgamma%dlapse%dsamples%d.mat' %(C,g,l,s)
                     dataname = os.path.join(datafolder,filename)
+                    savename =os.path.join(savefolder,'res'+ filename)
+                    if not os.path.isfile(savename):
                     
+                        # define prior over model parameters
+                        fieldstofit = ['prior_C','gamma','lapse','samples']
+                       
+                        prior_min = np.array([0,0,0,1])
+                        prior_max = np.array([1,1,1,100])
+                       
+                        seed_p = 2
+                        prior =  dd.Uniform(lower = prior_min , upper = prior_max,seed = seed_p)
                     
-                    # define prior over model parameters
-                    fieldstofit = ['prior_C','gamma','lapse','samples']
-                   
-                    prior_min = np.array([0,0,0,1])
-                    prior_max = np.array([1,1,1,100])
-                   
-                    seed_p = 2
-                    prior =  dd.Uniform(lower = prior_min , upper = prior_max,seed = seed_p)
-                
-                
-                    logging.info('Running %dpriorC %dgamma %dlapse %dsamples' %(C,g,l,s))
-                    log,posterior = runAPTinference(dataname,fieldstofit,prior,hyperparameters)
-                    
-                    #%%
-                    # generate 1000 samples from posterior
-                    posteriorSamples = posterior[0].gen(1000)
-                    # save these samples to a .matfile
-                    
-                   
-                    
-                    savename ='res'+ filename
-                    savemat(os.path.join(savefolder,savename),{'posterSamples':posteriorSamples,'log':log})
-                    logging.info('Finished %dpriorC %dgamma %dlapse %dsamples' %(C,g,l,s))
+                       # print('Running %dpriorC %dgamma %dlapse %dsamples' %(C,g,l,s))
+                        logging.info('Running %dpriorC %dgamma %dlapse %dsamples' %(C,g,l,s))
+                        log,posterior = runAPTinference(dataname,fieldstofit,prior,hyperparameters)
+                        
+                        #%%
+                        # generate 1000 samples from posterior
+                        posteriorSamples = posterior[0].gen(2000)
+                        # save these samples to a .matfile
+                        
+                       
+                        
+                        
+                        savemat(savename,{'posterSamples':posteriorSamples,'log':log})
+                        logging.info('Finished %dpriorC %dgamma %dlapse %dsamples' %(C,g,l,s))

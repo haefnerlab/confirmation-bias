@@ -66,9 +66,9 @@ class ConfirmationBias(BaseSimulator):
     
 class ConfirmationBiasStats(BaseSummaryStats):
     
-    def __init__(self,signals,categories,condition = 'choices_categories',useStd = True):
+    def __init__(self,signals,infoType,condition = 'choices_infoType',useStd = True):
         self.signals = signals
-        self.categories = categories
+        self.infoType = infoType
         self.condition = condition
         self.useStd = useStd
     def calc(self,repetition_list):
@@ -80,14 +80,14 @@ class ConfirmationBiasStats(BaseSummaryStats):
             data = repetition_list[r]
             choices = np.asarray(data['choices'])
             signals = np.asarray(self.signals)
-            categories = np.asarray(self.categories)
+            infoType = np.asarray(self.infoType)
             
-            if self.condition == 'choices_categories':
+            if self.condition == 'choices_infoType':
                 # group trials according to both choices and catergory information (4 groups)
-                ind1 = np.where( (choices == 1) & (categories == 1))[0]
-                ind2 = np.where( (choices == 1) & (categories == -1))[0]
-                ind3 = np.where( (choices == -1) & (categories == 1))[0]
-                ind4 = np.where( (choices == -1) & (categories == -1))[0]
+                ind1 = np.where( (choices == 1) & (infoType == 1))[0]
+                ind2 = np.where( (choices == 1) & (infoType == -1))[0]
+                ind3 = np.where( (choices == -1) & (infoType == 1))[0]
+                ind4 = np.where( (choices == -1) & (infoType == -1))[0]
                 if self.useStd: 
                     # include standard error mean in summary statistics
                     sum_stats_vec = np.hstack((np.mean(signals[ind1,:],axis = 0),np.mean(signals[ind2,:],axis = 0),\
@@ -102,8 +102,8 @@ class ConfirmationBiasStats(BaseSummaryStats):
                    np.mean(signals[ind3,:],axis = 0),np.mean(signals[ind4,:],axis = 0)))    
             elif self.condition == 'choices':
                 # group trials according to just choices (2 groups)
-                ind1 = np.where(choices == 1)
-                ind2 = np.where(choices == -1)
+                ind1 = np.where(choices == 1)[0]
+                ind2 = np.where(choices == -1)[0]
                 if self.useStd:
                     # include standard error mean in summary statistics
                     sum_stats_vec = np.hstack((np.mean(signals[ind1,:],axis = 0),np.mean(signals[ind2,:],axis = 0),\
@@ -112,10 +112,10 @@ class ConfirmationBiasStats(BaseSummaryStats):
                 else:
                     # only use average of signals as summary statistics 
                     sum_stats_vec = np.hstack((np.mean(signals[ind1,:],axis = 0),np.mean(signals[ind2,:],axis = 0)))   
-            elif self.condition == 'categories':
+            elif self.condition == 'infoType':
                 # group trials according to just category information (2 groups)
-                ind1 = np.where(categories == 1)
-                ind2 = np.where(categories == -1)
+                ind1 = np.where(infoType == 1)[0]
+                ind2 = np.where(infoType == -1)[0]
                 if self.useStd:
                     sum_stats_vec = np.hstack((np.mean(signals[ind1,:],axis = 0),np.mean(signals[ind2,:],axis = 0),\
                                                np.std(signals[ind1,:],axis = 0)/np.sqrt(len(ind1)),\
@@ -137,22 +137,44 @@ if __name__ == "__main__":
     dataname = os.path.join(datafolder,filename)
     data = loadmat(dataname)
     
-    choices = np.asarray(data['sim_results']['choices'])
-    signals = np.asarray(data['signals'])
-    categories = np.asarray(data['categories'])
-    params = data['params']
+    lshc_choices = np.asarray(data['lshc_sim_results']['choices'])
+    hslc_choices = np.asarray(data['hslc_sim_results']['choices'])
+    lshc_signals = np.asarray(data['lshc_signals'])
+    hslc_signals = np.asarray(data['hslc_signals'])
+
+    lshc_params = data['lshc_params']
+    hslc_params = data['hslc_params']
     
-    s = ConfirmationBiasStats(signals,categories,condition = 'choices_categories',useStd = True)
-    obs = {'choices':choices}
+    lshc_infoType = np.ones(lshc_choices.shape)
+    hslc_infoType = np.ones(hslc_choices.shape) * -1
     
-    obs_stats = s.calc([obs])
+    # summary statistics of lshc condition
+    lshc_s = ConfirmationBiasStats(lshc_signals,lshc_infoType,condition = 'choices',useStd = True)
+    lshc_obs = {'choices':lshc_choices}
     
-    plt.figure()
-    plt.errorbar(np.arange(10),obs_stats[0][0:10],obs_stats[0][40:50])
-    plt.errorbar(np.arange(10),obs_stats[0][10:20],obs_stats[0][50:60])
-    plt.errorbar(np.arange(10),obs_stats[0][20:30],obs_stats[0][60:70])
-    plt.errorbar(np.arange(10),obs_stats[0][30:40],obs_stats[0][70:80])
+    lshc_obs_stats = lshc_s.calc([lshc_obs])
     
+    plt.subplot(121)
+    plt.errorbar(np.arange(10),lshc_obs_stats[0][0:10],lshc_obs_stats[0][20:30],color = 'red')
+    plt.errorbar(np.arange(10),lshc_obs_stats[0][10:20],lshc_obs_stats[0][30:40],ls='--',color = 'red')
+    plt.ylim([-2,2])
+    plt.xlabel('Frame')
+    plt.ylabel('Signal')
+    plt.title('LSHC')
+    
+    # summary statistics of hslc condition
+    hslc_s = ConfirmationBiasStats(hslc_signals,hslc_infoType,condition = 'choices',useStd = True)
+    hslc_obs = {'choices':hslc_choices}
+    
+    hslc_obs_stats = hslc_s.calc([hslc_obs])
+    
+    plt.subplot(122)
+    plt.errorbar(np.arange(10),hslc_obs_stats[0][0:10],hslc_obs_stats[0][20:30],color = 'blue')
+    plt.errorbar(np.arange(10),hslc_obs_stats[0][10:20],hslc_obs_stats[0][30:40],ls='--',color = 'blue')
+    plt.ylim([-2,2])
+    plt.xlabel('Frame')
+    plt.ylabel('Signal')
+    plt.title('HSLC')
     
     # #%%
     # engine = matlab.engine.start_matlab()

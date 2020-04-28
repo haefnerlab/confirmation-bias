@@ -54,7 +54,7 @@ class psychoToyStats(BaseSummaryStats):
     def __init__(self,x):
         self.x = x
     def calc(self,repetition_list):
-        seg = 10
+        seg = 20
         stats = []
     
         for r in range(len(repetition_list)):
@@ -104,8 +104,8 @@ if __name__ == "__main__":
     plt.figure()
     plt.plot(x0,np.mean(obs0Multi,axis = 1),'bo')    
     # define prior
-    prior_min = np.array([0,-10])
-    prior_max = np.array([5,10])
+    prior_min = np.array([0.1,-5])
+    prior_max = np.array([2,5])
     seed_p = 2
     prior =  dd.Uniform(lower = prior_min , upper = prior_max,seed = seed_p)
     
