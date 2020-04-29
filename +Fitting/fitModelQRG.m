@@ -255,7 +255,7 @@ while ~all(abs(delta) < tolerance) && accuracy > 1
     
     % Prepare for next iteration / compute convergence metrics
     delta = gp_mle(itr+1,:) - gp_mle(itr,:);
-    accuracy = (ypred+quadBasis(gp_mle(itr,:))) / sqrt(new_var);
+    accuracy = abs(ypred+quadBasis(gp_mle(itr,:)) - new_ll) / sqrt(new_var);
     itr = itr+1;
 end
 
