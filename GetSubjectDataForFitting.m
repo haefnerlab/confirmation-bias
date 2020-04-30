@@ -21,7 +21,7 @@ stim_set{2} = LoadOrRun(@ComputeFrameSignals, {SubjectDataNoise, kernel_kappa}, 
 
 % Select sub-threshold trials
 [~, trial_set{1}] = GaborThresholdTrials(SubjectDataRatio, 1, .6, .4);
-[~, thresh] = GaborAnalysis.getThresholdWindow(SubjectDataNoise, 2, 0.5, 0.7, memodir);
+[~, thresh] = GaborAnalysis.getThresholdWindow(SubjectDataNoise, 2, 0.5, 0.75, memodir);
 [~, trial_set{2}] = GaborThresholdTrials(SubjectDataNoise, 1, thresh);
 
 % Restrict stim and choices to sub-threshold in each task
