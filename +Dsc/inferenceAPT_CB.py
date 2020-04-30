@@ -23,11 +23,13 @@ import logging
 import datetime
 from scipy.io import savemat
 import matplotlib.pyplot as plt
+plt.rcParams.update({'font.size': 16})
 from delfi.utils.viz import samples_nd
+
 #%%
-def ConfirmationBiasSimulator(xval,fieldstofit,params, dataPath, engine):
+def ConfirmationBiasSimulator(xval,fieldstofit,params, signals, engine):
     # run matlab code run.vectorized and read results
-    # print("Hello I am in Simulator")
+   
 
     paramsNew = copy.deepcopy(params)
     for i,f in enumerate(fieldstofit):
@@ -37,23 +39,21 @@ def ConfirmationBiasSimulator(xval,fieldstofit,params, dataPath, engine):
             paramsNew[f] = int(xval[i])
 
 
-    sim_results = engine.Model.runVectorizedAPT(paramsNew, dataPath)
-    #print("Hello I am out of simulator")
-    
+    sim_results = engine.Model.runVectorizedAPT(paramsNew, signals.tolist())
     sim_choice = np.squeeze(np.asarray(sim_results['choices']))
 
 
 
     return sim_choice
-# define a simulator class linking to the real simulator
 
+# define a simulator class linking to the real simulator
 class ConfirmationBias(BaseSimulator):
     
-    def __init__(self, dataPath,fieldstofit,params,engine, seed = None):
+    def __init__(self, signals,fieldstofit,params,engine, seed = None):
         
         dim_param = 4
         super().__init__(dim_param = dim_param,seed = seed)
-        self.dataPath = dataPath
+        self.signals = signals
         self.simulate = ConfirmationBiasSimulator
         self.engine = engine
         self.fieldstofit = fieldstofit
@@ -61,7 +61,7 @@ class ConfirmationBias(BaseSimulator):
         
     def gen_single(self,xval):
         
-        choices = self.simulate(xval,self.fieldstofit,self.params,self.dataPath, self.engine)
+        choices = self.simulate(xval,self.fieldstofit,self.params,self.signals, self.engine)
         return {'choices':choices}
     
 class ConfirmationBiasStats(BaseSummaryStats):
@@ -128,10 +128,10 @@ class ConfirmationBiasStats(BaseSummaryStats):
         return stats
 #%%
 if __name__ == "__main__":
-    C = 2 # prior_C =  0.5
-    g = 1 # gamma = 0
+    C = 1 # prior_C =  0.5
+    g = 2 # gamma = 0
     l = 2 # lapse = 0.1 
-    s = 2 # sample = 5
+    s = 1 # sample = 5
     datafolder = '../dscData/syntheticDataCB'
     filename = 'Trial1priorC%dgamma%dlapse%dsamples%d.mat' %(C,g,l,s)
     dataname = os.path.join(datafolder,filename)
@@ -147,91 +147,99 @@ if __name__ == "__main__":
     
     lshc_infoType = np.ones(lshc_choices.shape)
     hslc_infoType = np.ones(hslc_choices.shape) * -1
-    
+    #%%
     # summary statistics of lshc condition
     lshc_s = ConfirmationBiasStats(lshc_signals,lshc_infoType,condition = 'choices',useStd = True)
     lshc_obs = {'choices':lshc_choices}
     
     lshc_obs_stats = lshc_s.calc([lshc_obs])
     
-    plt.subplot(121)
-    plt.errorbar(np.arange(10),lshc_obs_stats[0][0:10],lshc_obs_stats[0][20:30],color = 'red')
-    plt.errorbar(np.arange(10),lshc_obs_stats[0][10:20],lshc_obs_stats[0][30:40],ls='--',color = 'red')
-    plt.ylim([-2,2])
-    plt.xlabel('Frame')
-    plt.ylabel('Signal')
-    plt.title('LSHC')
-    
+    # plt.subplot(121)
+    # plt.errorbar(np.arange(10),lshc_obs_stats[0][0:10],lshc_obs_stats[0][20:30],color = 'red',label = 'choice 1')
+    # plt.errorbar(np.arange(10),lshc_obs_stats[0][10:20],lshc_obs_stats[0][30:40],ls='--',color = 'red',label = 'choice -1')
+    # plt.ylim([-2,2])
+    # plt.xlabel('Frame')
+    # plt.ylabel('Signal')
+    # plt.title('LSHC')
+    # plt.legend()
+    # plt.tight_layout()
     # summary statistics of hslc condition
     hslc_s = ConfirmationBiasStats(hslc_signals,hslc_infoType,condition = 'choices',useStd = True)
     hslc_obs = {'choices':hslc_choices}
     
     hslc_obs_stats = hslc_s.calc([hslc_obs])
     
-    plt.subplot(122)
-    plt.errorbar(np.arange(10),hslc_obs_stats[0][0:10],hslc_obs_stats[0][20:30],color = 'blue')
-    plt.errorbar(np.arange(10),hslc_obs_stats[0][10:20],hslc_obs_stats[0][30:40],ls='--',color = 'blue')
-    plt.ylim([-2,2])
-    plt.xlabel('Frame')
-    plt.ylabel('Signal')
-    plt.title('HSLC')
+    # plt.subplot(122)
+    # plt.errorbar(np.arange(10),hslc_obs_stats[0][0:10],hslc_obs_stats[0][20:30],color = 'blue',label = 'choice 1')
+    # plt.errorbar(np.arange(10),hslc_obs_stats[0][10:20],hslc_obs_stats[0][30:40],ls='--',color = 'blue',label = 'choice -1')
+    # plt.ylim([-2,2])
+    # plt.xlabel('Frame')
+    # plt.ylabel('Signal')
+    # plt.title('HSLC')
+    # plt.legend()
+    # plt.tight_layout()
+    # plt.suptitle('priorC = %.1f, gamma = %.1f, lapse = %.1f, samples = %d' %(hslc_params['prior_C'],\
+    #                                                                    hslc_params['gamma'],\
+    #                                                                 hslc_params['lapse'],\
+    #                                                                 hslc_params['samples']),y = 0.99)
+        
+    #%%
+    engine = matlab.engine.start_matlab()
     
-    # #%%
-    # engine = matlab.engine.start_matlab()
-    
-    # fieldstofit = ['prior_C','gamma','lapse','samples']
+    fieldstofit = ['prior_C','gamma','lapse','samples']
                        
-    # prior_min = np.array([0,0,0,1])
-    # prior_max = np.array([1,1,1,100])
+    prior_min = np.array([0,0,0,1])
+    prior_max = np.array([1,1,1,100])
    
-    # seed_p = 2
-    # prior =  dd.Uniform(lower = prior_min , upper = prior_max,seed = seed_p)
-    # m = ConfirmationBias(dataname,fieldstofit,params,engine)
+    seed_p = 2
+    prior =  dd.Uniform(lower = prior_min , upper = prior_max,seed = seed_p)
+    lshc_m = ConfirmationBias(lshc_signals,fieldstofit,lshc_params,engine)
     
-    # g = dg.Default(model=m, prior=prior, summary=s)
-    # # set hyparameters 
-    # # training schedule
-    # n_train = 5000
-    # n_rounds = 2
-    # seed_inf = 1
-    # pilot_samples = 2000
+    g = dg.Default(model=lshc_m, prior=prior, summary=lshc_s)
+    
+    # set hyparameters 
+    # training schedule
+    n_train = 5000
+    n_rounds = 2
+    seed_inf = 1
+    pilot_samples = 2000
 
 
-    # val_frac = 0.05
-    # # network setup
-    # n_hiddens = [50,50]
-    # minibatch = 500
-    # epochs = 100
+    val_frac = 0.05
+    # network setup
+    n_hiddens = [50,50]
+    minibatch = 500
+    epochs = 100
     
-    # prior_norm = True
+    prior_norm = True
     
-    # # MAF parameters
-    # density = 'mog'
-    # n_mades = 5         # number of MADES
+    # MAF parameters
+    density = 'mog'
+    n_mades = 5         # number of MADES
     
 
 
 
-    # # inference object
-    # res = infer.SNPEC(g,
-    #                 obs=obs_stats,
-    #                 n_hiddens=n_hiddens,
-    #                 seed=seed_inf,
-    #                 pilot_samples=pilot_samples,
-    #                 n_mades=n_mades,
-    #                 prior_norm=prior_norm,
-    #                 density=density)
+    # inference object
+    res = infer.SNPEC(g,
+                    obs=lshc_obs_stats,
+                    n_hiddens=n_hiddens,
+                    seed=seed_inf,
+                    pilot_samples=pilot_samples,
+                    n_mades=n_mades,
+                    prior_norm=prior_norm,
+                    density=density)
     
-    # # train
-    # log, _, posterior = res.run(
-    #                     n_train=n_train,
-    #                     n_rounds=n_rounds,
-    #                     minibatch=minibatch,
-    #                 epochs=epochs,
-    #                 silent_fail=False,
-    #                 proposal='gaussian',
-    #                 val_frac=val_frac,
-    #                 verbose=True,)
+    # train
+    log, _, posterior = res.run(
+                        n_train=n_train,
+                        n_rounds=n_rounds,
+                        minibatch=minibatch,
+                    epochs=epochs,
+                    silent_fail=False,
+                    proposal='gaussian',
+                    val_frac=val_frac,
+                    verbose=True,)
     
     
     # #%%
