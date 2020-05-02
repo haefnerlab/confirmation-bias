@@ -73,16 +73,20 @@ rng('shuffle');
 % match the choice on that trial
 nSamplesToMatch = nan(nTotalTrials, repeats);
 
+% simCountK is the counter, per trial, of how many simulations have been run for each trial since
+% the last match.
+simCountK = zeros(nTotalTrials, 1);
+
 % Only keep re-running simulations on trials that haven't yet been matched 'repeats' times
 matched = zeros(nTotalTrials, 1);
 
 % At each iteration, the upper bound is based on L for all 'matched' trials plus what it would be
-% for the 'unmatched' trials if they all completed on the next iteration.
-L_hat_upper_bound = 0;
+% for the 'unmatched' trials if they had all completed on the current iteration.
+L_hat_upper_bound = zeros(1, repeats);
 
-% Loop forever (up to maxK) until no unmatched trials remain
-k = 1;
-while ~all(matched >= repeats) && L_hat_upper_bound > lower_bound
+% Loop forever until no unmatched trials remain (but not an infinite loop b/c of upper/lower bound
+% check)
+while ~all(matched >= repeats)
     unmatched = matched < repeats;
     for iSet=length(params):-1:1
         if ~any(unmatched(setIdx(:,iSet))), continue; end
@@ -90,7 +94,10 @@ while ~all(matched >= repeats) && L_hat_upper_bound > lower_bound
         % Run the model only on unmatched trials within this set
         sim_results = Model.runVectorized(params(iSet), signals(unmatched & setIdx(:,iSet), :) / params(iSet).signal_scale);
         
-        % For all that now match... record 'k' and mark those trials as complete
+        % Count this simulation
+        simCountK(unmatched & setIdx(:,iSet)) = simCountK(unmatched & setIdx(:,iSet)) + 1;
+        
+        % For all that now match... record 'k' and do book-keeping on what remains
         matching_subset = sim_results.choices == choices(unmatched & setIdx(:,iSet));
         if any(matching_subset)
             % Work out the indices out of 1:nTotalTrials that we just matched
@@ -98,34 +105,50 @@ while ~all(matched >= repeats) && L_hat_upper_bound > lower_bound
             match_idxs = sim_idxs(matching_subset);
             % Add 1 to 'matched' on matching trials
             matched(match_idxs) = matched(match_idxs) + 1;
-            % Store the 'k' for this match number. If this is the 2nd or higher repeat for a given
-            % trial, then 'k' is adjusted to number of simulations since the last success.
-            last_match = nansum(nSamplesToMatch(match_idxs, :), 2);
-            idx_update = sub2ind(size(nSamplesToMatch), match_idxs, matched(match_idxs));
-            nSamplesToMatch(idx_update) = k-last_match;
+            % Store and reset the 'k' for those trials
+            for tr=match_idxs'
+                next_nan = find(isnan(nSamplesToMatch(tr,:)),1);
+                nSamplesToMatch(tr,next_nan) = simCountK(tr);
+            end
+            simCountK(match_idxs) = 0;
         end
     end
         
-    % Upper-bound on L-hat is the estimate of L under the assumption that all other trials will be
-    % matched on the next step.
-    effectiveSamples = nSamplesToMatch;
-    effectiveSamples(matched == 0, 1) = k+1;
+    % Enforce upper-bound on each repeat, i.e. on each column of 'nSamplesToMatch'. Upper-bound is
+    % log likelihood estimate *if* all remaining simulations were matches.
+    effSamples = nSamplesToMatch;
+    effSimCount = simCountK;
+    for r=1:repeats
+        unmatched = isnan(nSamplesToMatch(:,r));
+        % Skip columns that are done (note: includes those hit the lower bound already)
+        if ~any(unmatched), continue; end
+        
+        % 'Effective' samples per trial set to hypothetical value of matching on the next iteration
+        effSamples(unmatched, r) = effSimCount(unmatched)+1;
+
+        % Maintaining the hypothetical, # sims per trial would drop to 1 for all remaining repeats
+        effSimCount(unmatched) = 1;
     
-    % See eq. 14 in reference [1]; psi(0,x) is Matlab's builtin digamma function of x, i.e. the
-    % first derivative of log(gamma(x))
-    L_hat_upper_bound = sum(nanmean(psi(0,1) - psi(0,effectiveSamples), 2));
-
-    % Advance...
-    k = k+1;
+        % See eq. 14 in reference [1]; psi(0,x) is Matlab's builtin digamma function of x, i.e. the
+        % first derivative of log(gamma(x))
+        L_hat_upper_bound(r) = sum(psi(0,1) - psi(0,effSamples(:,r)), 1);
+        
+        % If lower-bound has been crossed, set unmatched 'nSamplesToMatch' for repeat r to the
+        % 'effective' samples from the upper-bound calculation.
+        if L_hat_upper_bound(r) < lower_bound
+            nSamplesToMatch(unmatched, r) = effSamples(unmatched, r);
+            % Count these trials as matched.
+            matched(unmatched) = matched(unmatched) + 1;
+            % Reset 'simCountK' for these bound-crossed trials, again 'as if' it matches on the next
+            % iteration.
+            simCountK(unmatched) = 0;
+        end
+    end
 end
 
-if L_hat_upper_bound > lower_bound
-    % If we didn't hit the lower bound, the following sanity-check should hold:
-    assert(all(sum(~isnan(nSamplesToMatch), 2) == repeats));
-else
-    % We hit the lower bound.. use 'effectiveSamples' for the actual estimator
-    nSamplesToMatch = effectiveSamples;
-end
+% Sanity-check that all repeats have a value (even if set by crossing the bound)
+assert(all(sum(~isnan(nSamplesToMatch), 2) == repeats) && all(nSamplesToMatch(:) > 0));
+assert(all(matched == repeats));
     
 % See eq. 14 in reference [1]; psi(0,x) is Matlab's builtin digamma function of x, i.e. the
 % first derivative of log(gamma(x))
