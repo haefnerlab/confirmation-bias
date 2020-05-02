@@ -1,4 +1,4 @@
-function results = runVectorized(params, dataFilePath)
+function results = runVectorized(params,signals)
 %RUNVECTORIZED run the model(s) vectorized over trials. Which model to use and its parameters are
 %specified in the 'params' struct. Also see Model.newModelParams for more information. The second
 %'data' argument, if given, must be a [trials x frames] matrix of signal levels. If 'data' is not
@@ -38,10 +38,15 @@ function results = runVectorized(params, dataFilePath)
 % - params.noise = (inference) log-normal noise per update is exp(randn*noise - noise^2/2)
 % - params.lapse = (inference) probability of "lapse" (random choice on a trial regardless of stim)
 % - params.step_size = (inference) fraction of full update to log odds C to apply in each iteration.
-
-load(dataFilePath)
-data = signals;
-
+nTrial = numel(signals);
+nSignals = numel(signals{1});
+data = zeros(nTrial,nSignals);
+for i = 1:nTrial
+    data(i,:) = cell2mat(signals{i});
+end
+params.updates = double(params.updates);
+params.noise = double(params.noise);
+save('signal_tmp','data','params')
 prior_C = params.prior_C;
 lapse = params.lapse;
 

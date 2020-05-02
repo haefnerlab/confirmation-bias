@@ -1,3 +1,0 @@
-This is a pipline for infering parameters of synthetic dataset of confirmationalbias model:
-1. Use genData.m to generate synthetic data.
-2. 
