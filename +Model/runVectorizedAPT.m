@@ -46,7 +46,9 @@ for i = 1:nTrial
 end
 params.updates = double(params.updates);
 params.noise = double(params.noise);
-save('signal_tmp','data','params')
+params.gamma = double(params.gamma);
+params.lapse = double(params.lapse);
+%save('signal_tmp','data','params')
 prior_C = params.prior_C;
 lapse = params.lapse;
 

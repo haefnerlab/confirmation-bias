@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Sat Apr 18 23:10:25 2020
+Created on Sat May  2 13:55:48 2020
 
 @author: liushizhao
 """
+
+
 
 
 #%% 
@@ -142,7 +144,7 @@ if __name__ == "__main__":
     logname = 'inferenceAPT' + currentTime
     logging.basicConfig(filename = logname,level = logging.DEBUG)
     # create a savefolder
-    savefolder = '../dscData/resultsSyntheticDataCB/'
+    savefolder = '../dscData/resultsSyntheticDataCB_version2/'
     if not os.path.exists(savefolder):  
         os.mkdir(savefolder)
     
@@ -210,11 +212,11 @@ if __name__ == "__main__":
                         hslc_infoType = np.ones(hslc_choices.shape) * -1
                         #%%
                         # summary statistics of lshc condition
-                        lshc_s = ConfirmationBiasStats(lshc_signals,lshc_infoType,condition = 'choices',useStd = True)
+                        lshc_s = ConfirmationBiasStats(lshc_signals,lshc_infoType,condition = 'choices',useStd = False)
                         lshc_obs = {'choices':lshc_choices} 
                         lshc_obs_stats = lshc_s.calc([lshc_obs])
                         # summary statistics of hslc condition
-                        hslc_s = ConfirmationBiasStats(hslc_signals,hslc_infoType,condition = 'choices',useStd = True)
+                        hslc_s = ConfirmationBiasStats(hslc_signals,hslc_infoType,condition = 'choices',useStd = False)
                         hslc_obs = {'choices':hslc_choices}
                         hslc_obs_stats = hslc_s.calc([hslc_obs])
                         
@@ -222,76 +224,76 @@ if __name__ == "__main__":
                         #%%
                         
                         
-                        # fieldstofit = ['prior_C','gamma','lapse','samples']
+                        fieldstofit = ['prior_C','gamma','lapse','samples']
                                            
-                        # prior_min = np.array([0,0,0,1])
-                        # prior_max = np.array([1,1,1,100])
+                        prior_min = np.array([0,0,0,1])
+                        prior_max = np.array([1,0.5,0.5,50])
                        
-                        # seed_p = 2
-                        # prior =  dd.Uniform(lower = prior_min , upper = prior_max,seed = seed_p)
-                        # #%%
+                        seed_p = 2
+                        prior =  dd.Uniform(lower = prior_min , upper = prior_max,seed = seed_p)
+                        #%%
                    
                      
-                        # lshc_m = ConfirmationBias(lshc_signals,fieldstofit,lshc_params,engine)
+                        lshc_m = ConfirmationBias(lshc_signals,fieldstofit,lshc_params,engine)
                         
                         
-                        # gt = dg.Default(model=lshc_m, prior=prior, summary=lshc_s)
+                        gt = dg.Default(model=lshc_m, prior=prior, summary=lshc_s)
                         
-                        # # set hyparameters 
-                        # # training schedule
-                        # n_train = 5000
-                        # n_rounds = 2
-                        # seed_inf = 1
-                        # pilot_samples = 2000
+                        # set hyparameters 
+                        # training schedule
+                        n_train = 5000
+                        n_rounds = 2
+                        seed_inf = 1
+                        pilot_samples = 2000
                     
                     
-                        # val_frac = 0.05
-                        # # network setup
-                        # n_hiddens = [50,50]
-                        # minibatch = 500
-                        # epochs = 100
+                        val_frac = 0.05
+                        # network setup
+                        n_hiddens = [50,50]
+                        minibatch = 500
+                        epochs = 100
                         
-                        # prior_norm = True
+                        prior_norm = False
                         
-                        # # MAF parameters
-                        # density = 'mog'
-                        # n_mades = 5         # number of MADES
+                        # MAF parameters
+                        density = 'mog'
+                        n_mades = 5         # number of MADES
     
    
    
             
-                        # # inference object
-                        # res = infer.SNPEC(gt,
-                        #                 obs=lshc_obs_stats,
-                        #                 n_hiddens=n_hiddens,
-                        #                 seed=seed_inf,
-                        #                 pilot_samples=pilot_samples,
-                        #                 n_mades=n_mades,
-                        #                 prior_norm=prior_norm,
-                        #                 density=density)
+                        # inference object
+                        res = infer.SNPEC(gt,
+                                        obs=lshc_obs_stats,
+                                        n_hiddens=n_hiddens,
+                                        seed=seed_inf,
+                                        pilot_samples=pilot_samples,
+                                        n_mades=n_mades,
+                                        prior_norm=prior_norm,
+                                        density=density)
                         
-                        # # train
-                        # log, _, posterior = res.run(
-                        #                     n_train=n_train,
-                        #                     n_rounds=n_rounds,
-                        #                     minibatch=minibatch,
-                        #                 epochs=epochs,
-                        #                 silent_fail=False,
-                        #                 proposal='gaussian',
-                        #                 val_frac=val_frac,
-                        #                 verbose=True,)
+                        # train
+                        log, _, posterior = res.run(
+                                            n_train=n_train,
+                                            n_rounds=n_rounds,
+                                            minibatch=minibatch,
+                                        epochs=epochs,
+                                        silent_fail=False,
+                                        proposal='gaussian',
+                                        val_frac=val_frac,
+                                        verbose=True,)
                     
-                        # # save posterior 
-                        # with open(savenamepkl,'wb') as f:
-                        #     pickle.dump([log,posterior],f)
-                        # # generate 2000 samples from posterior
-                        # posteriorSamples = []
-                        # for n in range(n_rounds):
-                        #     posteriorSamples.append(posterior[n].gen(2000))
-                        # # save these samples to a .matfile
+                        # save posterior 
+                        with open(savenamepkl,'wb') as f:
+                            pickle.dump([log,posterior],f)
+                        # generate 2000 samples from posterior
+                        posteriorSamples = []
+                        for n in range(n_rounds):
+                            posteriorSamples.append(posterior[n].gen(2000))
+                        # save these samples to a .matfile
                     
                    
                     
                     
-                        # savemat(savename,{'posterSamples':posteriorSamples,'log':log})
-                        # #logging.info('Finished %dpriorC %dgamma %dlapse %dsamples' %(C,g,l,s))
+                        savemat(savename,{'posterSamples':posteriorSamples,'log':log})
+                        #logging.info('Finished %dpriorC %dgamma %dlapse %dsamples' %(C,g,l,s))
