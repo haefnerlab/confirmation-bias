@@ -1,4 +1,4 @@
-function [optim_results, exitflag, metadata] = fitModelBADS(base_params, signals, choices, distribs, metadata)
+function [optim_results, exitflag, gpinfo, metadata] = fitModelBADS(base_params, signals, choices, distribs, metadata)
 %FITTING.FITMODELBADS Search for maximum likelhood model using Bayesian Adaptive Direct Searach
 %(BADS) library.
 
@@ -20,16 +20,19 @@ chkpt = fullfile('sample-checkpoints', sprintf('%x-bads-grid.mat', input_id));
 %% Set up evaluation, handling stochastic vs deterministic case
 if Model.isStochastic(base_params)
     disp('fitModelBADS (stochastic case)');
+    
     % BADS expects noise variance on the order of 1, which requires scaling # evaluations by
     % sqrt(#trials)
     ibs_repeats = round(sqrt(nTrials));
     
     eval_fun = @Fitting.choiceModelLogProbIBS;
     eval_args = {[], ibs_repeats};
+    final_eval_args = {[], 10*ibs_repeats};
 else
     disp('fitModelBADS (deterministic case)');
     eval_fun = @Fitting.choiceModelLogProb;
     eval_args = {1};
+    final_eval_args = {1};
 end
 
 %% Select initial points using a quasi-random grid sampled from the prior
@@ -46,7 +49,7 @@ if exist(chkpt, 'file')
     
     fprintf('fitModelBADS :: %s\tloaded %d of %d evaluations\n', chkpt, sum(~isnan(loglike)), length(loglike));
 else
-    % Start with a BADS of only 1000 points on the unit hypercube
+    % Start with a QRG of only 1000 points on the unit hypercube
     hyperQRG = lhsdesign(1000, nF);
     
     % Use points inside hypercube to get grid on actual parameters via inverse CDF of each field's prior
@@ -79,7 +82,7 @@ end
 % Sort LL to start BADS from each of the top K points
 [~, sort_ll] = sort(loglike, 'descend');
 
-%% Run BADS from each point
+%% Run BADS multiple times
 
 LB = cellfun(@(f) distribs.(f).lb, fields)';
 UB = cellfun(@(f) distribs.(f).ub, fields)';
@@ -97,12 +100,13 @@ end
 
 nRuns = 10;
 for iRun=nRuns:-1:1
-    [max_x(iRun,:), nll(iRun), exitflag(iRun)] = bads(...
+    % Use the top 'nRuns' points from the grid for initialization
+    [max_x(iRun,:), nll(iRun), exitflag(iRun), ~, ~, gpinfo(iRun)] = bads(...
         @(x) -eval_fun(Fitting.setParamsFields(base_params, fields, x), distribs, signals, choices, eval_args{:}), ...
         grid_points(sort_ll(iRun), :), LB, UB, PLB,PUB, [], opts);
 end
 
-%% Store all of the runs..
+%% Store all of the (valid) runs..
 
 valid = exitflag >= 0;
 max_x = max_x(valid, :);
@@ -110,9 +114,12 @@ nll = nll(valid);
 
 for iRun=length(nll):-1:1
     optim_results{iRun} = Fitting.setParamsFields(base_params, fields, max_x(iRun, :));
+    [~, ll, ll_var] = eval_fun(optim_results{iRun}, distribs, signals, choices, final_eval_args{:});
     for iP=1:length(optim_results{iRun})
-        optim_results{iRun}(iP).ll = -nll(iRun);
         optim_results{iRun}(iP).fit_fields = fields;
         optim_results{iRun}(iP).fit_method = 'BADS';
+        optim_results{iRun}(iP).ll = ll;
+        optim_results{iRun}(iP).ll_var = ll_var;
     end
+end
 end
