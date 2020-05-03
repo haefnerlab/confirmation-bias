@@ -101,9 +101,19 @@ end
 nRuns = 10;
 for iRun=nRuns:-1:1
     % Use the top 'nRuns' points from the grid for initialization
-    [max_x(iRun,:), nll(iRun), exitflag(iRun), ~, ~, gpinfo(iRun)] = bads(...
-        @(x) -eval_fun(Fitting.setParamsFields(base_params, fields, x), distribs, signals, choices, eval_args{:}), ...
-        grid_points(sort_ll(iRun), :), LB, UB, PLB,PUB, [], opts);
+    chkpt = fullfile('sample-checkpoints', sprintf('%x-bads-search-%d.mat', input_id, iRun));
+    if exist(chkpt, 'file')
+        ld = load(chkpt);
+        max_x = ld.max_x;
+        nll = ld.nll;
+        exitflag = ld.exitflag;
+        gpinfo = ld.gpinfo;
+    else
+        [max_x(iRun,:), nll(iRun), exitflag(iRun), ~, ~, gpinfo(iRun)] = bads(...
+            @(x) -eval_fun(Fitting.setParamsFields(base_params, fields, x), distribs, signals, choices, eval_args{:}), ...
+            grid_points(sort_ll(iRun), :), LB, UB, PLB,PUB, [], opts);
+        save(chkpt, 'max_x', 'nll', 'exitflag', 'gpinfo');
+    end
 end
 
 %% Store all of the (valid) runs..
