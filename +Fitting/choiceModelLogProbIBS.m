@@ -126,8 +126,8 @@ while ~all(matched >= repeats)
         % 'Effective' samples per trial set to hypothetical value of matching on the next iteration
         effSamples(unmatched, r) = effSimCount(unmatched)+1;
 
-        % Maintaining the hypothetical, # sims per trial would drop to 1 for all remaining repeats
-        effSimCount(unmatched) = 1;
+        % Maintaining the hypothetical, # sims per trial would drop to 0 after a match
+        effSimCount(unmatched) = 0;
     
         % See eq. 14 in reference [1]; psi(0,x) is Matlab's builtin digamma function of x, i.e. the
         % first derivative of log(gamma(x))
