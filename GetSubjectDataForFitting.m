@@ -6,7 +6,7 @@ memodir = fullfile(datadir, '../Precomputed');
 if ~exist('base_params', 'var') || isempty(base_params)
     % By default, use parameters from qualitative fit that reproduced PK trend
     base_params = Model.newModelParams('model', 'is', 'gamma', 0.1, 'samples', 5, 'updates', 5, ...
-        'var_x', 0.1, 'lapse', 0.01, 'temperature', 0.05);
+        'var_x', 0.1, 'lapse', 0.01, 'temperature', 0.1);
 end
 
 % Load subject data. '1' is 'ratio' phase and '2' is 'noise' phase
