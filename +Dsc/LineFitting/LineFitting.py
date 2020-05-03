@@ -7,39 +7,120 @@ import numpy as np
 import matplotlib.pyplot as plt
 import corner
 import delfi.distribution as dd
-
+import time
+import os.path 
 #%%
-if __name__ == '__main__':
-    
-    file_paths = {
-        'init_data': 'init_data.pk',
-        'analytical': 'analytical.pk',
-        'mh_samples': 'mh_samples.pk',
-        'posterior_apt': 'posterior_apt.pk',
-    }
-    
-    what_to_do = {
-        'init_data': False,
-        'analytical': False,
-        'mh_samples': False,
-        'apt': True
-    }
+def baseParamInit():
     
     N = 1000
     alpha_true = .5
     beta_true = -2
-    err = 0.4
-    
-    a_i, a_e, b_i, b_e = 0, 400, 0, 400
-
-    true_params = [alpha_true, beta_true]
+    err = 0.4 # err to be fixed
     labels = ['slope', 'intercept']
+    true_params = [alpha_true, beta_true]
     
-    alpha = np.linspace(-.1+alpha_true, .1+alpha_true, 400)
-    beta = np.linspace(-.2+beta_true, .2+beta_true, 400)
+    seed_p = 2
     
-    ranger = [[alpha[0], alpha[-1]], 
-              [beta[0],  beta[-1]]]
+    prior_apt =  dd.Uniform(lower = np.asarray([-10, -10]), upper = np.asarray([10, 10]), seed = seed_p)
+    analyticModel = None
+    apt_model = None
+    s = None
+    
+    hyps = {'prior': prior_apt,
+        'm': apt_model,
+        's': s,
+        'n_train': 5000,
+        'n_rounds': 3,
+        'n_hiddens': [50, 50],
+        'pilot_samples': 2000,
+        'val_frac': 0.05,
+        'minibatch': 500,
+        'epochs': 100,
+        'density': 'maf',
+        'n_mades': 5,
+        'seed_inf': 1}
+    
+    n_steps = 15000
+    
+    fignames = ''
+    folderName = ''
+    
+    param_dict = {'N': N,
+                  'true_params': true_params,
+                  'hyps': hyps,
+                  'analyticModel': analyticModel, 
+                  'fignames': fignames,
+                  'folderName': folderName,
+                  'n_steps': n_steps,
+                  'err': err}
+    
+    return param_dict
+
+#%%
+def compareSelfConsistency():
+    param_dict = baseParamInit()
+    seeds = [1, 10, 100, 202, 102, 1022, 1002, 102293, 10202]
+    param_dict['folderName'] = 'selfConsistency'
+    for seed in seeds:
+        param_dict['hyps']['seed_inf'] = seed
+        param_dict['fignames'] = 'seed' + str(seed)
+        main(param_dict)
+
+def compareDifferentDataSizes():
+    param_dict = baseParamInit()
+    Ns = [200, 1000]
+    param_dict['folderName'] = 'dataSizes'
+    for n in Ns:
+        param_dict['N'] = n
+        param_dict['fignames'] = str(n)
+        main(param_dict)
+# %%
+def compareDifferentParamDraws():
+    param_dict['folderName'] = 'paramDraws'
+    timings_file_name = os.path.join(param_dict['folderName'] + 'timings.pk')
+    param_dict = baseParamInit()
+    n_train = [2000, 3000, 5000, 10000]
+    n_rounds = 3
+    n_steps = np.asarray(n_train) * n_rounds
+    
+    timings = open_file(timings_file_name)
+    if timings is -1:
+        timings = {}
+    
+    for t in range(len(n_train)):
+        param_dict['hyps']['n_train'] = n_steps[t]
+        param_dict['hyps']['n_rounds'] = n_rounds
+        param_dict['n_steps'] = n_steps[t]
+        param_dict['fignames'] = str(N) + '_' + str(n_train[t]) + '_' + str(n_rounds)
+        apt_duration, mh_duration = main(param_dict) 
+        timings[str(N) + '_' + param_dict['fignames']] = [apt_duration, mh_duration]
+        
+    save_file(timings_file_name, timings)
+#%%
+def main(param_dict):
+    
+    file_paths = {
+        'analytical': 'analytical.pk' ,
+        'mh_samples': os.path.join(param_dict['folderName'], 'mh_samples' + '_' + param_dict['fignames'] + '.pk'),
+        'posterior_apt': os.path.join(param_dict['folderName'], 'posterior_apt' + '_' + param_dict['fignames'] + '.pk')
+    }
+    
+    what_to_do = {
+        'analytical': False,
+        'mh_samples': True,
+        'apt': True
+    }
+    
+    N = param_dict['N']
+    err = param_dict['err'] # err to be fixed
+    labels = ['slope', 'intercept']
+    true_params = param_dict['true_params']
+    hyps = param_dict['hyps']
+    n_steps = param_dict['n_steps']
+    fignames = os.path.join(param_dict['folderName'], param_dict['fignames'])
+    seed_p = 2
+    
+    # prior_apt =  dd.Uniform(lower = np.asarray([-10, -10]), upper = np.asarray([10, 10]), seed = seed_p)
     
     np.random.seed(1234)
     
@@ -47,31 +128,38 @@ if __name__ == '__main__':
     
     prior_analytical = {'mu_alpha': 10, 'var_alpha': 2, 'mu_beta': 2.5, 'var_beta': 10}
     
-    analyticModel = analyticLineFittingToy.analyticalLinearNoise(x0, err, true_params, prior_analytical)
-    
+    if param_dict['analyticModel'] is None:
+        analyticModel = analyticLineFittingToy.analyticalLinearNoise(x0, err, true_params, prior_analytical)
+    else:
+        analyticModel = param_dict['analyticModel']
+        
     obs0 = {'y': analyticModel.y.reshape(-1)} 
     
-    s = apt_general_2.linearNoiseStats(x0)
+    if hyps['m'] is None:
+        apt_model = apt_general_2.linearNoiseModel(analyticModel.linearNoiseSimulator, labels, true_params, dim_param = 2)
+        hyps['m'] = apt_model
+        
+    if hyps['s'] is None:
+        s = apt_general_2.linearNoiseStats(x0)
+        hyps['s'] = s
     
-    apt_model = apt_general_2.linearNoiseModel(analyticModel.linearNoiseSimulator, labels, true_params, dim_param = 2)
     
-    seed_p = 2
-    prior_apt =  dd.Uniform(lower = np.asarray([-1, -3]), upper = np.asarray([1, 1]), seed = seed_p)
+    number_of_samples = 400
+    # bounds for the posterior label
+    a_i, a_e, b_i, b_e = 0, number_of_samples, 0, number_of_samples
     
-    hyps = {'prior': prior_apt,
-            'm': apt_model,
-            's': s,
-            'n_train': 4000,
-            'n_rounds': 2,
-            'n_hiddens': [200, 50, 50],
-            'pilot_samples': 2000,
-            'val_frac': 0.05,
-            'minibatch': 500,
-            'epochs': 100,
-            'density': 'maf',
-            'n_mades': 5 }
+    alpha = np.linspace(-.1+true_params[0], .1+true_params[0], number_of_samples)
+    beta = np.linspace(-.2+true_params[1], .2+true_params[1], number_of_samples)
+
+    # true_params = [alpha_true, beta_true]
+    # labels = ['slope', 'intercept']
     
-    # apt_general_2.runAPT2LinearNoise(obs0, hyps)
+    # this is for corner.histd to define the range of the x and y axis
+    ranger = [[alpha[0], alpha[-1]], 
+              [beta[0],  beta[-1]]]
+    
+    # prior for the true analytical line fitting problems
+    prior_analytical = {'mu_alpha': 10, 'var_alpha': 2, 'mu_beta': 2.5, 'var_beta': 10}
 
     posterior_1 = open_file(file_paths['analytical'])
     
@@ -92,18 +180,23 @@ if __name__ == '__main__':
     
     if mh_samples is -1 or what_to_do['mh_samples']:
         
-        p0 = [.47, -1.81]
-        
-        chain, _ ,acc_frac = mh_sampler.run_metropolis_hastings(p0, analyticModel, n_steps=180000, proposal_sigmas=[0.05,0.05])
+        p0 = [.4, -1.8]
+        np.random.seed(hyps['seed_inf'])
+        mh_start = time.time()
+        chain, _ ,acc_frac = mh_sampler.run_metropolis_hastings(p0, analyticModel, n_steps=n_steps, proposal_sigmas=[.5,.5])
+        mh_end = time.time()
         print("Acceptance fraction: {:.1%}".format(acc_frac))
-        
+        mh_duration = mh_end - mh_start
         mh_samples = chain[2000::8]
 
         save_file(file_paths['mh_samples'], mh_samples)
         
     apt_posterior = open_file(file_paths['posterior_apt'])
     if apt_posterior is -1 or what_to_do['apt']:
-        apt_posterior = apt_general_2.runAPT2LinearNoise(obs0, hyps, plot = True)
+        apt_start = time.time()
+        apt_posterior = apt_general_2.runAPT2LinearNoise(obs0, hyps, labels, true_params, fignames, plot = True)
+        apt_end = time.time()
+        apt_duration = apt_end - apt_start
         save_file(file_paths['posterior_apt'], apt_posterior)
     
     ## Plotting the Metropolis on top of the analytical posterior
@@ -117,6 +210,7 @@ if __name__ == '__main__':
     
     corner.hist2d(mh_samples[:, 0], mh_samples[:, 1], ax = ax[0],zorder=5, fill_contours=False, range = ranger)
     
+    
     ax[1].contourf(alpha[a_i:a_e], beta[b_i:b_e], posterior_2, 
                    cmap='Blues', levels=100, vmin=posterior_2.max()-128, vmax=posterior_2.max())
     
@@ -127,7 +221,13 @@ if __name__ == '__main__':
     apt_samples_r = np.reshape(apt_samples, apt_samples.size, order='F').reshape(apt_samples.shape[1], apt_samples.shape[0])
     corner.hist2d(apt_samples_r[0], apt_samples_r[1], ax = ax[1], zorder=5, fill_contours=False, 
               range = ranger)
-    
-    plt.show()
+    plt.savefig(fignames + '_res.png')
+    return apt_duration, mh_duration
+# %%
+if __name__ == '__main__':
+    param_dict = baseParamInit()
+    # compareDifferentDataSizes()
+    # compareDifferentParamDraws()
+    compareSelfConsistency()
 
 # %%

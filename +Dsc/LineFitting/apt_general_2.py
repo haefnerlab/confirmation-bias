@@ -43,7 +43,7 @@ class linearNoiseStats(BaseSummaryStats):
         self.x = x
         
     def calc(self,repetition_list):
-        seg = 100
+        seg = 20
         stats = []
 
         for r in range(len(repetition_list)):
@@ -59,7 +59,7 @@ class linearNoiseStats(BaseSummaryStats):
                 ind = np.arange(i*int(N/seg),(i+1)*int(N/seg)).astype(int)
                 y_min = np.min(y_sorted[ind])
                 y_max = np.max(y_sorted[ind])
-                sum_stats_vec.extend([x_sorted[ind[0]], x_sorted[ind[-1]], y_min,y_max])
+                sum_stats_vec.extend([y_min,y_max])
             stats.append(sum_stats_vec)
         return stats   
     
@@ -90,7 +90,7 @@ class linearNoiseStatsAlternate(BaseSummaryStats):
             stats.append(var)
         return [stats]
     
-def plot_APT(posterior, g):
+def plot_APT(posterior, g, labels, true_params, fignames):
     
     posterior_samples = posterior[0].gen(1000)
 
@@ -119,7 +119,7 @@ def plot_APT(posterior, g):
     fig, axes = samples_nd(posterior_samples,
                         limits=prior_lims,
                         ticks=prior_lims,
-                        labels = ['alpha', 'beta'],
+                        labels = labels,
                         fig_size=(5,5),
                         diag='kde',
                         upper='kde',
@@ -127,13 +127,15 @@ def plot_APT(posterior, g):
                         hist_offdiag={'bins': 50},
                         kde_diag={'bins': 50, 'color': col['SNPE']},
                         kde_offdiag={'bins': 50},
-                        points=[[.5, -2]],
+                        points=[true_params],
                         points_offdiag={'markersize': 5},
                         points_colors=[col['GT']],
                         title='');
-    plt.show()
     
-def runAPT2LinearNoise(obs0, hyps, plot = True):
+    plt.savefig(fignames + '_plot.png')
+    # plt.show()
+    
+def runAPT2LinearNoise(obs0, hyps, labels, true_params, fignames, plot = True):
     """
     obs0:
         The data observation we made
@@ -160,7 +162,7 @@ def runAPT2LinearNoise(obs0, hyps, plot = True):
     # define statsitics summary of observation
     obs_stats = hyps['s'].calc([obs0])
 
-    seed_inf = 1
+    seed_inf = hyps['seed_inf']
 
     prior_norm = True
 
@@ -186,9 +188,9 @@ def runAPT2LinearNoise(obs0, hyps, plot = True):
                         silent_fail = False,
                         proposal = 'prior',
                         val_frac = hyps['val_frac'],
-                        verbose=True,)
+                        verbose = True,)
     
     if plot == True:
-        plot_APT(posterior, g)
+        plot_APT(posterior, g, labels, true_params, fignames)
     
     return posterior
