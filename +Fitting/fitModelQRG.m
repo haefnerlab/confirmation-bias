@@ -116,11 +116,20 @@ disp('fitModelQRG: search grid');
 
 [~, sort_ll] = sort(grid_scores.loglike, 'descend');
 best_ll_idx = sort_ll(1);
-optim_results.mle_params = Fitting.setParamsFields(base_params, fields, grid_points(best_ll_idx, :));
+optim_results{1} = Fitting.setParamsFields(base_params, fields, grid_points(best_ll_idx, :));
+for iP=1:length(optim_results{1})
+    optim_results{1}(iP).fit_fields = fields;
+    optim_results{1}(iP).fit_method = 'qrg-mle';
+end
 
 [~, sort_lp] = sort(grid_scores.logpdf, 'descend');
 best_lp_idx = sort_lp(1);
-optim_results.map_params = Fitting.setParamsFields(base_params, fields, grid_points(best_lp_idx, :));
+optim_results{2} = Fitting.setParamsFields(base_params, fields, grid_points(best_lp_idx, :));
+for iP=1:length(optim_results{2})
+    optim_results{2}(iP).fit_fields = fields;
+    optim_results{2}(iP).fit_method = 'qrg-map';
+end
+
 
 %% Estimate moment-matched gaussian posterior
 disp('fitModelQRG: Quad fit');
@@ -259,20 +268,22 @@ while ~all(abs(delta) < tolerance) && accuracy > 1
     itr = itr+1;
 end
 
-optim_results.gp_mle_params = Fitting.setParamsFields(base_params, fields, gp_mle(end,:));
+optim_results{3} = Fitting.setParamsFields(base_params, fields, gp_mle(end,:));
+for iP=1:length(optim_results{3})
+    optim_results{3}(iP).fit_fields = fields;
+    optim_results{3}(iP).fit_method = 'qrg-gp-mle-search';
+end
 
 metadata.beta = fit_beta;
 metadata.gp_ll = gp_ll;
 
 %% Re-run and store final evaluations for each model
-fit_names = fieldnames(optim_results);
 for iFit=1:length(fit_names)
-    fprintf('fitModelQRG: final evals [%s]\n', fit_names{iFit});
-    [lp, ll, ll_var] = eval_fun(optim_results.(fit_names{iFit}), distribs, signals, choices, final_eval_args{:});
-    for iP=1:length(optim_results.(fit_names{iFit}))
-        optim_results.(fit_names{iFit})(iP).lp = lp;
-        optim_results.(fit_names{iFit})(iP).ll = ll;
-        optim_results.(fit_names{iFit})(iP).ll_var = ll_var;
+    fprintf('fitModelQRG: final evals [%s]\n', optim_results{iFit}(1).fit_method);
+    [~, ll, ll_var] = eval_fun(optim_results.(fit_names{iFit}), distribs, signals, choices, final_eval_args{:});
+    for iP=1:length(optim_results{iFit})
+        optim_results{iFit}(iP).ll = ll;
+        optim_results{iFit}(iP).ll_var = ll_var;
     end
 end
 

@@ -17,6 +17,8 @@ end
 chkpt = fullfile('sample-checkpoints', sprintf('%x', input_id));
 ibs_repeats = 5;
 
+nPara = length(base_params);
+
 %% Run MH sampling and handle stochastic vs deterministic cases
 if Model.isStochastic(base_params)
     % Note that stochastic models with finite repetitions will result in posteriors that are wider
@@ -48,10 +50,18 @@ for iSamp=size(uSamples, 1):-1:1
 end
 
 [~, best_ll_idx] = max(combo_ll);
-optim_results.mle_params = Fitting.setParamsFields(base_params, fields, uSamples(best_ll_idx, :));
+optim_results{1} = Fitting.setParamsFields(base_params, fields, uSamples(best_ll_idx, :));
+for iP=1:nPara
+    optim_results{1}(iP).fit_fields = fields;
+    optim_results{1}(iP).fit_method = 'mh-mle';
+end
 
 [~, best_lp_idx] = max(combo_lp);
-optim_results.map_params = Fitting.setParamsFields(base_params, fields, uSamples(best_lp_idx, :));
+optim_results{2} = Fitting.setParamsFields(base_params, fields, uSamples(best_lp_idx, :));
+for iP=1:nPara
+    optim_results{2}(iP).fit_fields = fields;
+    optim_results{2}(iP).fit_method = 'mh-map';
+end
 
 %% Search LL landscape with GP
 disp('fitModelMH: GP MLE');
@@ -91,7 +101,11 @@ while ~all(abs(delta) < tolerance)
     itr = itr+1;
 end
 
-optim_results.gp_mle_params = Fitting.setParamsFields(base_params, fields, gp_mle(end,:));
+optim_results{3} = Fitting.setParamsFields(base_params, fields, gp_mle(end,:));
+for iP=1:nPara
+    optim_results{3}(iP).fit_fields = fields;
+    optim_results{3}(iP).fit_method = 'mh-gp-mle-search';
+end
 
 %% Repeat the above for the MAP
 disp('fitModelMH: GP MAP');
@@ -124,17 +138,19 @@ while ~all(abs(delta) < tolerance)
     itr = itr+1;
 end
 
-optim_results.gp_map_params = Fitting.setParamsFields(base_params, fields, gp_map(end,:));
+optim_results{4} = Fitting.setParamsFields(base_params, fields, gp_map(end,:));
+for iP=1:nPara
+    optim_results{4}(iP).fit_fields = fields;
+    optim_results{4}(iP).fit_method = 'mh-gp-map-search';
+end
 
 %% Re-run and store final evaluations for each model
-fit_names = fieldnames(optim_results);
-for iFit=1:length(fit_names)
-    fprintf('fitModelMH: final evals [%s]\n', fit_names{iFit});
-    [lp, ll, ll_var] = eval_fun(optim_results.(fit_names{iFit}), distribs, signals, choices, final_eval_args{:});
-    for iP=1:length(optim_results.(fit_names{iFit}))
-        optim_results.(fit_names{iFit})(iP).lp = lp;
-        optim_results.(fit_names{iFit})(iP).ll = ll;
-        optim_results.(fit_names{iFit})(iP).ll_var = ll_var;
+for iFit=1:length(optim_results)
+    fprintf('fitModelMH: final evals [%s]\n', optim_results{iFit}(1).fit_method);
+    [~, ll, ll_var] = eval_fun(optim_results{iFit}, distribs, signals, choices, final_eval_args{:});
+    for iP=1:nPara
+        optim_results{iFit}(iP).ll = ll;
+        optim_results{iFit}(iP).ll_var = ll_var;
     end
 end
 
