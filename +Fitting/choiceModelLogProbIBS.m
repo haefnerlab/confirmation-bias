@@ -1,4 +1,4 @@
-function [log_post, log_like, est_variance, lower_bound, nSamplesToMatch] = choiceModelLogProbIBS(params, prior_info, signals, choices, lower_bound, repeats)
+function [log_post, log_like, est_variance, lower_bound, nSamplesToMatch] = choiceModelLogProbIBS(params, prior_info, signals, choices, lower_bound, repeats, bailoutK)
 % FITTING.choiceModelLogProbIBS estimate log posterior probability of given params struct. Prior is
 % based on prior_info struct (see @Fitting.defaultDistributions). If prior_info is empty, prior is
 % not counted and only the log likelihood is computed. The log likelihood is stochastic but unbiased,
@@ -12,6 +12,7 @@ function [log_post, log_like, est_variance, lower_bound, nSamplesToMatch] = choi
 %   Estimation with Inverse Binomial Sampling. http://arxiv.org/abs/2001.03985
 
 if nargin < 6 || isempty(repeats), repeats = 1; end
+if nargin < 7 || isempty(bailoutK), bailoutK = inf; end
 
 if ~iscell(signals)
     signals = {signals};
@@ -77,6 +78,14 @@ nSamplesToMatch = nan(nTotalTrials, repeats);
 % the last match.
 simCountK = zeros(nTotalTrials, 1);
 
+% As in @Fitting.choiceModelLogProb, we keep track of the average 'prob_choice' output by the model
+% as well as the variance in this value across simulations. If K > bailoutK, we revert to using an
+% estimator of log(p) based on a variance-corrected log(avgP)
+avgP = zeros(nTotalTrials, 1);
+varP_S = zeros(nTotalTrials, 1);
+bailout_ll = -inf(nTotalTrials, repeats);
+bailout_ll_var = inf(nTotalTrials, repeats);
+
 % Only keep re-running simulations on trials that haven't yet been matched 'repeats' times
 matched = zeros(nTotalTrials, 1);
 
@@ -91,29 +100,73 @@ while ~all(matched >= repeats)
     for iSet=length(params):-1:1
         if ~any(unmatched(setIdx(:,iSet))), continue; end
         
+        sim_idx = unmatched & setIdx(:,iSet);
+        
         % Run the model only on unmatched trials within this set
-        sim_results = Model.runVectorized(params(iSet), signals(unmatched & setIdx(:,iSet), :) / params(iSet).signal_scale);
+        sim_results = Model.runVectorized(params(iSet), signals(sim_idx, :) / params(iSet).signal_scale);
         
         % Count this simulation
-        simCountK(unmatched & setIdx(:,iSet)) = simCountK(unmatched & setIdx(:,iSet)) + 1;
+        simCountK(sim_idx) = simCountK(sim_idx) + 1;
+        
+        % Update mean and variance trackers of simulation probability. Both of these are 'running'
+        % estimators for mean and variance of p per trial. See
+        % https://www.johndcook.com/blog/standard_deviation/
+        newP = sim_results.prob_choice;
+        newAvgP = avgP(sim_idx)+(newP-avgP(sim_idx))./simCountK(sim_idx);
+        varP_S(sim_idx) = varP_S(sim_idx) + (newP-avgP(sim_idx)).*(newP-newAvgP);
+        avgP(sim_idx) = newAvgP;
         
         % For all that now match... record 'k' and do book-keeping on what remains
-        matching_subset = sim_results.choices == choices(unmatched & setIdx(:,iSet));
+        matching_subset = sim_results.choices == choices(sim_idx);
         if any(matching_subset)
             % Work out the indices out of 1:nTotalTrials that we just matched
-            sim_idxs = find(unmatched & setIdx(:,iSet));
+            sim_idxs = find(sim_idx);
             match_idxs = sim_idxs(matching_subset);
             % Add 1 to 'matched' on matching trials
             matched(match_idxs) = matched(match_idxs) + 1;
             % Store and reset the 'k' for those trials
             for tr=match_idxs'
-                next_nan = find(isnan(nSamplesToMatch(tr,:)),1);
-                nSamplesToMatch(tr,next_nan) = simCountK(tr);
+                r = find(isnan(nSamplesToMatch(tr,:)),1);
+                nSamplesToMatch(tr,r) = simCountK(tr);
             end
             simCountK(match_idxs) = 0;
+            avgP(match_idxs) = 0;
+            varP_S(match_idxs) = 0;
         end
     end
-        
+    
+    % Check for bailout condition - revert to average-of-prob estimator
+    if any(simCountK >= bailoutK)
+        bailoutTr = find(simCountK >= bailoutK);
+        for tr=bailoutTr'
+            r = find(isnan(nSamplesToMatch(tr,:)),1);
+            
+            % Record a precise albeit biased estimate of the true ll for this trial. First, convert
+            % from varP_S counter to an actual estimate of var(p) for this trial:
+            varP = varP_S(tr) / (simCountK(tr)-1);
+            % Next, use estimate of mean of p (muP) and its variance (varP) to construct an
+            % estimate of log(p) and its variance. See stats.stackexchange.com/a/57766/234036
+            muP = avgP(tr).*(choices(tr)==+1) + (1-avgP(tr)).*(choices(tr)==-1);
+            bailout_ll(tr, r) = log(muP) - 1/2*varP/muP^2;
+            bailout_ll_var(tr, r) = varP./muP^2;
+            % Issue a warning if these estimates are likely to be off by a lot. See comments in
+            % stats.stackexchange.com/a/57766/234036
+            if muP/sqrt(varP) < 1.5
+                warning('SNR of value bailout calculation is too low for confident estimates of LL or var(LL)!');
+            elseif muP/sqrt(varP) < 2.5
+                warning('SNR of value bailout calculation is too low for confident estimates of var(LL)!');
+            end
+            
+            % Count this as a match after 'bailoutK' simulations (but this will not actually be used
+            % for the LL estimate)
+            nSamplesToMatch(tr,r) = bailoutK;
+        end
+        matched(bailoutTr) = matched(bailoutTr)+1;
+        simCountK(bailoutTr) = 0;
+        avgP(bailoutTr) = 0;
+        varP_S(bailoutTr) = 0;
+    end
+    
     % Enforce upper-bound on each repeat, i.e. on each column of 'nSamplesToMatch'. Upper-bound is
     % log likelihood estimate *if* all remaining simulations were matches.
     effSamples = nSamplesToMatch;
@@ -142,6 +195,8 @@ while ~all(matched >= repeats)
             % Reset 'simCountK' for these bound-crossed trials, again 'as if' it matches on the next
             % iteration.
             simCountK(unmatched) = 0;
+            avgP(unmatched) = 0;
+            varP_S(unmatched) = 0;
         end
     end
 end
@@ -152,11 +207,15 @@ assert(all(matched == repeats));
     
 % See eq. 14 in reference [1]; psi(0,x) is Matlab's builtin digamma function of x, i.e. the
 % first derivative of log(gamma(x))
-log_lh_per_trial = nanmean(psi(0,1) - psi(0,nSamplesToMatch), 2);
+log_lh_estimates = psi(0,1) - psi(0,nSamplesToMatch);
+log_lh_estimates(nSamplesToMatch >= bailoutK) = bailout_ll(nSamplesToMatch >= bailoutK);
+log_lh_per_trial = nanmean(log_lh_estimates, 2);
 
 % See eq. 16 in reference [1]; psi(1,x) is the trigamma function of x, i.e. the second
 % derivative of log(gamma(x))
-est_var_per_trial = nanmean(psi(1,1) - psi(1,nSamplesToMatch), 2) ./ repeats;
+var_log_lh_estimates = psi(1,1) - psi(1,nSamplesToMatch);
+var_log_lh_estimates(nSamplesToMatch >= bailoutK) = bailout_ll_var(nSamplesToMatch >= bailoutK);
+est_var_per_trial = nanmean(var_log_lh_estimates, 2) ./ repeats;
 est_variance = sum(est_var_per_trial);
 
 rng(randstate);
