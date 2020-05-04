@@ -65,7 +65,7 @@ def compareSelfConsistency():
         param_dict['hyps']['seed_inf'] = seed
         param_dict['fignames'] = 'seed' + str(seed)
         main(param_dict)
-
+#%%
 def compareDifferentDataSizes():
     param_dict = baseParamInit()
     Ns = [200, 1000]
@@ -76,14 +76,15 @@ def compareDifferentDataSizes():
         main(param_dict)
 # %%
 def compareDifferentParamDraws():
-    param_dict['folderName'] = 'paramDraws'
-    timings_file_name = os.path.join(param_dict['folderName'] + 'timings.pk')
     param_dict = baseParamInit()
+    param_dict['folderName'] = 'paramDraws'
+    timings_file_name = os.path.join(param_dict['folderName'], 'timings.pk')
     n_train = [2000, 3000, 5000, 10000]
     n_rounds = 3
     n_steps = np.asarray(n_train) * n_rounds
     
     timings = open_file(timings_file_name)
+    
     if timings is -1:
         timings = {}
     
@@ -91,10 +92,10 @@ def compareDifferentParamDraws():
         param_dict['hyps']['n_train'] = n_steps[t]
         param_dict['hyps']['n_rounds'] = n_rounds
         param_dict['n_steps'] = n_steps[t]
-        param_dict['fignames'] = str(N) + '_' + str(n_train[t]) + '_' + str(n_rounds)
+        param_dict['fignames'] = str(param_dict['N']) + '_' + str(n_train[t]) + '_' + str(n_rounds)
         apt_duration, mh_duration = main(param_dict) 
-        timings[str(N) + '_' + param_dict['fignames']] = [apt_duration, mh_duration]
-        
+        timings[param_dict['fignames']] = [apt_duration, mh_duration]
+           
     save_file(timings_file_name, timings)
 #%%
 def main(param_dict):
@@ -226,8 +227,8 @@ def main(param_dict):
 # %%
 if __name__ == '__main__':
     param_dict = baseParamInit()
-    # compareDifferentDataSizes()
+    compareDifferentDataSizes()
     # compareDifferentParamDraws()
-    compareSelfConsistency()
+    # compareSelfConsistency()
 
 # %%
