@@ -24,10 +24,11 @@ if Model.isStochastic(base_params)
     % BADS expects noise variance on the order of 1, which requires scaling # evaluations by
     % sqrt(#trials)
     ibs_repeats = round(sqrt(nTrials));
+    ibs_bailout = 100;
     
     eval_fun = @Fitting.choiceModelLogProbIBS;
-    eval_args = {[], ibs_repeats};
-    final_eval_args = {[], 10*ibs_repeats};
+    eval_args = {[], ibs_repeats, ibs_bailout};
+    final_eval_args = {[], 10*ibs_repeats, 10*ibs_bailout};
 else
     disp('fitModelBADS (deterministic case)');
     eval_fun = @Fitting.choiceModelLogProb;
@@ -108,7 +109,9 @@ for iRun=nRuns:-1:1
         nll = ld.nll;
         exitflag = ld.exitflag;
         gpinfo = ld.gpinfo;
+        fprintf('fitModelBADS :: loading search iteration %d\n', iRun);
     else
+        fprintf('fitModelBADS :: starting search iteration %d\n', iRun);
         [max_x(iRun,:), nll(iRun), exitflag(iRun), ~, ~, gpinfo(iRun)] = bads(...
             @(x) -eval_fun(Fitting.setParamsFields(base_params, fields, x), distribs, signals, choices, eval_args{:}), ...
             grid_points(sort_ll(iRun), :), LB, UB, PLB,PUB, [], opts);
