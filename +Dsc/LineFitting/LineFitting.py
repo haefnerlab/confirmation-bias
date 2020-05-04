@@ -107,9 +107,9 @@ def main(param_dict):
     }
     
     what_to_do = {
-        'analytical': False,
-        'mh_samples': True,
-        'apt': True
+        'analytical': True,
+        'mh_samples': False,
+        'apt': False
     }
     
     N = param_dict['N']
@@ -175,7 +175,8 @@ def main(param_dict):
         posterior_1 = posterior - posterior.max()
         posterior_1[posterior_1 < -1000] = -1000
         
-        save_file(file_paths['analytical'], posterior_1)
+        save_file(file_paths['analytical'], [posterior_1,alpha,beta])
+
         
     mh_samples = open_file(file_paths['mh_samples'])
     

@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Sat May  2 13:55:48 2020
+Created on Sat May  2 19:40:42 2020
 
 @author: liushizhao
 """
+
 
 
 
@@ -26,6 +27,7 @@ import logging
 import datetime
 from scipy.io import savemat
 from APTCB_utils import ConfirmationBiasSimulator, ConfirmationBias,ConfirmationBiasStats
+
 #%%
 # load the MATLAB engine
 if __name__ == "__main__":
@@ -41,14 +43,14 @@ if __name__ == "__main__":
     logname = 'inferenceAPT' + currentTime
     logging.basicConfig(filename = logname,level = logging.DEBUG)
     # create a savefolder
-    savefolder = '../dscData/resultsSyntheticDataCB_version2/'
+    savefolder = '../dscData/resultsSyntheticDataCB_version3/'
     if not os.path.exists(savefolder):  
         os.mkdir(savefolder)
     
     # set some hyperparameters
     # training schedule
-    n_train = 5000
-    n_rounds = 3
+    n_train = 10000
+    n_rounds = 4
     # fitting setup
 
     val_frac = 0.05
@@ -60,6 +62,21 @@ if __name__ == "__main__":
     density = 'mog'
     n_mades = 5         # number of MADES
     
+   
+    
+    seed_inf = 1
+    pilot_samples = 2000
+
+
+    
+    # network setup
+    
+    minibatch = 500
+    epochs = 100
+    
+    prior_norm = True
+    
+
     hyperparameters = dict()
     hyperparameters['n_train'] = n_train
     hyperparameters['n_rounds'] = n_rounds
@@ -78,8 +95,8 @@ if __name__ == "__main__":
     # save inference method settings (hyperparameters)
     savemat(os.path.join(savefolder,'hyperparameters.mat'),{'hyperparameters':hyperparameters})
     priorC_list = [1,2,3]
-    gamma_list = [1,2,3]
-    lapse_list = [1,2,3]
+    gamma_list = [2,3]
+    lapse_list = [2,3]
     samples_list = [1,2,3]
     for s in samples_list:
         for l in lapse_list:
@@ -121,10 +138,10 @@ if __name__ == "__main__":
                         #%%
                         
                         
-                        fieldstofit = ['prior_C','gamma','lapse','samples']
+                        fieldstofit = ['prior_C','gamma','lapse']
                                            
-                        prior_min = np.array([0,0,0,1])
-                        prior_max = np.array([1,0.5,0.5,50])
+                        prior_min = np.array([0,0,0])
+                        prior_max = np.array([1,0.5,0.5])
                        
                         seed_p = 2
                         prior =  dd.Uniform(lower = prior_min , upper = prior_max,seed = seed_p)
@@ -135,7 +152,6 @@ if __name__ == "__main__":
                         
                         
                         gt = dg.Default(model=lshc_m, prior=prior, summary=lshc_s)
-                        
 
     
    

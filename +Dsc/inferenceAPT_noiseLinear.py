@@ -22,7 +22,7 @@ import datetime
 from scipy.io import savemat
 import matplotlib.pyplot as plt
 from delfi.utils.viz import samples_nd
-
+import time
 def linearNoiseSimulator(x, params, seed=None):
     alpha = params[0]
     beta = params[1]
@@ -56,7 +56,7 @@ class linearNoiseStats(BaseSummaryStats):
     def __init__(self,x):
         self.x = x
     def calc(self,repetition_list):
-        seg = 100
+        seg = 20
         stats = []
     
         for r in range(len(repetition_list)):
@@ -70,18 +70,21 @@ class linearNoiseStats(BaseSummaryStats):
             x = self.x
             y = np.asarray(data['y'])
             N = x.shape[0]
-            x_sorted = np.asarray([x for x,y in sorted(zip(x,y))])
+            
             y_sorted = np.asarray([y for x,y in sorted(zip(x,y))])
             sum_stats_vec = []
             for i in np.arange(seg):
                 ind = np.arange(i*int(N/seg),(i+1)*int(N/seg)).astype(int)
                 y_min = np.min(y_sorted[ind])
                 y_max = np.max(y_sorted[ind])
-                sum_stats_vec.extend([x_sorted[ind[0]], x_sorted[ind[-1]], y_min,y_max])
+                sum_stats_vec.extend([y_min,y_max])
             stats.append(sum_stats_vec)
         return stats
 #%%   
 if __name__ == "__main__":
+    N = 1000 #number of trials
+    n_train = 5000
+    
     
     # ground truth of parameters
     alpha = 2
@@ -90,7 +93,7 @@ if __name__ == "__main__":
     true_params = [alpha,beta,sigma]
     labels_params = ['alpha','beta','sigma']
     # generate observation
-    N = 1000
+    
     x0 = np.random.uniform(0, 10, N)
     
     # define linear noise model
@@ -98,8 +101,8 @@ if __name__ == "__main__":
     
     # generate and show observation
     obs0 = m.gen_single(true_params)
-    plt.figure()
-    plt.plot(x0,obs0['y'])
+    #plt.figure()
+    #plt.plot(x0,obs0['y'])
     
     # define prior
     prior_min = np.array([-10,-10,0])
@@ -115,16 +118,15 @@ if __name__ == "__main__":
 #%%    
     # set hyparameters 
     # training schedule
-    n_train = 5000
-    n_rounds = 3
+    n_rounds = 1
     seed_inf = 1
-    pilot_samples = 2000
+    pilot_samples = 100
 
 
     val_frac = 0.05
     # network setup
-    n_hiddens = [200,50,50]
-    minibatch = 500
+    n_hiddens = [50,50]
+    minibatch = 100
     epochs = 100
     
     prior_norm = True
@@ -135,7 +137,7 @@ if __name__ == "__main__":
     
 
 
-
+    start_time = time.time()
     # inference object
     res = infer.SNPEC(g,
                     obs=obs_stats,
@@ -156,7 +158,7 @@ if __name__ == "__main__":
                     proposal='gaussian',
                     val_frac=val_frac,
                     verbose=True,)
-    
+    training_time = time.time() - start_time
     
     #%%
     fig = plt.figure(figsize=(15,5))

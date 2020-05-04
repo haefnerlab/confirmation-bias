@@ -1,0 +1,5 @@
+INFO:root:Running 2priorC 2gamma 2lapse 2samples
+INFO:theano.gof.compilelock:Waiting for existing lock by process '5239' (I am process '654')
+INFO:theano.gof.compilelock:To manually release the lock, delete /Users/liushizhao/.theano/compiledir_Darwin-18.7.0-x86_64-i386-64bit-i386-3.6.10-64/lock_dir
+INFO:theano.gof.compilelock:Waiting for existing lock by process '5239' (I am process '654')
+INFO:theano.gof.compilelock:To manually release the lock, delete /Users/liushizhao/.theano/compiledir_Darwin-18.7.0-x86_64-i386-64bit-i386-3.6.10-64/lock_dir
