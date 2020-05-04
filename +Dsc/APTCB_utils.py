@@ -123,7 +123,7 @@ def makeFigures(log,posterior,true_params,labels_params,prior_min,prior_max):
     
     fig = plt.figure(figsize=(15,5))
     
-    plt.plot(log[1]['loss'],lw=2)
+    plt.plot(log[-1]['loss'],lw=2)
     plt.xlabel('iteration')
     plt.ylabel('loss');
     
@@ -131,7 +131,7 @@ def makeFigures(log,posterior,true_params,labels_params,prior_min,prior_max):
 
     prior_lims = np.concatenate((prior_min.reshape(-1,1),prior_max.reshape(-1,1)),axis=1)
     
-    posterior_samples = posterior[1].gen(10000)
+    posterior_samples = posterior[-1].gen(10000)
     
     ###################
     # colors
