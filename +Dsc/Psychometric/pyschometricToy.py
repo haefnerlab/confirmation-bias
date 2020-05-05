@@ -26,7 +26,6 @@ class analyticalPsychometric(object):
         """
         plogistic = 1/(1 + np.exp(-(params[1]+params[0]*(self.x - self.x_center)) ))
         choices = (np.random.uniform(size=[self.N, np.size(plogistic)]) < plogistic).T * 1 # N x size(x) array
-        # print(choices.shape)
         # observed_choices = np.sum(choices, 1)
 
         return choices

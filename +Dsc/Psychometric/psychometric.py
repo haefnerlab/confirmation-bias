@@ -160,8 +160,8 @@ def main(param_dict):
     }
     
     what_to_do = {
-        'analytical': True,
-        'mh_samples': True,
+        'analytical': False,
+        'mh_samples': False,
         'apt': True
     }
     
@@ -300,9 +300,9 @@ def main(param_dict):
 # %%
 if __name__ == '__main__':
     param_dict = baseParamInit()
-    # main(param_dict)
+    main(param_dict)
     # selfConsistencyOverDataSizes()
-    selfConsistencyOverParamDraws()
+    # selfConsistencyOverParamDraws()
     # compareSelfConsistency()
     
     # compareDifferentDataSizes()
