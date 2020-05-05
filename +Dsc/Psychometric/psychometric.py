@@ -108,8 +108,8 @@ def main(param_dict):
     
     what_to_do = {
         'analytical': True,
-        'mh_samples': False,
-        'apt': False
+        'mh_samples': True,
+        'apt': True
     }
     
     N = param_dict['N']
@@ -142,7 +142,7 @@ def main(param_dict):
         hyps['m'] = apt_model
         
     if hyps['s'] is None:
-        s = apt_general_2.psychometricStats()
+        s = apt_general_2.psychometricStats(N)
         hyps['s'] = s
     
     
@@ -224,7 +224,8 @@ def main(param_dict):
     corner.hist2d(apt_samples_r[0], apt_samples_r[1], ax = ax[1], zorder=5, fill_contours=False, 
               range = ranger)
     plt.savefig(fignames + '_res.png')
-    if what_to_do['apt'] or what_to_do['mh_samples']:
+    
+    if not (what_to_do['apt'] and what_to_do['mh_samples']):
         return 0
     else:
         return apt_duration, mh_duration
