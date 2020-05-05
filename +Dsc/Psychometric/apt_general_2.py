@@ -73,7 +73,7 @@ class psychometricStats2(BaseSummaryStats):
         stats = []
         for r in range(len(repetition_list)):
             data = repetition_list[r]
-            choices = np.asarray(data['y'].reshape(-1,50))
+            choices = np.asarray(data['y'].reshape(-1,N))
             signals = np.asarray(self.signals)
 
             # group trials according to just choices (2 groups)
