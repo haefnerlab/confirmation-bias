@@ -15,14 +15,16 @@ def baseParamInit():
     
     N = 20 # number of trials at each orientation
     sensitivity_true = 1.2
-    bias_true = .8
+#     bias_true = .8
+    bias_true = 2
+
     
     labels = ['sensitivity', 'bias']
     true_params = [sensitivity_true, bias_true]
     
     seed_p = 2
     
-    prior_apt =  dd.Uniform(lower = np.asarray([0, -10]), upper = np.asarray([10, 10]), seed = seed_p)
+    prior_apt =  dd.Uniform(lower = np.asarray([0.1, -5]), upper = np.asarray([9.9, 5]), seed = seed_p)
     
     analyticModel = None
     apt_model = None
