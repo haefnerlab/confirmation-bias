@@ -35,19 +35,29 @@ class psychometricModel(BaseSimulator):
 
         y = self.simulate(params)
 
+        # return {'y': y.reshape(-1)}
+        # print(f'y is {y}')
+        # print(f'Along 0 axis: {np.sum(y, 1)}')
+        # print(f'Along 1 axis: {np.sum(y, 0)}')
+        # print(f'reshaped: {y.reshape(-1)}')
+        # print(f'last: {np.sum(y.reshape(-1).reshape(-1, 50), 1)}')
+        # print(f'last2: {np.sum(y.reshape(-1).reshape(-1, 50), 0)}')
         return {'y': y.reshape(-1)}  
     
 class psychometricStats(BaseSummaryStats):
     
-    def __init__(self):
+    def __init__(self, N): # Number of trial per stimulus condition):
         super().__init__()
+        self.N = N
     def calc(self,repetition_list):
-        seg = 100
+        
         stats = []
         for r in range(len(repetition_list)):
             data = repetition_list[r]
-            stats.extend(data['y'])
-        return [stats]
+            observed_choices_avg = np.sum(data['y'].reshape(-1, self.N), 1)
+            # print(observed_choices_avg)
+            stats.append(observed_choices_avg)
+        return stats
     
 def plot_APT(posterior, g, labels, true_params, fignames):
     
@@ -153,3 +163,5 @@ def runAPT2LinearNoise(obs0, hyps, labels, true_params, fignames, plot = True):
         plot_APT(posterior, g, labels, true_params, fignames)
     
     return posterior
+
+# %%
