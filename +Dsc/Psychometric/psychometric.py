@@ -194,7 +194,8 @@ def main(param_dict):
         hyps['m'] = apt_model
         
     if hyps['s'] is None:
-        s = apt_general_2.psychometricStats(N)
+#         s = apt_general_2.psychometricStats(N)
+        s = apt_general_2.psychometricStats2(x,N)
         hyps['s'] = s
     
     
