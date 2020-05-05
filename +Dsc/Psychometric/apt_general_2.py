@@ -42,11 +42,12 @@ class psychometricStats(BaseSummaryStats):
     def __init__(self):
         super().__init__()
     def calc(self,repetition_list):
-        seg = 100
+        
         stats = []
         for r in range(len(repetition_list)):
             data = repetition_list[r]
-            stats.extend(data['y'])
+            observed_choices_avg = np.sum(data['y'], 1)
+            stats.append(observed_choices_avg)
         return [stats]
     
 def plot_APT(posterior, g, labels, true_params, fignames):

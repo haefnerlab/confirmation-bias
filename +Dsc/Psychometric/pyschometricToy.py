@@ -12,7 +12,7 @@ class analyticalPsychometric(object):
         self.y = self.psychometricSimulator(self.init_params)
         self.prior = prior
         
-    def psychometricSimulator(self, params, seed=None):
+    def psychometricSimulator2(self, params, seed=None):
         
         plogistic = 1/(1 + np.exp(-(params[1]+params[0]*(self.x - self.x_center)) ))
         choices = (np.random.uniform(size=[self.N, np.size(plogistic)]) < plogistic).T * 1
@@ -20,17 +20,26 @@ class analyticalPsychometric(object):
 
         return observed_choices
     
-    def posteriorPsychometric(self, params):
+    def psychometricSimulator(self, params, seed=None):
+        """
+        This returns the binary choices (N x size(number of stimulus values))
+        """
+        plogistic = 1/(1 + np.exp(-(params[1]+params[0]*(self.x - self.x_center)) ))
+        choices = (np.random.uniform(size=[self.N, np.size(plogistic)]) < plogistic).T * 1 # N x size(x) array
+        # observed_choices = np.sum(choices, 1)
+
+        return choices
+    
+    def posteriorPsychometric(self, params, observed_choices):
         
         sensitivity = params[0]
         bias = params[1]
         
-        plogistic = 1/(1 + np.exp(-(params[1]+params[0]*(self.x - self.x_center)) ))
+        plogistic = 1/(1 + np.exp(-( bias + sensitivity * (self.x - self.x_center) ) ))
         
-        choices = (np.random.uniform(size=[self.N, np.size(plogistic)]) < plogistic).T * 1
-        observed_choices = np.sum(choices, 1)
-        lnlikeli = 0
-        lnlikeli += np.sum(st.binom.logpmf(observed_choices, self.N, plogistic))
+        # choices = (np.random.uniform(size=[self.N, np.size(plogistic)]) < plogistic).T * 1
+        # observed_choices = np.sum(choices, 1)
+        lnlikeli = np.sum(st.binom.logpmf(observed_choices, self.N, plogistic))
         
         if sensitivity <= 0:
             return -np.inf # sensitivity cannot be negative
