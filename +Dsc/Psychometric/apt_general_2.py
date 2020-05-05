@@ -104,7 +104,7 @@ def plot_APT(posterior, g, labels, true_params, fignames):
     plt.savefig(fignames + '_plot.png')
     # plt.show()
     
-def runAPT2LinearNoise(obs0, hyps, labels, true_params, fignames, plot = True):
+def runAPT2psychometric(obs0, hyps, labels, true_params, fignames, plot = True):
     """
     obs0:
         The data observation we made

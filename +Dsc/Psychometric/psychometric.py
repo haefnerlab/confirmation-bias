@@ -8,7 +8,8 @@ import matplotlib.pyplot as plt
 import corner
 import delfi.distribution as dd
 import time
-import os.path 
+import os.path
+import emcee
 #%%
 def baseParamInit():
     
@@ -55,11 +56,84 @@ def baseParamInit():
                   'n_steps': n_steps}
     
     return param_dict
+#%%
+def selfConsistencyOverDataSizes():
+    param_dict = baseParamInit()
+    seeds = [1, 10, 100, 202, 102, 1022, 1002, 102293, 10202]
+    folderNameBase = 'selfConsistencyOverDataSizes'
+    # param_dict['folderName'] = folderNameBase
+    
+    Ns = [10, 50, 200] # Number of trials
+    
+    for n in Ns:
+        # param_dict['hyps']['n_train'] = n_train[t]
+        # param_dict['hyps']['n_rounds'] = n_rounds
+        # param_dict['n_steps'] = n_steps[t]
+        param_dict['N'] = n
+        baseFigName = str(param_dict['N'])
+        # param_dict['fignames'] = str(param_dict['N']) + '_' + str(n_train[t]) + '_' + str(n_rounds)
+        
+        param_dict['folderName'] = os.path.join(folderNameBase, baseFigName)
+        
+        if not os.path.exists( param_dict['folderName'] ):
+            os.mkdir(os.path.join(os.getcwd(), param_dict['folderName']))
+    
+        for seed in seeds:
+            param_dict['hyps']['seed_inf'] = seed
+            param_dict['fignames'] =  baseFigName + '_' + 'seed' + '_' + str(seed)
+            apt_duration, mh_duration = main(param_dict)
+        
+#%%
+def selfConsistencyOverParamDraws():
+    param_dict = baseParamInit()
+    seeds = [1, 10, 100, 202, 102, 1022, 1002, 102293, 10202]
+    folderNameBase = 'selfConsistencyOverParamDraws'
+    # param_dict['folderName'] = folderNameBase
+    timings_avg_file_name = os.path.join(folderNameBase, 'timings_avg.pk')
+    
+    n_train = [2000, 3000, 5000, 10000]
+    n_rounds = 2
+    n_steps = np.asarray(n_train) * n_rounds
+    
+    timings_avg = open_file(timings_avg_file_name)
+    
+    if timings_avg is -1:
+        timings_avg = {}
+    
+    for t in range(len(n_train)):
+        param_dict['hyps']['n_train'] = n_train[t]
+        param_dict['hyps']['n_rounds'] = n_rounds
+        param_dict['n_steps'] = n_steps[t]
+        baseFigName = str(param_dict['N']) + '_' + str(n_train[t]) + '_' + str(n_rounds)
+        # param_dict['fignames'] = str(param_dict['N']) + '_' + str(n_train[t]) + '_' + str(n_rounds)
+        
+        temp_avg = {}
+        temp_avg['apt'] = []
+        temp_avg['mh'] = []
+        param_dict['folderName'] = os.path.join(folderNameBase, baseFigName)
+        
+        if not os.path.exists( param_dict['folderName'] ):
+            os.mkdir(os.path.join(os.getcwd(), param_dict['folderName']))
+    
+        for seed in seeds:
+            param_dict['hyps']['seed_inf'] = seed
+            param_dict['fignames'] =  baseFigName + '_' + 'seed' + '_' + str(seed)
+            apt_duration, mh_duration = main(param_dict)
+            temp_avg['apt'].append(apt_duration)
+            temp_avg['mh'].append(mh_duration)
+            
+        temp_avg['apt'] = np.average(np.asarray(temp_avg['apt']))
+        temp_avg['mh'] = np.average(np.asarray(temp_avg['mh']))
+        timings_avg[param_dict['fignames']] = [temp_avg['apt'], temp_avg['mh']]
+        
+    save_file(timings_avg_file_name, timings_avg)
 
 #%%
 def compareSelfConsistency():
     param_dict = baseParamInit()
+    
     seeds = [1, 10, 100, 202, 102, 1022, 1002, 102293, 10202]
+    
     param_dict['folderName'] = 'selfConsistency'
     for seed in seeds:
         param_dict['hyps']['seed_inf'] = seed
@@ -68,35 +142,13 @@ def compareSelfConsistency():
 #%%
 def compareDifferentDataSizes():
     param_dict = baseParamInit()
-    Ns = [100]
+    Ns = [10, 50, 200]
     param_dict['folderName'] = 'dataSizes'
     for n in Ns:
         param_dict['N'] = n
         param_dict['fignames'] = str(n)
         main(param_dict)
-# %%
-def compareDifferentParamDraws():
-    param_dict = baseParamInit()
-    param_dict['folderName'] = 'paramDraws'
-    timings_file_name = os.path.join(param_dict['folderName'], 'timings.pk')
-    n_train = [2000, 3000, 5000, 10000]
-    n_rounds = 3
-    n_steps = np.asarray(n_train) * n_rounds
-    
-    timings = open_file(timings_file_name)
-    
-    if timings is -1:
-        timings = {}
-    
-    for t in range(len(n_train)):
-        param_dict['hyps']['n_train'] = n_steps[t]
-        param_dict['hyps']['n_rounds'] = n_rounds
-        param_dict['n_steps'] = n_steps[t]
-        param_dict['fignames'] = str(param_dict['N']) + '_' + str(n_train[t]) + '_' + str(n_rounds)
-        apt_duration, mh_duration = main(param_dict) 
-        timings[param_dict['fignames']] = [apt_duration, mh_duration]
-           
-    save_file(timings_file_name, timings)
+
 #%%
 def main(param_dict):
     
@@ -163,9 +215,9 @@ def main(param_dict):
     # prior for the true analytical line fitting problems
     prior_analytical = {'mu_alpha': 10, 'var_alpha': 2, 'mu_beta': 2.5, 'var_beta': 10}
 
-    posterior_1 = open_file(file_paths['analytical'])
+    analytical = open_file(file_paths['analytical'])
     
-    if posterior_1 is -1 or what_to_do['analytical']:
+    if analytical is -1 or what_to_do['analytical']:
         
         posterior = np.empty([np.size(beta), np.size(alpha)])
         for ib, b in enumerate(beta):
@@ -176,27 +228,40 @@ def main(param_dict):
         posterior_1 = posterior - posterior.max()
         posterior_1[posterior_1 < -1000] = -1000
         
-        save_file(file_paths['analytical'], posterior_1)
+        analytical = {'posterior_1': posterior_1, 'alpha': alpha, 'beta': beta}
+        
+        save_file(file_paths['analytical'], analytical)
+    else:
+        posterior_1 = analytical['posterior_1']
+        alpha = analytical['alpha']
+        beta  = analytical['beta']
         
     mh_samples = open_file(file_paths['mh_samples'])
     
     if mh_samples is -1 or what_to_do['mh_samples']:
         
-        p0 = [.4, -1.8]
+        # p0 = [.4, -1.8]
+        # np.random.seed(hyps['seed_inf'])
         np.random.seed(hyps['seed_inf'])
+        nwalkers = 32
+        p0 = np.random.randn(nwalkers, len(true_params))
         mh_start = time.time()
-        chain, _ ,acc_frac = mh_sampler.run_metropolis_hastings(p0, analyticModel, n_steps=n_steps, proposal_sigmas=[.5,.5])
+        sampler = emcee.EnsembleSampler(nwalkers, len(true_params), analyticModel)
+        sampler.run_mcmc(p0, n_steps, progress = False)
+        # mh_start = time.time()
+        
+        # chain, _ ,acc_frac = mh_sampler.run_metropolis_hastings(p0, analyticModel, n_steps=n_steps, proposal_sigmas=[.5,.5])
         mh_end = time.time()
-        print("Acceptance fraction: {:.1%}".format(acc_frac))
+        # print("Acceptance fraction: {:.1%}".format(acc_frac))
         mh_duration = mh_end - mh_start
-        mh_samples = chain[2000::8]
-
+        # mh_samples = chain[2000::8]
+        mh_samples = sampler.get_chain(discard=200, thin=15, flat=True)
         save_file(file_paths['mh_samples'], mh_samples)
         
     apt_posterior = open_file(file_paths['posterior_apt'])
     if apt_posterior is -1 or what_to_do['apt']:
         apt_start = time.time()
-        apt_posterior = apt_general_2.runAPT2LinearNoise(obs0, hyps, labels, true_params, fignames, plot = True)
+        apt_posterior = apt_general_2.runAPT2psychometric(obs0, hyps, labels, true_params, fignames, plot = True)
         apt_end = time.time()
         apt_duration = apt_end - apt_start
         save_file(file_paths['posterior_apt'], apt_posterior)
@@ -224,7 +289,7 @@ def main(param_dict):
     corner.hist2d(apt_samples_r[0], apt_samples_r[1], ax = ax[1], zorder=5, fill_contours=False, 
               range = ranger)
     plt.savefig(fignames + '_res.png')
-    
+    plt.close('all')
     if not (what_to_do['apt'] and what_to_do['mh_samples']):
         return 0
     else:
@@ -233,6 +298,7 @@ def main(param_dict):
 if __name__ == '__main__':
     param_dict = baseParamInit()
     main(param_dict)
+    # selfConsistencyOverDataSizes()
     # compareDifferentDataSizes()
     # compareDifferentParamDraws()
     # compareSelfConsistency()
