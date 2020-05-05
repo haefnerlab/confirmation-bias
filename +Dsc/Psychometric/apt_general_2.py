@@ -42,6 +42,7 @@ class psychometricModel(BaseSimulator):
         # print(f'reshaped: {y.reshape(-1)}')
         # print(f'last: {np.sum(y.reshape(-1).reshape(-1, 50), 1)}')
         # print(f'last2: {np.sum(y.reshape(-1).reshape(-1, 50), 0)}')
+        # 21*50 by 1
         return {'y': y.reshape(-1)}  
     
 class psychometricStats(BaseSummaryStats):
@@ -54,11 +55,39 @@ class psychometricStats(BaseSummaryStats):
         stats = []
         for r in range(len(repetition_list)):
             data = repetition_list[r]
+            # make sure is one dimensional 
+            # reshape back 21 by 50
+            # sum over 50
             observed_choices_avg = np.sum(data['y'].reshape(-1, self.N), 1)
+            
             # print(observed_choices_avg)
             stats.append(observed_choices_avg)
         return stats
     
+class psychometricStats2(BaseSummaryStats):
+    
+    def __init__(self,signals,N):
+        self.signals = signals
+        self.N = N
+    def calc(self,repetition_list):
+        stats = []
+        for r in range(len(repetition_list)):
+            data = repetition_list[r]
+            choices = np.asarray(data['y'].reshape(-1,50))
+            signals = np.asarray(self.signals)
+
+            # group trials according to just choices (2 groups)
+            ind1 = np.where(choices == 1)[0]
+            ind2 = np.where(choices == 0)[0]
+
+            # include standard error mean in summary statistics
+            sum_stats_vec = np.hstack((np.mean(signals[ind1],axis = 0),np.mean(signals[ind2],axis = 0),\
+                                       np.std(signals[ind1],axis = 0)/np.sqrt(len(ind1)),\
+                                       np.std(signals[ind2],axis = 0)/np.sqrt(len(ind2)))) 
+            stats.append(sum_stats_vec)
+        return stats
+
+
 def plot_APT(posterior, g, labels, true_params, fignames):
     
     posterior_samples = posterior[0].gen(1000)
