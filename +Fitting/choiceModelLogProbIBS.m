@@ -83,8 +83,8 @@ simCountK = zeros(nTotalTrials, 1);
 % estimator of log(p) based on a variance-corrected log(avgP)
 avgP = zeros(nTotalTrials, 1);
 varP_S = zeros(nTotalTrials, 1);
-bailout_ll = -inf(nTotalTrials, repeats);
-bailout_ll_var = inf(nTotalTrials, repeats);
+bailout_ll = nan(nTotalTrials, repeats);
+bailout_ll_var = nan(nTotalTrials, repeats);
 
 % Only keep re-running simulations on trials that haven't yet been matched 'repeats' times
 matched = zeros(nTotalTrials, 1);
@@ -147,6 +147,8 @@ while ~all(matched >= repeats)
             % Next, use estimate of mean of p (muP) and its variance (varP) to construct an
             % estimate of log(p) and its variance. See stats.stackexchange.com/a/57766/234036
             muP = avgP(tr).*(choices(tr)==+1) + (1-avgP(tr)).*(choices(tr)==-1);
+            % Clip for stability (quivalent to a minimum lapse of 1e-9)
+            muP = max(1e-9, min(1-1e-9, muP));
             bailout_ll(tr, r) = log(muP) - 1/2*varP/muP^2;
             bailout_ll_var(tr, r) = varP./muP^2;
             % Issue a warning if these estimates are likely to be off by a lot. See comments in
