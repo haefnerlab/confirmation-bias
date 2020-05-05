@@ -13,7 +13,7 @@ import emcee
 #%%
 def baseParamInit():
     
-    N = 50 # number of trials at each orientation
+    N = 20 # number of trials at each orientation
     sensitivity_true = 1.2
     bias_true = .8
     
@@ -63,7 +63,7 @@ def selfConsistencyOverDataSizes():
     folderNameBase = 'selfConsistencyOverDataSizes'
     # param_dict['folderName'] = folderNameBase
     
-    Ns = [10, 50, 200] # Number of trials
+    Ns = [200] # Number of trials
     
     for n in Ns:
         # param_dict['hyps']['n_train'] = n_train[t]
@@ -86,6 +86,7 @@ def selfConsistencyOverDataSizes():
 #%%
 def selfConsistencyOverParamDraws():
     param_dict = baseParamInit()
+    print(param_dict['N'])
     seeds = [1, 10, 100, 202, 102, 1022, 1002, 102293, 10202]
     folderNameBase = 'selfConsistencyOverParamDraws'
     # param_dict['folderName'] = folderNameBase
@@ -259,6 +260,7 @@ def main(param_dict):
         save_file(file_paths['mh_samples'], mh_samples)
         
     apt_posterior = open_file(file_paths['posterior_apt'])
+    
     if apt_posterior is -1 or what_to_do['apt']:
         apt_start = time.time()
         apt_posterior = apt_general_2.runAPT2psychometric(obs0, hyps, labels, true_params, fignames, plot = True)
@@ -297,8 +299,11 @@ def main(param_dict):
 # %%
 if __name__ == '__main__':
     param_dict = baseParamInit()
-    main(param_dict)
+    # main(param_dict)
     # selfConsistencyOverDataSizes()
+    selfConsistencyOverParamDraws()
+    # compareSelfConsistency()
+    
     # compareDifferentDataSizes()
     # compareDifferentParamDraws()
     # compareSelfConsistency()
