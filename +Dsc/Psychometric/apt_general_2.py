@@ -73,17 +73,27 @@ class psychometricStats2(BaseSummaryStats):
         stats = []
         for r in range(len(repetition_list)):
             data = repetition_list[r]
-            choices = np.asarray(data['y'].reshape(-1,N))
+            choices = np.asarray(data['y'].reshape(-1,self.N))
             signals = np.asarray(self.signals)
 
             # group trials according to just choices (2 groups)
             ind1 = np.where(choices == 1)[0]
             ind2 = np.where(choices == 0)[0]
-
+            
+            if len(ind1) ==0:
+                term1 = 99999 # error term: set to a big value 
+            else:
+                term1 = np.std(signals[ind1],axis = 0)/np.sqrt(len(ind1))
+            
+            if len(ind2) ==0:
+                term2 = 99999 # error term: set to a big value 
+            else:
+                term2 = np.std(signals[ind2],axis = 0)/np.sqrt(len(ind2))        
+      
             # include standard error mean in summary statistics
-            sum_stats_vec = np.hstack((np.mean(signals[ind1],axis = 0),np.mean(signals[ind2],axis = 0),\
-                                       np.std(signals[ind1],axis = 0)/np.sqrt(len(ind1)),\
-                                       np.std(signals[ind2],axis = 0)/np.sqrt(len(ind2)))) 
+            sum_stats_vec = np.hstack((np.nanmean(signals[ind1],axis = 0),np.nanmean(signals[ind2],axis = 0),\
+                                       term1,\
+                                       term2)) 
             stats.append(sum_stats_vec)
         return stats
 
