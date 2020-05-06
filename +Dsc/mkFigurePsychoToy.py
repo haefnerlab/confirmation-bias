@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Mon May  4 09:41:32 2020
+Created on Tue May  5 12:10:05 2020
 
 @author: liushizhao
 """
@@ -26,7 +26,7 @@ def calculate_discrepancy(samples1,samples2,option = 'parametric'):
         corr_samples2 = np.corrcoef(samples2[:,0],samples2[:,1])[0,1]
         discrepancy[2] = abs(samples1_var[0,0] - samples2_var[0,0])
         discrepancy[3] = abs(samples1_var[1,1] - samples2_var[1,1])
-        discrepancy[4] = abs(samples1_var[0,1] - samples2_var[0,1]) 
+        discrepancy[4] = abs(corr_samples1  - corr_samples2) 
         
     elif option == 'nonparametric':
         nParams = samples1.shape[1]  
@@ -35,29 +35,9 @@ def calculate_discrepancy(samples1,samples2,option = 'parametric'):
         for i in range(nParams):
             discrepancy[i],_ = stats.ks_2samp(samples1[:,i],samples2[:,i])
     return discrepancy.squeeze()
-# load analytical results
-name = 'LineFitting/analytical.pk'
-with open(name, 'rb') as handle:
-    file  = pk.load(handle)
-analytical_posterior = file[0]
-alpha_space = file[1]
-beta_space = file[2]
-# normalize the posterior, from log space to probabilty space summing up to 1
-analytical_posterior = np.exp(analytical_posterior)
-analytical_posterior = analytical_posterior /np.sum(analytical_posterior[:])
-# draw samples from analytical posterior
-# create a population of alph&beta
-alphav, betav = np.meshgrid(alpha_space , beta_space)
 
-k = 10000
-analytical_posterior_flat = analytical_posterior.flatten()
-index = np.random.choice(np.arange(len(analytical_posterior_flat)),size = k,replace = True,p = analytical_posterior_flat)
-analytical_samples = np.zeros((k,2))
-analytical_samples[:,0] = alphav.flatten()[index]
-analytical_samples[:,1] = betav.flatten()[index]
 #%%
-
-N_trial_list = [200,1000]
+N_trial_list = [20,50]
 samples_list = [2000,3000,5000,10000]
 
 
@@ -69,11 +49,29 @@ para_discrepancy_apt = np.zeros((2,len(samples_list),9,5))
 para_discrepancy_mh = np.zeros((2,len(samples_list),9,5))
 
 for i,N_trial in enumerate(N_trial_list):
+    resultsFolder = '../dscData/Psycho Results/CP Statistics/selfConsistencyOverParamDraws%d' % N_trial
+    # load analytical results
+    name = os.path.join(resultsFolder,'analytical.pk')
+    with open(name, 'rb') as handle:
+        file  = pk.load(handle)
+    analytical_posterior = file['posterior_1']
+    alpha_space = file['alpha']
+    beta_space = file['beta']
+    # normalize the posterior, from log space to probabilty space summing up to 1
+    analytical_posterior = np.exp(analytical_posterior)
+    analytical_posterior = analytical_posterior /np.sum(analytical_posterior[:])
+    # draw samples from analytical posterior
+    # create a population of alph&beta
+    alphav, betav = np.meshgrid(alpha_space , beta_space)
+    
+    k = 10000
+    analytical_posterior_flat = analytical_posterior.flatten()
+    index = np.random.choice(np.arange(len(analytical_posterior_flat)),size = k,replace = True,p = analytical_posterior_flat)
+    analytical_samples = np.zeros((k,2))
+    analytical_samples[:,0] = alphav.flatten()[index]
+    analytical_samples[:,1] = betav.flatten()[index]
     for j,N in enumerate(samples_list):
-        if N_trial == 200:
-            resultsFolder = '../dscData/Line Fitting Results/Results-a/selfConsistencyOverParamDraws200'
-        elif N_trial == 1000:
-            resultsFolder = '../dscData/Line Fitting Results/Results-a/selfConsistencyOverParamDraws'
+        
 
         
         
@@ -104,6 +102,7 @@ for i,N_trial in enumerate(N_trial_list):
                     para_discrepancy_mh[i,j,n2,:] = calculate_discrepancy(mh_samples,analytical_samples,option = 'parametric')
                     n2 += 1
 #%%  
+  
 logpara_discrepancy_apt = np.log(para_discrepancy_apt)
 logpara_discrepancy_mh = np.log(para_discrepancy_mh)
 # from scipy.io import savemat
@@ -123,20 +122,20 @@ logpara_discrepancy_mh = np.log(para_discrepancy_mh)
 fig,axs = plt.subplots(5,sharex = True,sharey = False)
 fig.set_size_inches(6, 10)
 fig.subplots_adjust(hspace=0.5, wspace=0.4)
-feature_labels = ['alpha_mean','beta_mean','alpha_variance','beta_variance','covariance']
+feature_labels = ['sensitivity_mean','bias_mean','sensitivity_variance','bias_variance','covariance']
 for i in range(5):
 
     axs[i].errorbar(np.log(np.asarray(samples_list)*2),y = np.mean(logpara_discrepancy_apt[0,:,:,i],axis = 1),\
-                  yerr = np.std(logpara_discrepancy_apt[0,:,:,i],axis = 1),label ='apt_200',color = 'b',ls= '--')
+                  yerr = np.std(logpara_discrepancy_apt[0,:,:,i],axis = 1),label ='apt_20',color = 'b',ls= '--')
         
     axs[i].errorbar(np.log(np.asarray(samples_list)*2),y = np.mean(logpara_discrepancy_mh[0,:,:,i],axis = 1),\
-                  yerr = np.std(logpara_discrepancy_mh[0,:,:,i],axis = 1),label = 'mh_sampling_200',color = 'g',ls = '--')
+                  yerr = np.std(logpara_discrepancy_mh[0,:,:,i],axis = 1),label = 'mh_sampling_20',color = 'g',ls = '--')
     
     axs[i].errorbar(np.log(np.asarray(samples_list)*2),y = np.mean(logpara_discrepancy_apt[1,:,:,i],axis = 1),\
-                  yerr = np.std(logpara_discrepancy_apt[1,:,:,i],axis = 1),label ='apt_1000',color = 'b')
+                  yerr = np.std(logpara_discrepancy_apt[1,:,:,i],axis = 1),label ='apt_50',color = 'b')
         
     axs[i].errorbar(np.log(np.asarray(samples_list)*2),y = np.mean(logpara_discrepancy_mh[1,:,:,i],axis = 1),\
-                  yerr = np.std(logpara_discrepancy_mh[1,:,:,i],axis = 1),label = 'mh_sampling_1000',color='g')    
+                  yerr = np.std(logpara_discrepancy_mh[1,:,:,i],axis = 1),label = 'mh_sampling_50',color='g')    
     axs[i].set_title(feature_labels[i],size = 12)
     axs[i].set_ylabel('Discrepancy')
     plt.xticks(np.log(np.asarray(samples_list)*2),['4000','6000','10000','20000'])
@@ -144,5 +143,3 @@ for i in range(5):
         plt.legend(loc='l', bbox_to_anchor=(1,1))
 
     plt.xlabel('Number of simulations',size = 16)
-     
-#plt.tight_layout()

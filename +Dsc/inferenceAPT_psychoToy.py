@@ -97,7 +97,7 @@ if __name__ == "__main__":
             true_params = [sensitivity ,bias]
             labels_params = ['sensitivity' ,'bias']
             # generate observation
-            N = 1000
+            
             min_x = -10
             max_x = 10
             x_list = np.linspace(min_x, max_x, 21)
