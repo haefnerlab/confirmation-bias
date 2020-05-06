@@ -13,16 +13,18 @@ import emcee
 #%%
 def baseParamInit():
     
-    N = 50 # number of trials at each orientation
+    N = 20 # number of trials at each orientation
     sensitivity_true = 1.2
-    bias_true = .8
+#     bias_true = .8
+    bias_true = 2
+
     
     labels = ['sensitivity', 'bias']
     true_params = [sensitivity_true, bias_true]
     
     seed_p = 2
     
-    prior_apt =  dd.Uniform(lower = np.asarray([0, -10]), upper = np.asarray([10, 10]), seed = seed_p)
+    prior_apt =  dd.Uniform(lower = np.asarray([0.1, -5]), upper = np.asarray([9.9, 5]), seed = seed_p)
     
     analyticModel = None
     apt_model = None
@@ -63,7 +65,7 @@ def selfConsistencyOverDataSizes():
     folderNameBase = 'selfConsistencyOverDataSizes'
     # param_dict['folderName'] = folderNameBase
     
-    Ns = [10, 50, 200] # Number of trials
+    Ns = [200] # Number of trials
     
     for n in Ns:
         # param_dict['hyps']['n_train'] = n_train[t]
@@ -86,6 +88,7 @@ def selfConsistencyOverDataSizes():
 #%%
 def selfConsistencyOverParamDraws():
     param_dict = baseParamInit()
+    print(param_dict['N'])
     seeds = [1, 10, 100, 202, 102, 1022, 1002, 102293, 10202]
     folderNameBase = 'selfConsistencyOverParamDraws'
     # param_dict['folderName'] = folderNameBase
@@ -159,8 +162,8 @@ def main(param_dict):
     }
     
     what_to_do = {
-        'analytical': True,
-        'mh_samples': True,
+        'analytical': False,
+        'mh_samples': False,
         'apt': True
     }
     
@@ -194,7 +197,8 @@ def main(param_dict):
         hyps['m'] = apt_model
         
     if hyps['s'] is None:
-        s = apt_general_2.psychometricStats(N)
+#         s = apt_general_2.psychometricStats(N)
+        s = apt_general_2.psychometricStats2(x,N)
         hyps['s'] = s
     
     
@@ -259,6 +263,7 @@ def main(param_dict):
         save_file(file_paths['mh_samples'], mh_samples)
         
     apt_posterior = open_file(file_paths['posterior_apt'])
+    
     if apt_posterior is -1 or what_to_do['apt']:
         apt_start = time.time()
         apt_posterior = apt_general_2.runAPT2psychometric(obs0, hyps, labels, true_params, fignames, plot = True)
@@ -299,6 +304,9 @@ if __name__ == '__main__':
     param_dict = baseParamInit()
     main(param_dict)
     # selfConsistencyOverDataSizes()
+    # selfConsistencyOverParamDraws()
+    # compareSelfConsistency()
+    
     # compareDifferentDataSizes()
     # compareDifferentParamDraws()
     # compareSelfConsistency()
