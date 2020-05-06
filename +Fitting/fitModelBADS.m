@@ -126,13 +126,22 @@ max_x = max_x(valid, :);
 nll = nll(valid);
 
 for iRun=length(nll):-1:1
-    optim_results{iRun} = Fitting.setParamsFields(base_params, fields, max_x(iRun, :));
-    [~, ll, ll_var] = eval_fun(optim_results{iRun}, distribs, signals, choices, final_eval_args{:});
-    for iP=1:length(optim_results{iRun})
-        optim_results{iRun}(iP).fit_fields = fields;
-        optim_results{iRun}(iP).fit_method = 'BADS';
-        optim_results{iRun}(iP).ll = ll;
-        optim_results{iRun}(iP).ll_var = ll_var;
+    chkpt = fullfile('sample-checkpoints', sprintf('%x-bads-eval-%d.mat', input_id, iRun));
+    if exist(chkpt, 'file')
+        ld = load(chkpt);
+        optim_results = ld.optim_results;
+        fprintf('fitModelBADS :: loading eval %d\n', iRun);
+    else
+        optim_results{iRun} = Fitting.setParamsFields(base_params, fields, max_x(iRun, :));
+        [~, ll, ll_var] = eval_fun(optim_results{iRun}, distribs, signals, choices, final_eval_args{:});
+        for iP=1:length(optim_results{iRun})
+            optim_results{iRun}(iP).fit_fields = fields;
+            optim_results{iRun}(iP).fit_method = 'BADS';
+            optim_results{iRun}(iP).ll = ll;
+            optim_results{iRun}(iP).ll_var = ll_var;
+        end
+        fprintf('fitModelBADS :: saving eval %d\n', iRun);
+        save(chkpt, 'optim_results');
     end
 end
 end
