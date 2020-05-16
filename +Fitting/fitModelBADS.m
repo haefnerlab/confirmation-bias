@@ -50,8 +50,8 @@ if exist(chkpt, 'file')
     
     fprintf('fitModelBADS :: %s\tloaded %d of %d evaluations\n', chkpt, sum(~isnan(loglike)), length(loglike));
 else
-    % Start with a QRG of only 1000 points on the unit hypercube
-    hyperQRG = lhsdesign(1000, nF);
+    % Start with a QRG of 5000 points on the unit hypercube
+    hyperQRG = lhsdesign(5000, nF);
     
     % Use points inside hypercube to get grid on actual parameters via inverse CDF of each field's prior
     grid_points = zeros(size(hyperQRG));
@@ -99,7 +99,7 @@ else
     opts.UncertaintyHandling = 'off';
 end
 
-nRuns = 10;
+nRuns = 15;
 for iRun=nRuns:-1:1
     % Use the top 'nRuns' points from the grid for initialization
     chkpt = fullfile('sample-checkpoints', sprintf('%x-bads-search-%d.mat', input_id, iRun));
