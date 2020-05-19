@@ -100,48 +100,55 @@ else
 end
 
 nRuns = 15;
-for iRun=nRuns:-1:1
+parfor iRun=1:nRuns
     % Use the top 'nRuns' points from the grid for initialization
     chkpt = fullfile('sample-checkpoints', sprintf('%x-bads-search-%d.mat', input_id, iRun));
     if exist(chkpt, 'file')
         ld = load(chkpt);
-        max_x = ld.max_x;
-        nll = ld.nll;
-        exitflag = ld.exitflag;
-        gpinfo = ld.gpinfo;
+        this_max_x = ld.this_max_x;
+        this_nll = ld.this_nll;
+        this_exitflag = ld.this_exitflag;
+        this_gpinfo = ld.this_gpinfo;
         fprintf('fitModelBADS :: loading search iteration %d\n', iRun);
     else
         fprintf('fitModelBADS :: starting search iteration %d\n', iRun);
-        [max_x(iRun,:), nll(iRun), exitflag(iRun), ~, ~, gpinfo(iRun)] = bads(...
+        [this_max_x, this_nll, this_exitflag, ~, ~, this_gpinfo] = bads(...
             @(x) -eval_fun(Fitting.setParamsFields(base_params, fields, x), distribs, signals, choices, eval_args{:}), ...
             grid_points(sort_ll(iRun), :), LB, UB, PLB,PUB, [], opts);
-        save(chkpt, 'max_x', 'nll', 'exitflag', 'gpinfo');
+        saveWrapper(chkpt, struct('this_max_x', this_max_x, 'this_nll', this_nll, ...
+            'this_exitflag', this_exitflag, 'this_gpinfo', this_gpinfo));
     end
+    max_x(iRun,:) = this_max_x;
+    nll(iRun) = this_nll;
+    exitflag(iRun) = this_exitflag;
+    gpinfo(iRun) = this_gpinfo;
 end
 
-%% Store all of the (valid) runs..
+%% Re-evaluate all runs..
 
-valid = exitflag >= 0;
-max_x = max_x(valid, :);
-nll = nll(valid);
-
-for iRun=length(nll):-1:1
+parfor iRun=1:length(nll)
     chkpt = fullfile('sample-checkpoints', sprintf('%x-bads-eval-%d.mat', input_id, iRun));
     if exist(chkpt, 'file')
-        ld = load(chkpt);
-        optim_results = ld.optim_results;
         fprintf('fitModelBADS :: loading eval %d\n', iRun);
+        ld = load(chkpt);
+        this_optim_params = ld.this_optim_params;
     else
-        optim_results{iRun} = Fitting.setParamsFields(base_params, fields, max_x(iRun, :));
-        [~, ll, ll_var] = eval_fun(optim_results{iRun}, distribs, signals, choices, final_eval_args{:});
-        for iP=1:length(optim_results{iRun})
-            optim_results{iRun}(iP).fit_fields = fields;
-            optim_results{iRun}(iP).fit_method = 'BADS';
-            optim_results{iRun}(iP).ll = ll;
-            optim_results{iRun}(iP).ll_var = ll_var;
+        fprintf('fitModelBADS :: starting eval %d\n', iRun);
+        this_optim_params = Fitting.setParamsFields(base_params, fields, max_x(iRun, :));
+        [~, ll, ll_var] = eval_fun(this_optim_params, distribs, signals, choices, final_eval_args{:});
+        for iP=1:length(this_optim_params)
+            this_optim_params(iP).fit_fields = fields;
+            this_optim_params(iP).fit_method = 'BADS';
+            this_optim_params(iP).ll = ll;
+            this_optim_params(iP).ll_var = ll_var;
         end
         fprintf('fitModelBADS :: saving eval %d\n', iRun);
-        save(chkpt, 'optim_results');
+        saveWrapper(chkpt, struct('this_optim_params', this_optim_params));
     end
+    optim_results{iRun} = this_optim_params;
 end
+end
+
+function saveWrapper(filename, str)
+save(filename, '-struct', str);
 end
