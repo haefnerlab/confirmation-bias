@@ -150,5 +150,5 @@ end
 end
 
 function saveWrapper(filename, str)
-save(filename, '-struct', str);
+save(filename, '-struct', 'str');
 end
