@@ -66,18 +66,28 @@ else
 end
 
 tstart = tic;
+% Run grid evaluation in batches of 'parfor' evaluations, stopping to save results after each batch.
 needs_eval = find(isnan(loglike));
-for ii=1:length(needs_eval)
-    iVal = needs_eval(ii);
-    [logpdf(iVal), loglike(iVal), variance(iVal)] = ...
-        eval_fun(Fitting.setParamsFields(base_params, fields, grid_points(iVal, :)), distribs, signals, choices, eval_args{:});
-    
-    % Periodically print diagnostics and save things
-    if mod(ii, 100) == 0 || ii == length(needs_eval)
-        telapse = toc(tstart);
-        fprintf('%s :: eval %d of %d\tETA=%.1fs\n', chkpt, ii, length(needs_eval), (length(needs_eval)-ii)*telapse/ii);
-        save(chkpt, 'grid_points', 'logpdf', 'loglike', 'variance');
+batchsize = 100;
+nbatch = ceil(length(needs_eval)/batchsize);
+for ibatch=1:nbatch
+    batch_idxs = needs_eval(1:min(batchsize, length(needs_eval)));
+    parfor ii=1:length(batch_idxs)
+        iVal = batch_idxs(ii);
+        [batch_logpdf(ii), batch_loglike(ii), batch_variance(ii)] = ...
+            eval_fun(Fitting.setParamsFields(base_params, fields, grid_points(iVal, :)), distribs, signals, choices, eval_args{:});
     end
+    logpdf(batch_idxs) = batch_logpdf;
+    loglike(batch_idxs) = batch_loglike;
+    variance(batch_idxs) = batch_variance;
+    
+    % Print diagnostics and save things
+    telapse = toc(tstart);
+    fprintf('%s :: batch %d of %d\tETA=%.1fs\n', chkpt, ibatch, nbatch, (nbatch-ibatch)*telapse/ibatch);
+    save(chkpt, 'grid_points', 'logpdf', 'loglike', 'variance');
+    
+    % Remove indices from 'needs_eval' that were just completed.
+    needs_eval(1:min(batchsize, length(needs_eval))) = [];
 end
 
 % Sort LL to start BADS from each of the top K points
