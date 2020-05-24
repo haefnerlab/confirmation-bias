@@ -143,7 +143,7 @@ end
 % Extrapolate from first nInitialRuns out to get minimum number of runs such that we could be
 % confident that they contain a global minimum. Since BADS internally runs 10 evaluations of the
 % final point by default, an estimate of the noise around the minima is opts.NoiseScale/sqrt(10).
-estMinRuns = Fitting.bootstrapMinimaRegret(nll, opts.NoiseScale/sqrt(10), 0);
+estMinRuns = Fitting.bootstrapMinimaRegret(nll, opts.NoiseScale/sqrt(10), 1);
 fprintf('fitModelBADS :: completed %d initial runs; estimated low-regret # runs = %d\n', nInitialRuns, estMinRuns);
 if estMinRuns > nInitialRuns
     % Copy of the above parfor loop, but now initializing by selecting among the bestfit points so
