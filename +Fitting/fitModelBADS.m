@@ -163,9 +163,10 @@ if estMinRuns > nInitialRuns
         else
             fprintf('fitModelBADS :: starting additional search iteration %d\n', iRun);
             start_pt = max_x(randi(nInitialRuns), :) + randn(1,nF).*jitteramt;
+            start_pt = max(PLB, min(start_pt, PUB));
             [this_max_x, this_nll, this_exitflag, ~, ~, this_gpinfo] = bads(...
                 @(x) -eval_fun(Fitting.setParamsFields(base_params, fields, x), distribs, signals, choices, eval_args{:}), ...
-                start_pt, LB, UB, PLB,PUB, [], opts);
+                start_pt, LB, UB, PLB, PUB, [], opts);
             saveWrapper(chkpt, struct('this_max_x', this_max_x, 'this_nll', this_nll, ...
                 'this_exitflag', this_exitflag, 'this_gpinfo', this_gpinfo));
         end
