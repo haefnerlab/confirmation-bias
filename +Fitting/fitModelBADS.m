@@ -140,17 +140,18 @@ end
 
 %% Run BADS an additional number of times until confident in global min
 
-% Extrapolate from first nInitialRuns out to get minimum number of runs such that we could be
-% confident that they contain a global minimum. Since BADS internally runs 10 evaluations of the
-% final point by default, an estimate of the noise around the minima is opts.NoiseScale/sqrt(10).
+% Loop until convergence: use existing set of minima to extrapolate how many runs we'd need to be
+% confident in the global minimum (see @Fitting.bootstrapMinimaregret). As long as we're < this
+% minimum, run and save another 5 calls to BADS.
+maxRuns = 200;
 estMinRuns = Fitting.bootstrapMinimaRegret(nll, opts.NoiseScale/sqrt(10), 1);
-fprintf('fitModelBADS :: completed %d initial runs; estimated low-regret # runs = %d\n', nInitialRuns, estMinRuns);
-if estMinRuns > nInitialRuns
+while length(nll) < min(maxRuns, estMinRuns)
+    fprintf('fitModelBADS :: completed %d searches. Extending to %d\n', length(nll), estMinRuns);
     % Copy of the above parfor loop, but now initializing by selecting among the bestfit points so
     % far plus some jittering
     jitteramt = (PUB-PLB)/20;
-    parfor iAddRun=1:estMinRuns-nInitialRuns
-        iRun = iAddRun+nInitialRuns;
+    parfor iAddRun=1:5
+        iRun = iAddRun+length(nll);
         
         chkpt = fullfile('sample-checkpoints', sprintf('%x-bads-search-%d.mat', input_id, iRun));
         if exist(chkpt, 'file')
@@ -162,7 +163,7 @@ if estMinRuns > nInitialRuns
             fprintf('fitModelBADS :: loading additional search iteration %d\n', iRun);
         else
             fprintf('fitModelBADS :: starting additional search iteration %d\n', iRun);
-            start_pt = max_x(randi(nInitialRuns), :) + randn(1,nF).*jitteramt;
+            start_pt = max_x(randi(length(nll)), :) + randn(1,nF).*jitteramt;
             start_pt = max(PLB, min(start_pt, PUB));
             [this_max_x, this_nll, this_exitflag, ~, ~, this_gpinfo] = bads(...
                 @(x) -eval_fun(Fitting.setParamsFields(base_params, fields, x), distribs, signals, choices, eval_args{:}), ...
@@ -179,6 +180,9 @@ if estMinRuns > nInitialRuns
     nll = horzcat(nll, add_nll);
     exitflag = horzcat(exitflag, add_exitflag);
     gpinfo = horzcat(gpinfo, add_gpinfo);
+    
+    % Re-estimate min # runs
+    estMinRuns = Fitting.bootstrapMinimaRegret(nll, opts.NoiseScale/sqrt(10), 1);
 end
 
 %% Re-evaluate all runs..

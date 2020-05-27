@@ -30,6 +30,12 @@ if isscalar(stdevs), stdevs = repmat(stdevs, size(minima)); end
 
 global_min = min(minima);
 
+if all(stdevs == 0) && all(minima < global_min+tolerance)
+    n99 = 1;
+    pr_n = ones(size(minima));
+    return;
+end
+
 for n=length(minima):-1:1
     for b=1000:-1:1
         boot_idx = randi(length(minima), 1, n);
