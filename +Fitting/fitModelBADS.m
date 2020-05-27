@@ -93,15 +93,16 @@ end
 % Sanity-check
 assert(~any(isnan(loglike)));
 
-% Sort LL to start BADS from each of the top K points
-[~, sort_ll] = sort(loglike, 'descend');
-
 %% Run BADS multiple times
 
 LB = cellfun(@(f) distribs.(f).lb, fields)';
 UB = cellfun(@(f) distribs.(f).ub, fields)';
 PLB = cellfun(@(f) distribs.(f).plb, fields)';
 PUB = cellfun(@(f) distribs.(f).pub, fields)';
+
+% Searches are initialized pseudo-randomly from the existing grid + previous evaluations, plus
+% this amount of jittering
+jitteramt = (PUB-PLB)/20;
 
 opts = bads('defaults');
 opts.NonlinearScaling = 'off';
@@ -113,100 +114,90 @@ else
     opts.NoiseScale = 0;
 end
 
-nInitialRuns = 15;
-parfor iRun=1:nInitialRuns
-    % Use the top 'nRuns' points from the grid for initialization
-    chkpt = fullfile('sample-checkpoints', sprintf('%x-bads-search-%d.mat', input_id, iRun));
-    if exist(chkpt, 'file')
-        ld = load(chkpt);
-        this_max_x = ld.this_max_x;
-        this_nll = ld.this_nll;
-        this_exitflag = ld.this_exitflag;
-        this_gpinfo = ld.this_gpinfo;
-        fprintf('fitModelBADS :: loading search iteration %d\n', iRun);
-    else
-        fprintf('fitModelBADS :: starting search iteration %d\n', iRun);
-        [this_max_x, this_nll, this_exitflag, ~, ~, this_gpinfo] = bads(...
-            @(x) -eval_fun(Fitting.setParamsFields(base_params, fields, x), distribs, signals, choices, eval_args{:}), ...
-            grid_points(sort_ll(iRun), :), LB, UB, PLB,PUB, [], opts);
-        saveWrapper(chkpt, struct('this_max_x', this_max_x, 'this_nll', this_nll, ...
-            'this_exitflag', this_exitflag, 'this_gpinfo', this_gpinfo));
-    end
-    max_x(iRun,:) = this_max_x;
-    nll(iRun) = this_nll;
-    exitflag(iRun) = this_exitflag;
-    gpinfo(iRun) = this_gpinfo;
-end
+% Initialize empty return values (overhead of growing arrays is not a concern)
+est_ll = [];
+est_ll_var = [];
+gpinfo = [];
+exitflag = [];
+optim_results = {};
 
-%% Run BADS an additional number of times until confident in global min
-
-% Loop until convergence: use existing set of minima to extrapolate how many runs we'd need to be
-% confident in the global minimum (see @Fitting.bootstrapMinimaregret). As long as we're < this
-% minimum, run and save another 5 calls to BADS.
+% Loop until convergence: use existing set of minima (once we have at least 20) to extrapolate how
+% many runs we'd need to be confident in the global minimum (see @Fitting.bootstrapMinimaregret). As
+% long as we're < this minimum, run and save another 5 calls to BADS.
 maxRuns = 200;
-estMinRuns = Fitting.bootstrapMinimaRegret(nll, opts.NoiseScale/sqrt(10), 1);
-while length(nll) < min(maxRuns, estMinRuns)
-    fprintf('fitModelBADS :: completed %d searches. Extending to %d\n', length(nll), estMinRuns);
-    % Copy of the above parfor loop, but now initializing by selecting among the bestfit points so
-    % far plus some jittering
-    jitteramt = (PUB-PLB)/20;
-    parfor iAddRun=1:5
-        iRun = iAddRun+length(nll);
+estMinRuns = maxRuns;
+while length(est_ll) < min(maxRuns, estMinRuns)
+    fprintf('fitModelBADS :: completed %d searches. Extending to %d\n', length(est_ll), estMinRuns);
         
+    % Get starting points for the next batch of parfor evaluations by a sort of empirical Thompson
+    % sampling + jittering. Searching all points in the QRG plus points that have been evaluated so
+    % far. Kind of like Bayesian Optimization of the initial point fed to BADS.
+    for iAddRun=5:-1:1
+        all_loglike = vertcat(loglike(:), est_ll(:));
+        all_loglike_var = vertcat(variance(:), est_ll_var(:));
+        [~, ibest] = max(all_loglike+sqrt(all_loglike_var).*randn(size(all_loglike)));
+        start_pt(iAddRun,:) = grid_points(ibest, :) + randn(size(jitteramt)).*jitteramt;
+        start_pt(iAddRun,:) = max(PLB, min(PUB, start_pt(iAddRun,:)));
+    end
+
+    parfor iAddRun=1:5
+        iRun = iAddRun+length(est_ll);
+        
+        %% Search step
         chkpt = fullfile('sample-checkpoints', sprintf('%x-bads-search-%d.mat', input_id, iRun));
         if exist(chkpt, 'file')
             ld = load(chkpt);
-            this_max_x = ld.this_max_x;
-            this_nll = ld.this_nll;
+            this_optim_x = ld.this_max_x;
             this_exitflag = ld.this_exitflag;
             this_gpinfo = ld.this_gpinfo;
-            fprintf('fitModelBADS :: loading additional search iteration %d\n', iRun);
+            fprintf('fitModelBADS :: loading search %d\n', iRun);
         else
-            fprintf('fitModelBADS :: starting additional search iteration %d\n', iRun);
-            start_pt = max_x(randi(length(nll)), :) + randn(1,nF).*jitteramt;
-            start_pt = max(PLB, min(start_pt, PUB));
-            [this_max_x, this_nll, this_exitflag, ~, ~, this_gpinfo] = bads(...
+            fprintf('fitModelBADS :: starting search %d\n', iRun);
+            [this_optim_x, this_nll, this_exitflag, ~, ~, this_gpinfo] = bads(...
                 @(x) -eval_fun(Fitting.setParamsFields(base_params, fields, x), distribs, signals, choices, eval_args{:}), ...
-                start_pt, LB, UB, PLB, PUB, [], opts);
-            saveWrapper(chkpt, struct('this_max_x', this_max_x, 'this_nll', this_nll, ...
+                start_pt(iAddRun,:), LB, UB, PLB, PUB, [], opts);
+            fprintf('fitModelBADS :: saving search %d\n', iRun);
+            saveWrapper(chkpt, struct('this_max_x', this_optim_x, 'this_nll', this_nll, ...
                 'this_exitflag', this_exitflag, 'this_gpinfo', this_gpinfo));
         end
-        add_max_x(iAddRun,:) = this_max_x;
-        add_nll(iAddRun) = this_nll;
+        add_max_x(iAddRun,:) = this_optim_x;
         add_exitflag(iAddRun) = this_exitflag;
         add_gpinfo(iAddRun) = this_gpinfo;
+        
+        %% Eval step
+        chkpt = fullfile('sample-checkpoints', sprintf('%x-bads-eval-%d.mat', input_id, iRun));
+        if exist(chkpt, 'file')
+            fprintf('fitModelBADS :: loading eval %d\n', iRun);
+            ld = load(chkpt);
+            this_optim_params = ld.this_optim_params;
+        else
+            fprintf('fitModelBADS :: starting eval %d\n', iRun);
+            this_optim_params = Fitting.setParamsFields(base_params, fields, add_max_x(iAddRun,:));
+            [~, ll, ll_var] = eval_fun(this_optim_params, distribs, signals, choices, final_eval_args{:});
+            for iP=1:length(this_optim_params)
+                this_optim_params(iP).fit_fields = fields;
+                this_optim_params(iP).fit_method = 'BADS';
+                this_optim_params(iP).ll = ll;
+                this_optim_params(iP).ll_var = ll_var;
+            end
+            fprintf('fitModelBADS :: saving eval %d\n', iRun);
+            saveWrapper(chkpt, struct('this_optim_params', this_optim_params));
+        end
+        this_optim_results{iAddRun} = this_optim_params;
     end
-    max_x = vertcat(max_x, add_max_x);
-    nll = horzcat(nll, add_nll);
+    % Concatenate previous results with new parfor evals
+    grid_points = vertcat(grid_points, add_max_x);
     exitflag = horzcat(exitflag, add_exitflag);
     gpinfo = horzcat(gpinfo, add_gpinfo);
+    optim_results = horzcat(optim_results, this_optim_results);
     
-    % Re-estimate min # runs
-    estMinRuns = Fitting.bootstrapMinimaRegret(nll, opts.NoiseScale/sqrt(10), 1);
-end
-
-%% Re-evaluate all runs..
-
-parfor iEval=1:length(nll)
-    chkpt = fullfile('sample-checkpoints', sprintf('%x-bads-eval-%d.mat', input_id, iEval));
-    if exist(chkpt, 'file')
-        fprintf('fitModelBADS :: loading eval %d\n', iEval);
-        ld = load(chkpt);
-        this_optim_params = ld.this_optim_params;
-    else
-        fprintf('fitModelBADS :: starting eval %d\n', iEval);
-        this_optim_params = Fitting.setParamsFields(base_params, fields, max_x(iEval, :));
-        [~, ll, ll_var] = eval_fun(this_optim_params, distribs, signals, choices, final_eval_args{:});
-        for iP=1:length(this_optim_params)
-            this_optim_params(iP).fit_fields = fields;
-            this_optim_params(iP).fit_method = 'BADS';
-            this_optim_params(iP).ll = ll;
-            this_optim_params(iP).ll_var = ll_var;
-        end
-        fprintf('fitModelBADS :: saving eval %d\n', iEval);
-        saveWrapper(chkpt, struct('this_optim_params', this_optim_params));
+    % Grab LL and LL_var fields from each fit and use them to estimate min # runs needed for
+    % convergence (as long as we've completed at least 20 so far.)
+    est_ll = cellfun(@(fit_para) fit_para(1).ll, optim_results);
+    est_ll_var = cellfun(@(fit_para) fit_para(1).ll_var, optim_results);
+    if length(est_ll) >= 20
+        estMinRuns = Fitting.bootstrapMinimaRegret(est_ll, sqrt(est_ll_var), 1);
     end
-    optim_results{iEval} = this_optim_params;
 end
 end
 
