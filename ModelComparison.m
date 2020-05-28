@@ -1,5 +1,6 @@
-function [aic, aic_err, model_info, fits, sampleses] = ModelComparison(base_params, signals, choices, fit_scale, prefix, model_names)
-
+function [aic, mle, ll_err, model_info, fits, sampleses] = ModelComparison(base_params, signals, choices, fit_scale, prefix, model_names, best_so_far, memodir)
+if nargin < 7, best_so_far = false; end
+if nargin < 8, memodir = fullfile('..', 'Precomputed'); end
 % Note: use 'base_params' to set generative model parameters like CI, SI, etc
 
 %% Specify models
@@ -46,15 +47,52 @@ for iModel=1:length(model_info)
     % 'noise' is a parameter even if base_params.noise=0. But it also just seems like good practice.
     this_params = Fitting.setParamsFields(this_params, fields, cellfun(@(f) distribs.(f).priorrnd(1), fields));
     if use_cache
-        [fits{iModel}, sampleses{iModel}, ~, ~] = LoadOrRun(@Fitting.fitModelBADS, ...
-            {this_params, signals, choices, distribs, struct('prefix', prefix)}, ...
-            fullfile('../Precomputed', ['badsfit-' prefix '-' model_info(iModel).name '.mat']));
+        cache_file = fullfile(memodir, ['badsfit-' prefix '-' model_info(iModel).name '.mat']);
+        if exist(cache_file, 'file') || ~best_so_far
+            [fits{iModel}, sampleses{iModel}, ~, ~] = LoadOrRun(@Fitting.fitModelBADS, ...
+                {this_params, signals, choices, distribs, struct('prefix', prefix)}, ...
+                cache_file);
+        elseif best_so_far
+            % Kind of a hack... reconstruct the hash for temporary files used inside @FitModelBADS.
+            % Load all the interim search data so far and use the best fit.
+            if iscell(signals)
+                allsigs = vertcat(signals{:});
+                allchoices = vertcat(choices{:});
+                input_id = string2hash([this_params(1).model, strjoin(fields), num2str([allsigs(:)' allchoices'])]);
+            else
+                input_id = string2hash([this_params(1).model, strjoin(fields), num2str([signals(:)' choices'])]);
+            end
+            eval_checkpoint_files = dir(fullfile('sample-checkpoints', sprintf('%x-bads-eval*.mat', input_id)));
+            if ~isempty(eval_checkpoint_files)
+                for ieval=length(eval_checkpoint_files):-1:1
+                    ld = load(fullfile('sample-checkpoints', eval_checkpoint_files(ieval).name));
+                    ld_ll(ieval) = ld.this_optim_params(1).ll;
+                    ld_ll_var(ieval) = ld.this_optim_params(1).ll_var;
+                end
+                [n99,pr_n] = Fitting.bootstrapMinimaRegret(-ld_ll, sqrt(ld_ll_var), 1);
+                fprintf('%s [%s] not complete\n\tloaded %d of ~%d interim eval files. Pr[min]=%.1f%%\n', ...
+                    prefix, model_info(iModel).name, length(eval_checkpoint_files), n99, 100*pr_n(end));
+
+                % Reload the best one as the fit...
+                [~,ibest] = max(ld_ll);
+                ld = load(fullfile('sample-checkpoints', eval_checkpoint_files(ibest).name));
+                fits{iModel} = {ld.this_optim_params};
+                sampleses{iModel} = {};
+            else
+                % No evals.. panic and return nan
+                aic = nan;
+                mle = nan;
+                ll_err = nan;
+                fits = {};
+                sampleses = {};
+                return;
+            end
+        end
     else
         [fits{iModel}, sampleses{iModel}, ~, ~] = Fitting.fitModelBADS(this_params, signals, choices, distribs, struct('prefix', prefix));
     end
     
-    % We have multiple fits fits: best sample and GP fit. For added robustness, we select here
-    % whichever of the 4 models had the highest log likelihood
+    % Select best among all local maxima
     fit_lls = cellfun(@(fit_para) fit_para.ll, fits{iModel});
     [mle(iModel), iBest] = max(fit_lls);
     ll_var(iModel) = fits{iModel}{iBest}.ll_var;
@@ -63,6 +101,6 @@ end
 
 %% Compute AIC
 aic = aicbic(mle, npara);
-aic_err = sqrt(ll_var);
+ll_err = sqrt(ll_var);
 
 end

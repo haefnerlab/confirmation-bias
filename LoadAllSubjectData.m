@@ -5,10 +5,13 @@ if nargin < 3, datadir = fullfile(pwd, '..', 'PublishData'); end
 
 if phase == 0
     expt_type = 'Contrast';
+    pm_var = 'contrast';
 elseif phase == 1
     expt_type = 'Ratio';
+    pm_var = 'true_ratio';
 elseif phase == 2
     expt_type = 'Noise';
+    pm_var = 'sign_noise';
 else
     error('Expected phase 0 for Contrast or 1 for Ratio or 2 for Noise');
 end
@@ -65,6 +68,7 @@ end
 % Add a bit of metadata
 GaborData.subjectID = subjectID;
 GaborData.phase = lower(expt_type);
+GaborData.pm_var = pm_var;
 
 %% Compute +/- 1 category means for each signal level and normalize per-frame signals accordingly
 

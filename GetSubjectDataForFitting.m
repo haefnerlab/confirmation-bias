@@ -1,4 +1,4 @@
-function [param_set, stim_set, choice_set, trial_set] = GetSubjectDataForFitting(subjectId, kernel_kappa, base_params, datadir)
+function [param_set, stim_set, choice_set, trial_set, SubjectData] = GetSubjectDataForFitting(subjectId, kernel_kappa, base_params, datadir)
 
 if ~exist('datadir', 'var'), datadir=fullfile(pwd, '../PublishData'); end
 memodir = fullfile(datadir, '../Precomputed');
@@ -24,9 +24,9 @@ stim_set{NOISE_PHASE} = LoadOrRun(@ComputeFrameSignals, {SubjectDataNoise, kerne
     fullfile(memodir, ['perFrameSignals-' subjectId '-' num2str(kernel_kappa) '-' SubjectDataNoise.phase '.mat']));
 
 % Select sub-threshold trials
-[~, trial_set{RATIO_PHASE}] = GaborThresholdTrials(SubjectDataRatio, RATIO_PHASE, .6, .4);
+[ThreshDataRatio, trial_set{RATIO_PHASE}] = GaborThresholdTrials(SubjectDataRatio, RATIO_PHASE, .6, .4);
 [~, thresh] = GaborAnalysis.getThresholdWindow(SubjectDataNoise, NOISE_PHASE, 0.5, 0.75, memodir);
-[~, trial_set{NOISE_PHASE}] = GaborThresholdTrials(SubjectDataNoise, NOISE_PHASE, thresh);
+[ThreshDataNoise, trial_set{NOISE_PHASE}] = GaborThresholdTrials(SubjectDataNoise, NOISE_PHASE, thresh);
 
 % Restrict stim and choices to sub-threshold in each task
 stim_set{RATIO_PHASE} = stim_set{RATIO_PHASE}(trial_set{RATIO_PHASE}, :);
@@ -42,4 +42,6 @@ choice_set{NOISE_PHASE} = sign(SubjectDataNoise.choice(trial_set{NOISE_PHASE})' 
 % mapping from stim to model evidence is fit, the actual value of SI is irrelevant.
 param_set(RATIO_PHASE) = Model.setCategorySensoryInfo(base_params, .6, .9);
 param_set(NOISE_PHASE) = Model.setCategorySensoryInfo(base_params, .9, .6);
+
+SubjectData = {ThreshDataRatio, ThreshDataNoise};
 end
