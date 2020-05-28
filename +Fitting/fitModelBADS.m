@@ -196,7 +196,7 @@ while length(est_ll) < min(maxRuns, estMinRuns)
     est_ll = cellfun(@(fit_para) fit_para(1).ll, optim_results);
     est_ll_var = cellfun(@(fit_para) fit_para(1).ll_var, optim_results);
     if length(est_ll) >= 20
-        estMinRuns = Fitting.bootstrapMinimaRegret(est_ll, sqrt(est_ll_var), 1);
+        estMinRuns = Fitting.bootstrapMinimaRegret(-est_ll, sqrt(est_ll_var), 1);
     end
 end
 end
