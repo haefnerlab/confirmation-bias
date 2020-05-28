@@ -29,15 +29,14 @@ for iTruth=nTruth:-1:1
             {sigs, choices, 500, false}, memo_file_beta);
         
         for iModel=nModels:-1:1
-            memo_file_fit = fullfile(MEMODIR, ['qrgfit-' prefix '-' model_names{iModel} '.mat']);
+            memo_file_fit = fullfile(MEMODIR, ['badsfit-' prefix '-' model_names{iModel} '.mat']);
             if exist(memo_file_fit, 'file')
                 memo_file_beta = fullfile(MEMODIR, ['pk-beta-explained-' prefix '-' model_names{iModel} '.mat']);
                 ld = load(memo_file_fit);
                 fits = ld.results{1};
-                fit_names = fieldnames(fits);
-                fit_lls = cellfun(@(name) fits.(name).ll, fit_names);
+                fit_lls = cellfun(@(fit) fit.ll, fits);
                 [~, iBest] = max(fit_lls);
-                bestfit_params = fits.(fit_names{iBest});
+                bestfit_params = fits{iBest};
                 
                 [betaExplained{iTruth, iPhase, iModel}, ablation{iPhase, iModel}] = LoadOrRun(@PKShapeExplained, ...
                     {sigs, bestfit_params, model_test_fields{iModel}, model_all_fields{iModel}}, memo_file_beta);
@@ -81,7 +80,7 @@ for iCondition=1:nTruth*nPhases
             set(gca, 'XTick', 1:length(names), 'XTickLabel', names);
             xtickangle(60);
             
-            title([gt_names{iTruth} ' ' phase_names{iPhase} ' [' model_names{iModel} ']']);
+            title({['True Model: ' gt_names{iTruth} ' ' phase_names{iPhase}], ['Fit Model: ' upper(model_names{iModel})]});
             
             ylim([-.25 .25]);
         end

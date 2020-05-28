@@ -1,13 +1,15 @@
-function [fig_slopes, fig_explain] = BetaExplainedBySubject(subjectId, datadir)
+function [fig_slopes, fig_explain] = BetaExplainedBySubject(subjectId, datadir, memodir)
 if nargin < 2, datadir = fullfile('..', 'PublishData'); end
-memodir = fullfile(datadir, '..', 'Precomputed');
+if nargin < 3, memodir = fullfile(datadir, '..', 'Precomputed'); end
 
 kernel_kappa = 0.16;
 
-phases = {2, 1};
-nPhases = length(phases);
-phase_names = {'LSHC', 'HSLC'};
-stair_var = {'noise', 'true_ratio'};
+fit_phases = {2, 1, [1 2], [1 2]};
+test_phases = {2, 1, 2, 1};
+nPhases = length(fit_phases);
+phase_names = {'LSHC', 'HSLC', 'both', 'both'};
+phase_titles = {'LSHC', 'HSLC', 'Both - LSHC', 'Both - HSLC'};
+stair_var = {'noise', 'true_ratio', 'noise', 'true_ratio'};
 
 % Names copied from @ModelComparison
 model_names = {'itb', 'itb-gamma', 'is'};
@@ -15,22 +17,20 @@ model_all_fields = {
     {'prior_C', 'log_lapse', 'gamma', 'bound', 'log_noise'}, ...
     {'prior_C', 'log_lapse', 'neggamma', 'bound', 'log_noise'}, ...
     {'prior_C', 'log_lapse', 'gamma', 'samples'}};
-model_test_fields = {{'bound','gamma'}, {'bound','gamma'}, {'samples','gamma'}};
+model_test_fields = {{'bound','gamma','noise'}, {'bound','gamma','noise'}, {'samples','gamma'}};
 nModels = length(model_names);
 
 %% Load fits
 
 fig_slopes = figure;
 for iPhase=nPhases:-1:1
-    SubjectData = LoadAllSubjectData(subjectId, phases{iPhase}, datadir);
+    SubjectData = LoadAllSubjectData(subjectId, test_phases{iPhase}, datadir);
     [~, sigs, choices] = GetSubjectDataForFitting(subjectId, kernel_kappa, [], datadir);
-    sigs = sigs{phases{iPhase}};
-    choices = choices{phases{iPhase}};
+    sigs = sigs{test_phases{iPhase}};
+    choices = choices{test_phases{iPhase}};
     
-    prefix = [subjectId '-' num2str(kernel_kappa) '-' num2str(phases{iPhase})];
-    
-    if phases{iPhase} == 2
-        [floor, thresh] = GaborAnalysis.getThresholdWindow(SubjectData, phases{iPhase}, 0.5, 0.7, memodir);
+    if test_phases{iPhase} == 2
+        [floor, thresh] = GaborAnalysis.getThresholdWindow(SubjectData, test_phases{iPhase}, 0.5, 0.7, memodir);
     else
         floor = 0.4;
         thresh = 0.6;
@@ -39,20 +39,29 @@ for iPhase=nPhases:-1:1
     [~, ~, ~, ~, ~, abb{iPhase}] = LoadOrRun(@BootstrapExponentialWeightsGabor, {sigs, choices, 500, true}, ...
         fullfile(memodir, memo_name));
     
+    fit_prefix = [subjectId '-' num2str(kernel_kappa) '-' num2str(fit_phases{iPhase})];
     for iModel=nModels:-1:1
-        memo_file_fit = fullfile(memodir, ['qrgfit-' prefix '-' model_names{iModel} '.mat']);
-        if exist(memo_file_fit, 'file')
-            memo_file_beta = fullfile(memodir, ['pk-beta-explained-' prefix '-' model_names{iModel} '.mat']);
-            ld = load(memo_file_fit);
-            
-            fits = ld.results{1};
-            fit_names = fieldnames(fits);
-            fit_lls = cellfun(@(name) fits.(name).ll, fit_names);
-            [~, iBest] = max(fit_lls);
-            bestfit_params = fits.(fit_names{iBest});
-            
-            [betaExplained{iPhase, iModel}, ablation{iPhase, iModel}] = LoadOrRun(@PKShapeExplained, ...
-                {sigs, bestfit_params, model_test_fields{iModel}, model_all_fields{iModel}}, memo_file_beta);
+        mname = model_names{iModel};
+        if length(fit_phases{iPhase})==2 && contains(mname, 'itb')
+            mname = [mname '-split'];
+        end
+        
+        [thefit, ~, complete] = GetFit(subjectId, phase_names{iPhase}, mname, true, datadir, memodir);
+        if length(thefit) == 2
+            thefit = thefit(test_phases{iPhase});
+        end
+        if ~isempty(thefit)
+            if complete
+                % If complete, we can run and store the final pk-beta-explained result
+                memo_file_beta = fullfile(memodir, ['pk-beta-explained-' fit_prefix '-' num2str(test_phases{iPhase}) '-' mname '.mat']);
+                [betaExplained{iPhase, iModel}, betaErr{iPhase, iModel}, ablation{iPhase, iModel}] = LoadOrRun(@PKShapeExplained, ...
+                    {sigs, thefit, model_test_fields{iModel}, model_all_fields{iModel}}, memo_file_beta);
+            else
+                % If loaded an interim evaluation before fitting complete, we don't want to cache
+                % the result
+                [betaExplained{iPhase, iModel}, betaErr{iPhase,iModel}, ablation{iPhase, iModel}] = PKShapeExplained(...
+                    sigs, thefit, model_test_fields{iModel}, model_all_fields{iModel});
+            end
         else
             disp(['No dice: ' memo_file_fit]);
             betaExplained{iPhase, iModel} = [];
@@ -75,14 +84,13 @@ for iPhase=1:nPhases
             subplot(nModels, nPhases, (iModel-1)*nPhases + iPhase);
             hold on;
             
-            [meanB, loB, hiB] = meanci(squeeze(mean(betaExplained{iPhase, iModel}, 1))');
-            bar(1:length(meanB), meanB);
-            errorbar(1:length(meanB), meanB, meanB-loB, hiB-meanB, 'ok');
+            bar(1:length(betaExplained{iPhase,iModel}), betaExplained{iPhase,iModel});
+            errorbar(1:length(betaExplained{iPhase,iModel}), betaExplained{iPhase,iModel}, betaErr{iPhase,iModel}, 'ok');
             
             [meanTru, loTru, hiTru] = meanci(abb{iPhase}(:,2));
-            h = bar(length(meanB)+1, meanTru);
+            h = bar(length(betaExplained{iPhase,iModel})+1, meanTru);
             h.FaceColor = [1 0 0];
-            errorbar(length(meanB)+1, meanTru, meanTru-loTru, hiTru-meanTru, 'ok');
+            errorbar(length(betaExplained{iPhase,iModel})+1, meanTru, meanTru-loTru, hiTru-meanTru, 'ok');
             
             abl = ablation{iPhase, iModel};
             allfields = unique(horzcat(abl{:}));
@@ -92,9 +100,13 @@ for iPhase=1:nPhases
             set(gca, 'XTick', 1:length(names), 'XTickLabel', names);
             xtickangle(60);
             
-            title([phase_names{iPhase} ' [' model_names{iModel} ']']);
+            mname = model_names{iModel};
+            if length(fit_phases{iPhase})==2 && contains(mname, 'itb')
+                mname = [mname '-split'];
+            end
+            title([phase_titles{iPhase} ' [' mname ']']);
             
-            ylim([-.35 .35]);
+            ylim([-.4 .4]);
         end
     end
 end

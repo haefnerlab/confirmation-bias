@@ -1,4 +1,4 @@
-function [partialBetas, ablatedFields] = PKShapeExplained(signals, params, test_fields, all_fields, values)
+function [partialBetas, partialBetaErrs, ablatedFields] = PKShapeExplained(signals, params, test_fields, all_fields, values)
 
 assert(length(params) == 1, 'Only makes sense on / only supports 1 condition at a time');
 
@@ -13,8 +13,8 @@ for iF=1:length(test_fields)
     ablatedFields = horzcat(ablatedFields, extendedFields);
 end
 
-betaBoot = 100;
-partialBetas = zeros(size(values,1), length(ablatedFields), betaBoot);
+partialBetas = zeros(size(values,1), length(ablatedFields));
+partialBetaErrs = zeros(size(values,1), length(ablatedFields));
 for iVal=1:size(values, 1)
     for iAbl=1:length(ablatedFields)
         % Begin this run by setting all fields to values(iVal, :)
@@ -28,6 +28,8 @@ for iVal=1:size(values, 1)
                 this_params.bound = inf;
             elseif contains(ablatedFields{iAbl}{iF}, 'samples')
                 this_params.samples = 100;
+            elseif contains(ablatedFields{iAbl}{iF}, 'noise')
+                this_params.noise = 0;
             else
                 error('Unsupported field: %s', ablatedFields{iAbl}{iF});
             end
@@ -35,8 +37,9 @@ for iVal=1:size(values, 1)
 
         % Using these parameters, simulate choices and estimate PK shape
         results = Model.runVectorized(this_params, signals/this_params.signal_scale);
-        [~, ~, ~, ~, ~, abb] = BootstrapExponentialWeightsGabor(signals/this_params.signal_scale, results.choices == +1, betaBoot, false);
-        partialBetas(iVal, iAbl, :) = abb(:, 2);
+        [abb, ~, errors] = CustomRegression.ExponentialPK(signals/this_params.signal_scale, results.choices == +1, false);
+        partialBetas(iVal, iAbl, :) = abb(2);
+        partialBetaErrs(iVal, iAbl, :) = errors(2);
     end
 end
 

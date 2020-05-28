@@ -82,7 +82,7 @@ switch type
 end
 
 figure;
-edges = range(1):.005:range(2);
+edges = range(1):.015:range(2);
 edgediff = edges(2) - edges(1);
 all_slopes_diff = zeros(length(subjectIds), nboot);
 all_slopes_diff_medians = zeros(length(subjectIds), 1);
