@@ -15,7 +15,7 @@ else
     input_id = string2hash([base_params(1).model, strjoin(fields), num2str([signals(:)' choices'])]);
     nTrials = length(choices);
 end
-chkpt = fullfile('sample-checkpoints', sprintf('%x-qrg.mat', input_id));
+chkpt = fullfile('fit-checkpoints', sprintf('%x-qrg.mat', input_id));
 
 %% Set up evaluation, handling stochastic vs deterministic case
 if Model.isStochastic(base_params)

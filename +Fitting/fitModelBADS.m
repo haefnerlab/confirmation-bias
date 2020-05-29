@@ -40,7 +40,7 @@ end
 
 % To gracefully save/load from partially computed results, we initialize to NaN values, (maybe) load
 % from a file, then only evaluate those rows that are still NaN, with periodic checkpointing.
-chkpt = fullfile('sample-checkpoints', sprintf('%x-bads-grid.mat', input_id));
+chkpt = fullfile('fit-checkpoints', sprintf('%x-bads-grid.mat', input_id));
 if exist(chkpt, 'file')
     ld = load(chkpt);
     grid_points = ld.grid_points;
@@ -144,7 +144,7 @@ while length(est_ll) < min(maxRuns, estMinRuns)
         iRun = iAddRun+length(est_ll);
         
         %% Search step
-        chkpt = fullfile('sample-checkpoints', sprintf('%x-bads-search-%d.mat', input_id, iRun));
+        chkpt = fullfile('fit-checkpoints', sprintf('%x-bads-search-%d.mat', input_id, iRun));
         if exist(chkpt, 'file')
             ld = load(chkpt);
             this_optim_x = ld.this_max_x;
@@ -165,7 +165,7 @@ while length(est_ll) < min(maxRuns, estMinRuns)
         add_gpinfo(iAddRun) = this_gpinfo;
         
         %% Eval step
-        chkpt = fullfile('sample-checkpoints', sprintf('%x-bads-eval-%d.mat', input_id, iRun));
+        chkpt = fullfile('fit-checkpoints', sprintf('%x-bads-eval-%d.mat', input_id, iRun));
         if exist(chkpt, 'file')
             fprintf('fitModelBADS :: loading eval %d\n', iRun);
             ld = load(chkpt);

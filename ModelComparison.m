@@ -30,6 +30,11 @@ end
 
 %% Fit each model
 use_cache = nargin >= 4 && ~isempty(prefix);
+mle = nan(size(model_info));
+npara = zeros(size(model_info));
+ll_var = nan(size(model_info));
+fits = cell(size(model_info));
+sampleses = cell(size(model_info));
 for iModel=1:length(model_info)
     this_params = base_params;
     if fit_scale
@@ -62,10 +67,10 @@ for iModel=1:length(model_info)
             else
                 input_id = string2hash([this_params(1).model, strjoin(fields), num2str([signals(:)' choices'])]);
             end
-            eval_checkpoint_files = dir(fullfile('sample-checkpoints', sprintf('%x-bads-eval*.mat', input_id)));
+            eval_checkpoint_files = dir(fullfile('fit-checkpoints', sprintf('%x-bads-eval*.mat', input_id)));
             if ~isempty(eval_checkpoint_files)
                 for ieval=length(eval_checkpoint_files):-1:1
-                    ld = load(fullfile('sample-checkpoints', eval_checkpoint_files(ieval).name));
+                    ld = load(fullfile('fit-checkpoints', eval_checkpoint_files(ieval).name));
                     ld_ll(ieval) = ld.this_optim_params(1).ll;
                     ld_ll_var(ieval) = ld.this_optim_params(1).ll_var;
                 end
@@ -75,17 +80,17 @@ for iModel=1:length(model_info)
 
                 % Reload the best one as the fit...
                 [~,ibest] = max(ld_ll);
-                ld = load(fullfile('sample-checkpoints', eval_checkpoint_files(ibest).name));
+                ld = load(fullfile('fit-checkpoints', eval_checkpoint_files(ibest).name));
                 fits{iModel} = {ld.this_optim_params};
                 sampleses{iModel} = {};
             else
                 % No evals.. panic and return nan
-                aic = nan;
-                mle = nan;
-                ll_err = nan;
-                fits = {};
-                sampleses = {};
-                return;
+                mle(iModel) = nan;
+                ll_var(iModel) = nan;
+                fits{iModel} = {};
+                sampleses{iModel} = {};
+                npara(iModel) = nan;
+                continue;
             end
         end
     else
@@ -100,7 +105,10 @@ for iModel=1:length(model_info)
 end
 
 %% Compute AIC
-aic = aicbic(mle, npara);
-ll_err = sqrt(ll_var);
+valid = ~isnan(mle);
+aic(valid) = aicbic(mle(valid), npara(valid));
+ll_err(valid) = sqrt(ll_var(valid));
+aic(~valid) = nan;
+ll_err(~valid) = nan;
 
 end

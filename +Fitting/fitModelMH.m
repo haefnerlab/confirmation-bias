@@ -14,7 +14,7 @@ else
     input_id = string2hash([base_params(1).model, strjoin(fields), num2str([signals(:)' choices'])]);
     nTrials = length(choices);
 end
-chkpt = fullfile('sample-checkpoints', sprintf('%x', input_id));
+chkpt = fullfile('fit-checkpoints', sprintf('%x', input_id));
 ibs_repeats = 5;
 
 nPara = length(base_params);
