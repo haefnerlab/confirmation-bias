@@ -196,7 +196,14 @@ while length(est_ll) < min(maxRuns, estMinRuns)
     est_ll = cellfun(@(fit_para) fit_para(1).ll, optim_results);
     est_ll_var = cellfun(@(fit_para) fit_para(1).ll_var, optim_results);
     if length(est_ll) >= 20
-        estMinRuns = Fitting.bootstrapMinimaRegret(-est_ll, sqrt(est_ll_var), 1);
+        if Model.isStochastic(base_params)
+            % How many runs will it take to be 99% sure that our MLE+/-error contains the max?
+            estMinRuns = Fitting.bootstrapMinimaRegret(-est_ll, sqrt(est_ll_var), 0);
+        else
+            % How many runs will it take to be 99% sure that our MLE is within 1 unit of LL from the
+            % global max?
+            estMinRuns = Fitting.bootstrapMinimaRegret(-est_ll, [], 1);
+        end
     end
 end
 end
