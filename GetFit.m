@@ -1,4 +1,4 @@
-function [bestfit, allfits, complete] = GetFit(subjectOrModel, phaseStr, modelType, bestSoFar, datadir, memodir)
+function [bestfit, complete] = GetFit(subjectOrModel, phaseStr, modelType, bestSoFar, datadir, memodir)
 if nargin < 4, bestSoFar = true; end
 if nargin < 5, datadir = fullfile(pwd, '..', 'PublishData'); end
 if nargin < 6, memodir = fullfile(datadir, '..', 'Precomputed'); end
@@ -48,15 +48,9 @@ else
 end
 
 cacheFileName = fullfile(memodir, ['badsfit-' prefix '-' lower(modelType) '.mat']);
-
-if exist(cacheFileName, 'file') || bestSoFar
-    [~, ~, ~, ~, allfits, smpls] = ModelComparison(params, sigs, choices, fit_scale, prefix, modelType, bestSoFar, memodir);
-    [~, ibest] = max(cellfun(@(f) f.ll, allfits{1}));
-    bestfit = allfits{1}{ibest};
-    % Hack...
-    complete = ~isempty(smpls{1});
+complete = exist(cacheFileName, 'file')==2;
+if complete || bestSoFar
+    [~, ~, ~, ~, bestfit, ~] = ModelComparison(params, sigs, choices, fit_scale, prefix, modelType, bestSoFar, memodir);
 else
     bestfit = [];
-    allfits = {};
-    complete = false;
 end
