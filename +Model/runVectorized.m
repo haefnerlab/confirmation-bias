@@ -48,7 +48,9 @@ function results = runVectorized(params, data)
 %   of a trial to 1/temperature. If 0, choices are argmax.
 %
 %To run the ITB model:
-% - params.model = 'itb' for "integration to bound"
+% - params.model = 'itb' for "integration to bound" OR 'itb-int' to use the numerically-integrated
+%   noise version so that results.prob_choice is a deterministic function of stimuli (useful for
+%   model fitting; choice behavior is identical to 'itb' but slower)
 % - params.category_info = (data gen) category info
 % - params.sensory_info = (data gen) sensory info
 % - params.p_match = (inference) category info
@@ -76,6 +78,13 @@ else
 end
 
 prior_C = params.prior_C;
+
+% Nobody likes dividing by zero; this will scale the resulting LPO by 1/eps, which effectively sets
+% all values to +/- infinity, which is the desired behavior; it makes choices equal to the sign of
+% LPO.
+if params.temperature == 0
+    params.temperature = eps;
+end
 
 %% Initialize return values
 
@@ -106,6 +115,9 @@ switch lower(params.model)
         updateFun = @Model.vbLogOddsUpdateCZX;
     case 'itb'
         updateFun = @Model.itbLogOddsUpdate;
+    case 'itb-int'
+        updateFun = [];
+        messageFun = @Model.itbLogOddsMessage;
     case 'ideal'
         % Nothing to do - use 'lpo' from above
         updateFun = [];
@@ -119,10 +131,64 @@ if ~isempty(updateFun)
     for f=1:frames
         results.lpo(:, f+1) = updateFun(params, data(:, f), results.lpo(:, f));
     end
-end
-
-if params.temperature == 0
-    params.temperature = eps;
+    
+    % Map LPO through sigmoid to get choice probability (lapse applied later)
+    results.prob_choice = 1./(1+exp(-results.lpo(:,end) / params.temperature));
+elseif ~isempty(messageFun)
+    % Keep track of a PMF over LPO values per-trial per-frame. Use most extreme values from ideal
+    % observer to set range of LPO values.
+    extreme_lpo = 5 * max(abs(results.lpo(:)));
+    if contains(params.model, 'itb', 'IgnoreCase', true)
+        % If this is an ITB model, then there is no sense keeping track of mass beyond the bound. 
+        extreme_lpo = min(extreme_lpo, params.bound);
+    end
+    % Space LPO grid out in increments of about 0.01 (corresponding to a maximum of ~0.25% change in
+    % choice probability)
+    halfgrid = ceil(extreme_lpo / 0.01);
+    % Ensure an even number of edges so that there are an odd number of bins, including exactly 0.
+    lpo_grid_edges = linspace(-extreme_lpo, extreme_lpo, 2*halfgrid);
+    % Pre- and append bins to accumulate all out-of-bounds probability mass (bound-crossings in ITB
+    % models)
+    lpo_grid_edges = [-inf lpo_grid_edges +inf];
+    % Construct probability mass histogram
+    [trials, frames] = size(data);
+    results.pr_lpo = zeros(trials, frames, 2*halfgrid+1);
+    % Initialize to a delta distribution. TODO (?) some width or jitter to starting point if prior_C
+    % doesn't fall in the center of a bin?
+    log_prior_bin = find(log(prior_C) - log(1 - prior_C) > lpo_grid_edges, 1, 'last');
+    results.pr_lpo(:, 1, log_prior_bin) = 1;
+    
+    % Do propagation of PMF over frames.
+    for f=1:frames
+        results.pr_lpo(:, f+1, :) = messageFun(params, data(:, f), lpo_grid_edges, results.pr_lpo(:, f, :));
+    end
+    
+    % Enforce sanity of PMFs one more time, just in case.
+    results.pr_lpo = results.pr_lpo ./ sum(results.pr_lpo, 3);
+    
+    % Issue warning if unbounded integration but mass is accumulating at the edges.
+    if isinf(params.bound) && (any(any(results.pr_lpo(:,:,1) > 1e-3)) || any(any(results.pr_lpo(:,:,end) > 1e-3)))
+        warning('Unbounded integrator is hitting edges of discrete space!');
+    end
+    
+    % Map LPO through sigmoid to get choice probability, then sum over PMF (lapse applied later)
+    lpo_grid_ctrs = (lpo_grid_edges(1:end-1) + lpo_grid_edges(2:end))/2;
+    lpo_grid_ctrs(1) = -params.bound;
+    lpo_grid_ctrs(end) = +params.bound;
+    
+    % Compute and store discrete distribution over the bernoulli 'p' of choice (the pr_lpo field is
+    % the distribution of mass, bernoulli_p_grid is its x-axis)
+    bernoulli_p_grid = 1./(1+exp(-lpo_grid_ctrs / params.temperature));
+    
+    % Effective probability of choice is simply the marginal probability across the bernoulli grid
+    % (equivalently, think of this in 2 stages: first draw a 'p' from the distribution over 'p's,
+    % then draw a choice according to 'p' -- the resulting p(choice) is equivalent to a single draw
+    % from the average bernoulli 'p')
+    results.prob_choice = sum(results.pr_lpo(:, end, :) .* reshape(bernoulli_p_grid, 1, 1, []), 3);
+    
+    % To avoid confusion later, remove 'lpo' field which at this point just contains the ideal
+    % observer's log odds
+    results = rmfield(results, 'lpo');
 end
 
 if isfield(params, 'lapse1') && isfield(params, 'lapse2')
@@ -133,7 +199,8 @@ else
     lapse2 = params.lapse;
 end
 
-results.prob_choice = lapse1 + (1-lapse1-lapse2)./(1+exp(-results.lpo(:,end) / params.temperature));
+% Apply lapse: prob choice ranges in [lapse1 lapse2]
+results.prob_choice = lapse1 + (1-lapse1-lapse2) * results.prob_choice;
 bool_choices = rand(size(results.prob_choice)) < results.prob_choice;
 results.choices = sign(double(bool_choices) - .5);
 end
