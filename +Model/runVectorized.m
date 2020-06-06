@@ -137,7 +137,7 @@ if ~isempty(updateFun)
 elseif ~isempty(messageFun)
     % Keep track of a PMF over LPO values per-trial per-frame. Use most extreme values from ideal
     % observer to set range of LPO values.
-    extreme_lpo = 5 * max(abs(results.lpo(:)));
+    extreme_lpo = 3 * max(abs(results.lpo(:)));
     if contains(params.model, 'itb', 'IgnoreCase', true)
         % If this is an ITB model, then there is no sense keeping track of mass beyond the bound. 
         extreme_lpo = min(extreme_lpo, params.bound);
@@ -152,22 +152,22 @@ elseif ~isempty(messageFun)
     lpo_grid_edges = [-inf lpo_grid_edges +inf];
     % Construct probability mass histogram
     [trials, frames] = size(data);
-    results.pr_lpo = zeros(trials, frames, 2*halfgrid+1);
+    results.pr_lpo = zeros(trials, 2*halfgrid+1, frames);
     % Initialize to a delta distribution. TODO (?) some width or jitter to starting point if prior_C
     % doesn't fall in the center of a bin?
     log_prior_bin = find(log(prior_C) - log(1 - prior_C) > lpo_grid_edges, 1, 'last');
-    results.pr_lpo(:, 1, log_prior_bin) = 1;
+    results.pr_lpo(:, log_prior_bin, 1) = 1;
     
     % Do propagation of PMF over frames.
     for f=1:frames
-        results.pr_lpo(:, f+1, :) = messageFun(params, data(:, f), lpo_grid_edges, results.pr_lpo(:, f, :));
+        results.pr_lpo(:, :, f+1) = messageFun(params, data(:, f), lpo_grid_edges, results.pr_lpo(:, :, f));
     end
     
     % Enforce sanity of PMFs one more time, just in case.
-    results.pr_lpo = results.pr_lpo ./ sum(results.pr_lpo, 3);
+    results.pr_lpo = results.pr_lpo ./ sum(results.pr_lpo, 2);
     
     % Issue warning if unbounded integration but mass is accumulating at the edges.
-    if isinf(params.bound) && (any(any(results.pr_lpo(:,:,1) > 1e-3)) || any(any(results.pr_lpo(:,:,end) > 1e-3)))
+    if isinf(params.bound) && (any(any(results.pr_lpo(:,1,:) > 1e-3)) || any(any(results.pr_lpo(:,end,:) > 1e-3)))
         warning('Unbounded integrator is hitting edges of discrete space!');
     end
     
@@ -184,7 +184,7 @@ elseif ~isempty(messageFun)
     % (equivalently, think of this in 2 stages: first draw a 'p' from the distribution over 'p's,
     % then draw a choice according to 'p' -- the resulting p(choice) is equivalent to a single draw
     % from the average bernoulli 'p')
-    results.prob_choice = sum(results.pr_lpo(:, end, :) .* reshape(bernoulli_p_grid, 1, 1, []), 3);
+    results.prob_choice = sum(results.pr_lpo(:, :, end) .* reshape(bernoulli_p_grid, 1, []), 2);
     
     % To avoid confusion later, remove 'lpo' field which at this point just contains the ideal
     % observer's log odds
