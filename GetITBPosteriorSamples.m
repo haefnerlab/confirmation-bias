@@ -27,7 +27,7 @@ end
 if startsWith(subjectOrModel, 'IS', 'IgnoreCase', true) || startsWith(subjectOrModel, 'ITB', 'IgnoreCase', true)
     [params, sigs, choices] = LoadOrRun(@GetGroundTruthSimData, {subjectOrModel, phaseNo}, ...
         fullfile(memodir, ['gt-sim-' subjectOrModel '-' phaseStr '.mat']));
-    prefix = ['gt-' Model.getModelStringID(params(1), true) '-' lower(phaseStr)];
+    % prefix = ['gt-' Model.getModelStringID(params(1), true) '-' lower(phaseStr)];
     fit_scale = false;
 else
     kernel_kappa = 0.16;
@@ -36,7 +36,7 @@ else
     sigs = sigs(phaseNo);
     choices = choices(phaseNo);
     
-    prefix = [subjectOrModel '-' num2str(kernel_kappa) '-' num2str(phaseNo)];
+    % prefix = [subjectOrModel '-' num2str(kernel_kappa) '-' num2str(phaseNo)];
     fit_scale = true;
 end
 
@@ -76,21 +76,6 @@ chkpt = fullfile('mh-checkpoints', sprintf('%X', input_id));
 loglike = smpl_info.loglike(:);
 
 %% Once 'nSamples' drawn, get some diagnostics
+diagnostics.tbl = MCMCDiagnostics(samples', fields(:), 500);
 diagnostics.accept = accept;
-
-% Compute autocorrelation time constant of each field
-for iF=1:length(fields)
-    lags = 0:500;
-    diagnostics.acf(:, iF) = arrayfun(@(l) corr(samples(1:end-l,iF),samples(l+1:end,iF)), lags);
-    diagnostics.acf_tau(iF) = fminsearch(@(tau) sum((exp(-lags/tau) - diagnostics.acf(:, iF)).^2), 50);
-    diagnostics.acf_tau(iF) = max(0, diagnostics.acf_tau(iF));
-end
-
-% Compute number of effective samples per field
-diagnostics.ESS = size(samples, 1) ./ (1 + diagnostics.acf_tau);
-
-% TODO - other diagnostics of convergence, multi-ESS, etc.
-
-% mESS: https://stats.stackexchange.com/questions/224553/multivariate-effective-sample-size-multiess-choice-of-batch-size
-
 end
