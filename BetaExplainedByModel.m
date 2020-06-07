@@ -1,3 +1,4 @@
+function [fig_slopes, fig_explain] = BetaExplainedByModel(memodir)
 gt_names = {'IS', 'ITB'};
 nTruth = length(gt_names);
 
@@ -20,18 +21,18 @@ fig_slopes = figure;
 for iTruth=nTruth:-1:1
     for iPhase=nPhases:-1:1
         [params, sigs, choices] = LoadOrRun(@GetGroundTruthSimData, {gt_names{iTruth}, phases{iPhase}}, ...
-            fullfile(MEMODIR, ['gt-sim-' gt_names{iTruth} '-' phase_names{iPhase} '.mat']));
+            fullfile(memodir, ['gt-sim-' gt_names{iTruth} '-' phase_names{iPhase} '.mat']));
         
         prefix = ['gt-' Model.getModelStringID(params(1), true) '-' lower(phase_names{iPhase})];
         
-        memo_file_beta = fullfile(MEMODIR, ['BootPK-Exp-' prefix '.mat']);
+        memo_file_beta = fullfile(memodir, ['BootPK-Exp-' prefix '.mat']);
         [~, ~, ~, ~, ~, abb{iTruth, iPhase}] = LoadOrRun(@BootstrapExponentialWeightsGabor, ...
             {sigs, choices, 500, false}, memo_file_beta);
         
         for iModel=nModels:-1:1
-            memo_file_fit = fullfile(MEMODIR, ['badsfit-' prefix '-' model_names{iModel} '.mat']);
+            memo_file_fit = fullfile(memodir, ['badsfit-' prefix '-' model_names{iModel} '.mat']);
             if exist(memo_file_fit, 'file')
-                memo_file_beta = fullfile(MEMODIR, ['pk-beta-explained-' prefix '-' model_names{iModel} '.mat']);
+                memo_file_beta = fullfile(memodir, ['pk-beta-explained-' prefix '-' model_names{iModel} '.mat']);
                 ld = load(memo_file_fit);
                 fits = ld.results{1};
                 fit_lls = cellfun(@(fit) fit.ll, fits);
@@ -85,4 +86,5 @@ for iCondition=1:nTruth*nPhases
             ylim([-.25 .25]);
         end
     end
+end
 end

@@ -41,26 +41,31 @@ for iP=1:length(this_params)
 end
 distribs = Fitting.defaultDistributions(fields, false);
 this_params = Fitting.setParamsFields(this_params, fields, cellfun(@(f) distribs.(f).priorrnd(1), fields));
-[fits, grid_points, grid_scores, ~, ~] = LoadOrRun(@Fitting.fitModelQRG, ...
+[fits, ~, gpinfo, ~] = LoadOrRun(@Fitting.fitModelBADS, ...
     {this_params, sigs, choices, distribs, struct('prefix', prefix)}, ...
-    fullfile('../Precomputed', ['qrgfit-' prefix '-' model_info.name '.mat']));
+    fullfile('../Precomputed', ['badsfit-' prefix '-' model_info.name '.mat']));
 
-[~, srt] = sort(grid_scores.logpdf);
+grid_points = gpinfo.x;
+loglike = gpinfo.y;
+[~, srt] = sort(loglike);
 grid_points = grid_points(srt,:);
-grid_scores.loglike = grid_scores.loglike(srt);
+loglike = loglike(srt);
 
 %% Plot - full model
 
 figure;
-mle = Fitting.getParamsFields(fits.mle_params, fields);
-map = Fitting.getParamsFields(fits.map_params, fields);
-gp_mle = Fitting.getParamsFields(fits.gp_mle_params, fields);
-gp_map = Fitting.getParamsFields(fits.gp_map_params, fields);
-mu = Fitting.getParamsFields(fits.mean_params, fields);
+
+ll_vals = cellfun(@(fit) fit.ll, fits);
+[~,imax] = max(ll_vals);
+for iFit=1:length(fits)
+    assert(isequal(fields(:), fits{iFit}(1).fit_fields(:)));
+    bestfit(iFit,:) = Fitting.getParamsFields(fits{iFit}, fields);
+end
+
 if contains(fitmodel, truemodel, 'ignorecase', true)
     gt = Fitting.getParamsFields(params, fields);
 else
-    gt = nan(size(mle));
+    gt = nan(size(bestfit, 2));
 end
 nF = length(fields);
 for iF=1:nF
@@ -69,27 +74,22 @@ for iF=1:nF
         if iF==jF
             histogram(grid_points(:,iF), 50);
             yl = ylim;
-            plot(mle(jF)*[1 1], yl, '-r', 'LineWidth', 2);
-            plot(map(jF)*[1 1], yl, '-y', 'LineWidth', 2);
-            plot(gp_mle(jF)*[1 1], yl, '--r', 'LineWidth', 2);
-            plot(gp_map(jF)*[1 1], yl, '--y', 'LineWidth', 2);
-            plot(mu(jF)*[1 1], yl, '-b', 'LineWidth', 2);
+            for iFit=1:length(fits)
+                plot(bestfit(iFit,jF)*[1 1], yl, '-k', 'LineWidth', 2);
+            end
+            plot(bestfit(imax,jF)*[1 1], yl, '--r', 'LineWidth', 2);
             plot(gt(jF)*[1 1], yl, '-g', 'LineWidth', 2);
         else
-            sz = 1+30./(1+exp(-zscore(grid_scores.loglike)));
-            c = max(grid_scores.loglike, median(grid_scores.loglike));
+            sz = 1+30./(1+exp(-zscore(loglike)));
+            c = max(loglike, median(loglike));
             scatter(grid_points(:,jF), grid_points(:,iF), sz, c, 'filled');
             yl = ylim; xl = xlim;
-            plot(mle(jF)*[1 1], yl, '-r', 'LineWidth', 2, 'DisplayName', 'MLE');
-            plot(xl, mle(iF)*[1 1], '-r', 'LineWidth', 2, 'HandleVisibility', 'off');
-            plot(map(jF)*[1 1], yl, '-y', 'LineWidth', 2, 'DisplayName', 'MAP');
-            plot(xl, map(iF)*[1 1], '-y', 'LineWidth', 2, 'HandleVisibility', 'off');
-            plot(gp_mle(jF)*[1 1], yl, '--r', 'LineWidth', 2, 'DisplayName', 'GP-MLE');
-            plot(xl, gp_mle(iF)*[1 1], '--r', 'LineWidth', 2, 'HandleVisibility', 'off');
-            plot(gp_map(jF)*[1 1], yl, '--y', 'LineWidth', 2, 'DisplayName', 'GP-MAP');
-            plot(xl, gp_map(iF)*[1 1], '--y', 'LineWidth', 2, 'HandleVisibility', 'off');
-            plot(mu(jF)*[1 1], yl, '-b', 'LineWidth', 2, 'DisplayName', '\mu');
-            plot(xl, mu(iF)*[1 1], '-b', 'LineWidth', 2, 'HandleVisibility', 'off');
+            for iFit=1:length(fits)
+                plot(bestfit(iFit,jF)*[1 1], yl, '-k', 'LineWidth', 2, 'HandleVisibility', 'off');
+                plot(xl, bestfit(iFit,iF)*[1 1], '-k', 'LineWidth', 2, 'HandleVisibility', 'off');
+            end
+            plot(bestfit(imax,jF)*[1 1], yl, '--r', 'LineWidth', 2, 'DisplayName', 'Best Fit');
+            plot(xl, bestfit(imax,iF)*[1 1], '--r', 'LineWidth', 2, 'HandleVisibility', 'off');
             plot(gt(jF)*[1 1], yl, '-g', 'LineWidth', 2, 'DisplayName', 'Ground Truth');
             plot(xl, gt(iF)*[1 1], '-g', 'LineWidth', 2, 'HandleVisibility', 'off');
         end

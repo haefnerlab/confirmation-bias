@@ -46,7 +46,7 @@ for iPhase=nPhases:-1:1
             mname = [mname '-split'];
         end
         
-        [thefit, ~, complete] = GetFit(subjectId, phase_names{iPhase}, mname, true, datadir, memodir);
+        [thefit, complete] = GetFit(subjectId, phase_names{iPhase}, mname, true, datadir, memodir);
         if length(thefit) == 2
             thefit = thefit(test_phases{iPhase});
         end
