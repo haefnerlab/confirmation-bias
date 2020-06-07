@@ -1,4 +1,4 @@
-function [samples, fields, loglike, diagnostics] = GetITBPosteriorSamples(subjectOrModel, phaseStr, nSamples, datadir, memodir)
+function [samples, fields, loglike, diagnostics, params, sigs, choices] = GetITBPosteriorSamples(subjectOrModel, phaseStr, nSamples, datadir, memodir)
 %GETITBPOSTERIORSAMPLES helper function that wraps fitting posterior over the 'generic' ITB model.
 
 if nargin < 4, datadir = fullfile(pwd, '..', 'PublishData'); end

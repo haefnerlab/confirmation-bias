@@ -10,7 +10,7 @@ if nargin < 5, values = Fitting.getParamsFields(params, all_fields); end
 ablatedFields = {{}};
 for iF=1:length(test_fields)
     extendedFields = cellfun(@(otherFields) horzcat(otherFields, test_fields{iF}), ablatedFields, 'uniformoutput', false);
-    ablatedFields = horzcat(ablatedFields, extendedFields);
+    ablatedFields = horzcat(ablatedFields, extendedFields); %#ok<AGROW>
 end
 
 partialBetas = zeros(size(values,1), length(ablatedFields));
@@ -20,7 +20,7 @@ for iVal=1:size(values, 1)
         % Begin this run by setting all fields to values(iVal, :)
         this_params = Fitting.setParamsFields(params, all_fields, values(iVal, :));
 
-        % Now return all fields to be ablated back to their null/default state
+        % Pin all "ablated" fields to their null/default state
         for iF=1:length(ablatedFields{iAbl})
             if contains(ablatedFields{iAbl}{iF}, 'gamma')
                 this_params.gamma = 0;
@@ -38,8 +38,12 @@ for iVal=1:size(values, 1)
         % Using these parameters, simulate choices and estimate PK shape
         results = Model.runVectorized(this_params, signals/this_params.signal_scale);
         [abb, ~, errors] = CustomRegression.ExponentialPK(signals/this_params.signal_scale, results.choices == +1, false);
-        partialBetas(iVal, iAbl, :) = abb(2);
-        partialBetaErrs(iVal, iAbl, :) = errors(2);
+        partialBetas(iVal, iAbl) = abb(2);
+        partialBetaErrs(iVal, iAbl) = errors(2);
+    end
+    
+    if mod(iVal, 100) == 0
+        fprintf('Ablation test val %d/%d\n', iVal, size(values,1));
     end
 end
 
