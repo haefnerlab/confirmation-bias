@@ -11,12 +11,11 @@ test_fields = {'gamma', 'bound', 'noise'};
 for iSubject=length(subjectIds):-1:1
     for iPhz=length(phase_names):-1:1
         % Load posterior samples over all parameters
-        [samples, fields, ~, ~, params, sigs, choices] = GetITBPosteriorSamples(subjectIds{iSubject}, phase_names{iPhz}, 0, datadir, memodir);
-        if strcmp(phase_names{iPhz}, 'both')
-            sigs = sigs{data_idxs(iPhz)};
-            choices = choices{data_idxs(iPhz)};
-            params = params(data_idxs(iPhz));
-            
+        [samples, fields, ~, ~, params, sigs, choices] = GetITBPosteriorSamples(subjectIds{iSubject}, phase_names{iPhz}, 0, true, datadir, memodir);
+        sigs = sigs{data_idxs(iPhz)};
+        choices = choices{data_idxs(iPhz)};
+        params = params(data_idxs(iPhz));
+        if strcmp(phase_names{iPhz}, 'both')            
             % If 'both' condition, we have duplicate fields and params for HSLC and LSHC conditions.
             % Pare down fields and samples to just those relevant to the currently tested condition.
             this_condition = data_idxs(iPhz);
@@ -58,24 +57,21 @@ for iSubject=1:length(subjectIds)
             hold on;
             
             [meanB, loB, hiB] = meanci(betaExplained{iSubject, iPhz});
-            bar(1:length(meanB), meanB, 'FaceColor', 'w');
+            bar(1:length(meanB), meanB, 'FaceColor', [.9 .9 .9]);
             errorbar(1:length(meanB), meanB, meanB-loB, hiB-meanB, 'ok');
             
             bar(length(meanB)+1, abb{iSubject,iPhz}(2), 'FaceColor', 'r');
             errorbar(length(meanB)+1, abb{iSubject,iPhz}(2), abb_err{iSubject,iPhz}(2), abb_err{iSubject,iPhz}(2), 'ok');
             
-            % Invert naming convention: convert list of ablated fields to list of untouched fields.
             abl = ablations{iPhz};
-            allfields = unique(horzcat(abl{:}));
-            names = cellfun(@(a) strjoin(setdiff(allfields, a), '+'), abl, 'uniformoutput', false);
-            names{cellfun(@isempty, names)} = 'null';
+            names = cellfun(@(a) strjoin(a, '+'), abl, 'uniformoutput', false);
             names = [names {'true'}];
             set(gca, 'XTick', 1:length(names), 'XTickLabel', names);
             xtickangle(60);
             
             title([subjectIds{iSubject} ' :: ' plot_titles{iPhz}]);
             
-            ylim([-.3 .3]);
+            ylim([-.5 .5]);
         end
     end
 end

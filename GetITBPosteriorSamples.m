@@ -1,8 +1,9 @@
-function [samples, fields, loglike, diagnostics, params, sigs, choices] = GetITBPosteriorSamples(subjectOrModel, phaseStr, nSamples, datadir, memodir)
+function [samples, fields, loglike, diagnostics, params, sigs, choices] = GetITBPosteriorSamples(subjectOrModel, phaseStr, nSamples, trimBurnin, datadir, memodir)
 %GETITBPOSTERIORSAMPLES helper function that wraps fitting posterior over the 'generic' ITB model.
 
-if nargin < 4, datadir = fullfile(pwd, '..', 'PublishData'); end
-if nargin < 5, memodir = fullfile(datadir, '..', 'Precomputed'); end
+if nargin < 4, trimBurnin = true; end
+if nargin < 5, datadir = fullfile(pwd, '..', 'PublishData'); end
+if nargin < 6, memodir = fullfile(datadir, '..', 'Precomputed'); end
 
 switch lower(phaseStr)
 case 'lshc'
@@ -29,6 +30,12 @@ if startsWith(subjectOrModel, 'IS', 'IgnoreCase', true) || startsWith(subjectOrM
         fullfile(memodir, ['gt-sim-' subjectOrModel '-' phaseStr '.mat']));
     % prefix = ['gt-' Model.getModelStringID(params(1), true) '-' lower(phaseStr)];
     fit_scale = false;
+    
+    % Ensure cell format for consistency
+    if ~iscell(sigs)
+        sigs = {sigs};
+        choices = {choices};
+    end
 else
     kernel_kappa = 0.16;
     [params, sigs, choices] = GetSubjectDataForFitting(subjectOrModel, kernel_kappa, [], datadir);
@@ -74,6 +81,13 @@ chkpt = fullfile('mh-checkpoints', sprintf('%X', input_id));
     sigs, choices, params, nSamples, distribs, 0, 0, 1, chkpt);
 
 loglike = smpl_info.loglike(:);
+
+%% Estimate burnin: at least 1k samples, but up to as many as needed to first reach the median likelihood value
+if trimBurnin
+    burnin = max(1000, find(loglike > median(loglike), 1));
+    samples = samples(burnin+1:end, :);
+    loglike = loglike(burnin+1:end);
+end
 
 %% Once 'nSamples' drawn, get some diagnostics
 diagnostics.tbl = MCMCDiagnostics(samples', fields(:), 500);
