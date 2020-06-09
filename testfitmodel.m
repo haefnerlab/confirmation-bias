@@ -70,6 +70,32 @@ end
 
 clear iPara d xs ps log_ps checkps
 
+%% Proposal distribution mean and variance vs concentration
+
+fields = {'prior_C', 'temperature', 'lapse', 'neggamma', 'bound', 'noise', 'signal_scale'};
+distribs = Fitting.defaultDistributions(fields, false);
+
+concentrations = 10.^(-2:0.25:+2);
+for iC=length(concentrations):-1:1
+    for iRep=1000:-1:1
+        for iF=length(fields):-1:1
+            smpl(iC, iF, iRep) = distribs.(fields{iF}).proprnd(base_val(iF), concentrations(iC));
+        end
+    end
+end
+
+means = mean(smpl,3);
+variances = var(smpl, [], 3);
+subplot(1,2,1);
+semilogx(concentrations, means, 'marker', '.');
+legend(fields);
+grid on;
+
+subplot(1,2,2);
+loglog(concentrations, variances, 'marker', '.');
+legend(fields);
+grid on;
+
 %% Visualize some (log) posterior marginal slices from the true model
 
 field = 'prior_C';
@@ -257,6 +283,7 @@ allStim = [SubjectData.noise; SubjectData.contrast; max(SubjectData.true_ratio, 
 
 fields = {'prior_C', 'lapse', 'signal_scale'};
 distribs = Fitting.defaultDistributions(fields);
+conc = length(fields);
 
 params = Model.newModelParams('model', 'ideal', 'temperature', 0.1, 'lapse', .02);
 samples = zeros(1000, size(uStim,1), length(fields));
@@ -267,8 +294,8 @@ for iStim=size(uStim,1):-1:1
     init_para = [0.5 .01 1/5];
     samples(:,iStim,:) = mhsample(init_para, 1000, ...
         'logpdf', @(x) Fitting.choiceModelLogProb(Fitting.setParamsFields(params, fields, x), distribs, signals(trials, :), choices(trials), 1), ...
-        'proprnd', @(x) arrayfun(@(i) distribs.(fields{i}).proprnd(x(i)), 1:length(fields)), ...
-        'logproppdf', @(x1,x2) sum(arrayfun(@(i) distribs.(fields{i}).logproppdf(x1(i), x2(i)), 1:length(fields))), ...
+        'proprnd', @(x) arrayfun(@(i) distribs.(fields{i}).proprnd(x(i), conc), 1:length(fields)), ...
+        'logproppdf', @(x1,x2) sum(arrayfun(@(i) distribs.(fields{i}).logproppdf(x1(i), x2(i), conc), 1:length(fields))), ...
         'thin', 20, 'burnin', 200);
     
     cla;
@@ -280,8 +307,8 @@ end
 trials = SubjectData.noise < .16;
 samples(:,end+1,:) = mhsample(init_para, 1000, ...
     'logpdf', @(x) Fitting.choiceModelLogProb(Fitting.setParamsFields(params, fields, x), distribs, signals(trials, :), choices(trials), 1), ...
-    'proprnd', @(x) arrayfun(@(i) distribs.(fields{i}).proprnd(x(i)), 1:length(fields)), ...
-    'logproppdf', @(x1,x2) sum(arrayfun(@(i) distribs.(fields{i}).logproppdf(x1(i), x2(i)), 1:length(fields))), ...
+    'proprnd', @(x) arrayfun(@(i) distribs.(fields{i}).proprnd(x(i), conc), 1:length(fields)), ...
+    'logproppdf', @(x1,x2) sum(arrayfun(@(i) distribs.(fields{i}).logproppdf(x1(i), x2(i), conc), 1:length(fields))), ...
     'thin', 20, 'burnin', 200);
 
 for i=1:length(fields)

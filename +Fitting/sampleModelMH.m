@@ -8,7 +8,7 @@ fields = fieldnames(distributions);
 for iField=1:length(fields)
     if ~isfield(distributions.(fields{iField}), 'logproppdf')
         distributions.(fields{iField}).logproppdf = ...
-            @(x1, x2) log(distributions.(fields{iField}).proppdf(x1, x2));
+            @(x1, x2, c) log(distributions.(fields{iField}).proppdf(x1, x2, c));
     end
 end
 
@@ -29,16 +29,20 @@ else
         Fitting.setParamsFields(base_params, fields, smpl), distributions, signals, choices, [], ibs_repeats);
 end
 
+% Proposal variances scaled down by 1/d where d is dimensionality of sampler to keep acceptance
+% ratio in the desired regime. 'concentration' parameter sets the inverse variance.
+concentration = length(fields);
+
     function x = proprnd(x, fields, distribs)
         for jField=1:length(fields)
-            x(jField) = distribs.(fields{jField}).proprnd(x(jField));
+            x(jField) = distribs.(fields{jField}).proprnd(x(jField), concentration);
         end
     end
 
     function log_prop = logproppdf(x1, x2, fields, distribs)
         log_prop = 0;
         for jField=1:length(fields)
-            log_prop = log_prop + distribs.(fields{jField}).logproppdf(x1(jField), x2(jField));
+            log_prop = log_prop + distribs.(fields{jField}).logproppdf(x1(jField), x2(jField), concentration);
         end
     end
 

@@ -12,6 +12,8 @@ base_params = Fitting.setParamsFields(base_params, default_fields, default_value
 
 %% Set up composite proposal / density functions
 
+prop_conc = length(fields);
+
 % If both 'gamma' and 'log_temperature' are included in this model, their posterior will highly
 % correlated since, say, stronger negative gamma leads to higher magnitude integration which need to
 % be compensated for by raising the temperature. We therefore adjust the proposal distribution using
@@ -24,7 +26,7 @@ prop_adjust_gamma_temp = any(has_gamma) && any(has_temp);
     function xnew = proprnd(xold)
         xnew = xold;
         for iField=1:length(fields)
-            xnew(iField) = distribs.(fields{iField}).proprnd(xold(iField));
+            xnew(iField) = distribs.(fields{iField}).proprnd(xold(iField), prop_conc);
         end
         if prop_adjust_gamma_temp
             % Treat log_temperature proposal as a 'delta' away from the regression line with slope
@@ -43,9 +45,9 @@ prop_adjust_gamma_temp = any(has_gamma) && any(has_temp);
         end
         for iField=1:length(fields)
             if isfield(distribs.(fields{iField}), 'logproppdf')
-                logp = logp + distribs.(fields{iField}).logproppdf(xnew(iField), xold(iField));
+                logp = logp + distribs.(fields{iField}).logproppdf(xnew(iField), xold(iField), prop_conc);
             else
-                logp = logp + log(distribs.(fields{iField}).proppdf(xnew(iField), xold(iField)));
+                logp = logp + log(distribs.(fields{iField}).proppdf(xnew(iField), xold(iField), prop_conc));
             end
         end
     end
