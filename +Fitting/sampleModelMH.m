@@ -75,7 +75,7 @@ end
 % best one
 if isempty(samples{1})
     disp('MHSample init');
-    for iInit=100:-1:1
+    for iInit=500:-1:1
         init_smpl(iInit, :) = cellfun(@(f) distributions.(f).priorrnd(1), fields);
         [init_lp(iInit), ~, init_var(iInit)] = log_post(init_smpl(iInit, :));
     end
