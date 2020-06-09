@@ -50,7 +50,7 @@ compute_error = nargout > 2;
 
 % % Initialize from GLM fit
 w = glmfit(data, responses, 'binomial');
-init_guess = [max(0.001, min(1, mean(w(2:end)))) 0 w(1)];
+init_guess = [max(0.001, min(1, mean(w(2:end)))) 0 min(2, max(-2, w(1)))];
 
 % Fit weights using 'fminunc', only computing the hessian (which is slow) if errors are requested.
 options = optimoptions('fminunc', ...
