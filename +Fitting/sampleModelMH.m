@@ -29,9 +29,12 @@ else
         Fitting.setParamsFields(base_params, fields, smpl), distributions, signals, choices, [], ibs_repeats);
 end
 
-% Proposal variances scaled down by 1/d where d is dimensionality of sampler to keep acceptance
-% ratio in the desired regime. 'concentration' parameter sets the inverse variance.
-concentration = length(fields);
+% % Proposal variances scaled down by 1/d where d is dimensionality of sampler to keep acceptance
+% % ratio in the desired regime. 'concentration' parameter sets the inverse variance.
+% concentration = length(fields);
+
+% Note: further testing suggests that concentration=1 is actually better... why?
+concentration = 1;
 
     function x = proprnd(x, fields, distribs)
         for jField=1:length(fields)
