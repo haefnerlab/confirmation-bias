@@ -71,6 +71,9 @@ else
     start_batch = 1;
 end
 
+% Ensure that no RNG state is shared across runs, chains, etc.
+rng('shuffle');
+
 % If needed (i.e. not loading from checkpoint), draw 100 points from the prior and initialize to the
 % best one
 if isempty(samples{1})
