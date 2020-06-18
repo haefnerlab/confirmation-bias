@@ -4,7 +4,7 @@ if nargin < 4, datadir = fullfile(pwd, '..', 'PublishData'); end
 if nargin < 5, memodir = fullfile(datadir, '..', 'Precomputed'); end
 if ~iscell(models), models = {models}; end
 
-[~, sigs, choices, ~, SubjectData] = GetSubjectDataForFitting(subjectId, 0.16);
+[~, sigs, choices, ~, SubjectData] = GetSubjectDataForFitting(subjectId, 0.16, []);
 switch lower(phaseStr)
     case 'hslc'
         phz = 1;

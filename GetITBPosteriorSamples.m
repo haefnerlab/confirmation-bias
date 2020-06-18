@@ -39,7 +39,7 @@ if startsWith(subjectOrModel, 'IS', 'IgnoreCase', true) || startsWith(subjectOrM
     end
 else
     kernel_kappa = 0.16;
-    [params, sigs, choices] = GetSubjectDataForFitting(subjectOrModel, kernel_kappa, [], datadir);
+    [params, sigs, choices] = GetSubjectDataForFitting(subjectOrModel, kernel_kappa, [], true, datadir);
     params = params(phaseNo);
     sigs = sigs(phaseNo);
     choices = choices(phaseNo);

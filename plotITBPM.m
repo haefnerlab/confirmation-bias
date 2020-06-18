@@ -3,7 +3,26 @@ if nargin < 3, phaseNo = 1; end
 if nargin < 4, datadir = fullfile(pwd, '..', 'PublishData'); end
 if nargin < 5, memodir = fullfile(datadir, '..', 'Precomputed'); end
 
-[samples, fields, ~, ~, params, sigs, choices] = GetITBPosteriorSamples(subjectId, fitPhase, 0, true, datadir, memodir);
+[samples, fields, ~, ~] = GetITBPosteriorSamples(subjectId, fitPhase, 0, true, 1:12, datadir, memodir);
+samples = vertcat(samples{:});
+
+% Load model simulation OR subject data into a common format
+if startsWith(subjectId, 'IS', 'IgnoreCase', true) || startsWith(subjectId, 'ITB', 'IgnoreCase', true)
+    [params, sigs, choices] = LoadOrRun(@GetGroundTruthSimData, {subjectId, phaseNo}, ...
+        fullfile(memodir, ['gt-sim-' subjectId '-' phaseStr '.mat']));
+    
+    % Ensure cell format for consistency
+    if ~iscell(sigs)
+        sigs = {sigs};
+        choices = {choices};
+    end
+else
+    kernel_kappa = 0.16;
+    [params, sigs, choices] = GetSubjectDataForFitting(subjectId, kernel_kappa, [], false, datadir);
+    params = params(phaseNo);
+    sigs = sigs(phaseNo);
+    choices = choices(phaseNo);
+end
 sigs = sigs{phaseNo};
 choices = choices{phaseNo};
 
