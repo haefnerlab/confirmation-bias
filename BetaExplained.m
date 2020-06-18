@@ -1,4 +1,4 @@
-function fig_explain = BetaExplained(subjectIds, plotstyle, datadir, memodir)
+function [fig_bar, fig_scatter] = BetaExplained(subjectIds, plotstyle, datadir, memodir)
 if nargin < 2, plotstyle = 'stacked'; end
 if nargin < 3, datadir = fullfile(pwd, '..', 'PublishData'); end
 if nargin < 4, memodir = fullfile(datadir, '..', 'Precomputed'); end
@@ -6,16 +6,22 @@ if nargin < 4, memodir = fullfile(datadir, '..', 'Precomputed'); end
 % GBN = gamma/bound/noise. inv = inverted.
 assert(ismember(lower(plotstyle), {'gbn', 'gbn-inv', 'separate'}));
 
-phase_names = {'hslc', 'lshc', 'both', 'both'};
-plot_titles = {'HSLC', 'LSHC', 'Both [HSLC]', 'Both [LSHC]'};
-data_idxs = [1 1 1 2];
+% phase_names = {'hslc', 'lshc', 'both', 'both'};
+% plot_titles = {'HSLC', 'LSHC', 'Both [HSLC]', 'Both [LSHC]'};
+% data_idxs = [1 1 1 2];
+phase_names = {'hslc', 'lshc'};
+plot_titles = {'HSLC', 'LSHC'};
+data_idxs = [1 1];
 test_fields = {'gamma', 'bound', 'noise'};
 
 %% Load posterior samples per subject per condition
 for iSubject=length(subjectIds):-1:1
     for iPhz=length(phase_names):-1:1
         % Load posterior samples over all parameters
-        [samples, fields, ~, ~, params, sigs, choices] = GetITBPosteriorSamples(subjectIds{iSubject}, phase_names{iPhz}, 0, true, datadir, memodir);
+        [chains, fields, ~, ~, params, sigs, choices] = LoadOrRun(@GetITBPosteriorSamples, ...
+            {subjectIds{iSubject}, phase_names{iPhz}, 0, true, 1:12, datadir, memodir}, ...
+            fullfile('tmp-mh', ['ITB-cache-' subjectIds{iSubject} '-' phase_names{iPhz} '.mat']), '-verbose');
+        samples = vertcat(chains{:});
         sigs = sigs{data_idxs(iPhz)};
         choices = choices{data_idxs(iPhz)};
         params = params(data_idxs(iPhz));
@@ -45,16 +51,79 @@ for iSubject=length(subjectIds):-1:1
         % speed.
         assert(strcmp(params.model, 'itb-int'), 'sanity failed');
         params.model = 'itb';
-        [betaExplained{iSubject, iPhz}, ~, ablations{iPhz}] = PKShapeExplained(sigs, params, test_fields, fields, samples);
+        [betaExplained{iSubject, iPhz}, ~, ablations{iPhz}] = LoadOrRun(@PKShapeExplained, ...
+            {sigs, params, test_fields, fields, samples}, ...
+            fullfile('tmp-mh', ['PK-beta-cache-' subjectIds{iSubject} '-' phase_names{iPhz} '-' num2str(data_idxs(iPhz)) '-' strjoin(test_fields) '.mat']), '-verbose');
         
         % Get 'true' slope of exponential PK for this subject x phase
-        [abb{iSubject,iPhz}, ~, abb_err{iSubject,iPhz}] = CustomRegression.ExponentialPK(sigs, choices==+1, 1);
+        memo_name = ['Boot-ExpPK-' subjectIds{iSubject} '-' phase_names{iPhz} '-fitting.mat'];
+        [~, ~, ~, ~, ~, abb{iSubject,iPhz}] = LoadOrRun(@BootstrapExponentialWeightsGabor, {sigs, choices, 10000, true}, ...
+            fullfile(memodir, memo_name));
     end
 end
 
-%% Plot stuff
+idx_full = cellfun(@isempty, ablations{iPhz});
+idx_null = cellfun(@(abl) isequal(abl, test_fields), ablations{iPhz});
+idx_g = cellfun(@(abl) isequal(abl, {'gamma'}), ablations{iPhz});
+idx_bn = cellfun(@(abl) isequal(abl, {'bound', 'noise'}), ablations{iPhz});
 
-fig_explain = figure;
+%% Scatter plots
+
+% Hack... this section also only works for specific hypothesis tests on g/b/n
+assert(isequal(test_fields, {'gamma', 'bound', 'noise'}));
+
+color0 = [0.1 0.1 0.1];
+color1 = [0 .5 0];
+color2 = [.4 0 .4];
+                    
+fig_scatter = figure;
+for iPhz=1:length(phase_names)
+    subplot(1,length(phase_names),iPhz);
+    hold on;
+    
+    % populate true beta
+    mtrue = zeros(size(subjectIds)); ltrue = zeros(size(subjectIds)); utrue = zeros(size(subjectIds));
+    for iSub=1:length(subjectIds)
+        [mtrue(iSub), ltrue(iSub), utrue(iSub)] = meanci(abb{iSub,iPhz}(:,2), 0.95);
+    end
+    % populate full model beta
+    mfull = zeros(size(subjectIds)); lfull = zeros(size(subjectIds)); ufull = zeros(size(subjectIds));
+    for iSub=1:length(subjectIds)
+        [mfull(iSub), lfull(iSub), ufull(iSub)] = meanci(betaExplained{iSub,iPhz}(:,idx_full), 0.95);
+    end
+    % populate gamma-ablated beta
+    mgam = zeros(size(subjectIds)); lgam = zeros(size(subjectIds)); ugam = zeros(size(subjectIds));
+    for iSub=1:length(subjectIds)
+        [mgam(iSub), lgam(iSub), ugam(iSub)] = meanci(betaExplained{iSub,iPhz}(:,idx_g), 0.95);
+    end
+    % populate bn-ablated beta
+    mbn = zeros(size(subjectIds)); lbn = zeros(size(subjectIds)); ubn = zeros(size(subjectIds));
+    for iSub=1:length(subjectIds)
+        [mbn(iSub), lbn(iSub), ubn(iSub)] = meanci(betaExplained{iSub,iPhz}(:,idx_bn), 0.95);
+    end
+    
+    % Plot full model vs true beta 
+    errorbar(mtrue, mfull, mfull-lfull, ufull-mfull, mtrue-ltrue, utrue-mtrue, 'o', 'Color', color0, 'MarkerFaceColor', color0, 'MarkerEdgeColor', [1 1 1]);
+    % Plot gamma-ablated model vs true beta
+    errorbar(mtrue, mgam, mgam-lgam, ugam-mgam, mtrue-ltrue, utrue-mtrue, '^', 'Color', color1, 'MarkerFaceColor', color1, 'MarkerEdgeColor', [1 1 1]);
+    % Plot bn-ablated model vs true beta
+    errorbar(mtrue, mbn, mbn-lbn, ubn-mbn, mtrue-ltrue, utrue-mtrue, 's', 'Color', color2, 'MarkerFaceColor', color2, 'MarkerEdgeColor', [1 1 1]);
+    
+    xlim([-1 1]); ylim([-1 1]);
+    axis square;
+    set(gca, 'XAxisLocation', 'origin', 'YAxisLocation', 'origin', 'XTick', -.5:.1:.5, 'YTick', -.5:.1:.5);
+    grid on;
+    uistack(plot([-1 1], [-1 1], '-k', 'HandleVisibility', 'off'), 'bottom');
+    legend({'full', '-gamma', '-bn'}, 'location', 'best');
+            
+    title(plot_titles{iPhz});
+end
+drawnow;
+pause(0.1);
+
+%% Bar plots
+
+fig_bar = figure;
 for iSubject=1:length(subjectIds)
     for iPhz=1:length(phase_names)
         if ~isempty(betaExplained{iSubject, iPhz})
@@ -66,8 +135,9 @@ for iSubject=1:length(subjectIds)
                     bar(1:length(meanB), meanB, 'FaceColor', [.9 .9 .9]);
                     errorbar(1:length(meanB), meanB, meanB-loB, hiB-meanB, 'ok');
                     
-                    bar(length(meanB)+1, abb{iSubject,iPhz}(2), 'FaceColor', 'r');
-                    errorbar(length(meanB)+1, abb{iSubject,iPhz}(2), abb_err{iSubject,iPhz}(2), abb_err{iSubject,iPhz}(2), 'ok');
+                    [m,l,u] = meanci(abb{iSubject,iPhz}(:,2), 0.95);
+                    bar(length(meanB)+1, m, 'FaceColor', [1 1 1]);
+                    errorbar(length(meanB)+1, m, m-l, u-m, 'ok');
                     
                     if inverted, warning('not implemented'); end
                     
@@ -84,31 +154,24 @@ for iSubject=1:length(subjectIds)
                     % for more generic parameter combinations
                     assert(isequal(test_fields, {'gamma', 'bound', 'noise'}));
                                         
-                    % Null model has all parameters ablated
-                    idx_null = cellfun(@(abl) isequal(abl, test_fields), ablations{iPhz});
-                    % Full model has all parameters present
-                    idx_full = cellfun(@isempty, ablations{iPhz});
-                    
-                    % Contribution of gamma term quantified by ablating bound and noise
-                    idx_g = cellfun(@(abl) isequal(abl, {'bound', 'noise'}), ablations{iPhz});
-                    % Contribution of bound+noise quantified by ablating 'gamma'
-                    idx_bn = cellfun(@(abl) isequal(abl, {'gamma'}), ablations{iPhz});
-                    
+                    % Get betas for 'full model', gamma-ablated, and bn-ablated
                     betaG = betaExplained{iSubject,iPhz}(:,idx_g);
                     betaBN = betaExplained{iSubject,iPhz}(:,idx_bn);
-                    betaNull = betaExplained{iSubject,iPhz}(:,idx_null);
                     betaFull = betaExplained{iSubject,iPhz}(:,idx_full);
                     
-                    [barData, errData(1,1:4), errData(2,1:4)] = meanci([betaNull betaG betaBN betaFull], 0.95);
+                    % Bars are straightforwardly just the above betas
+                    [barData, errData(1,1:3), errData(2,1:3)] = meanci([betaG betaBN betaFull], 0.95);
+                    [barData(4), errData(1,4), errData(3,4)] = meanci(abb{iSubject,iPhz}(:,2), 0.95);
                     
-                    barData(5) = abb{iSubject, iPhz}(2);
-                    errData(:,5) = abb_err{iSubject, iPhz}(2);
-                    
-                    h = bar([1 nan], [barData; nan(1,5)]);
+                    h = bar([1 nan], [barData; nan(1,4)]);
                     drawnow; % populate h.xoffset
                     errorbar(h(1).XData(1) + [h.XOffset], barData, errData(1,:), errData(2,:), '.k');
+                    h(1).FaceColor = color1;
+                    h(2).FaceColor = color2;
+                    h(3).FaceColor = color0;
+                    h(4).FaceColor = [1 1 1];
                     
-                    if iSubject*iPhz == 1, legend({'null', 'gamma', 'bound+noise', 'full', 'true'}); end
+                    if iSubject*iPhz == 1, legend({'-gamma', '-(bound+noise)', 'full', 'true'}); end
                 case 'gbn-inv'
                     % In 'inverted' case, contribution of each parameter is the beta that is
                     % lost when that parameter is ablated
@@ -116,38 +179,34 @@ for iSubject=1:length(subjectIds)
                     % This is a targeted analysis comparing gamma/bound/noise... use 'separate' flag
                     % for more generic parameter combinations
                     assert(isequal(test_fields, {'gamma', 'bound', 'noise'}));
-                    
-                    % Null model has all parameters ablated
-                    idx_null = cellfun(@(abl) isequal(abl, test_fields), ablations{iPhz});
-                    % Full model has all parameters present
-                    idx_full = cellfun(@isempty, ablations{iPhz});
-                    
-                    % Contribution of gamma term quantified by ablating gamma relative to full
-                    idx_g = cellfun(@(abl) isequal(abl, {'gamma'}), ablations{iPhz});
-                    % Contribution of bound+noise quantified by ablating b & n relative to full
-                    idx_bn = cellfun(@(abl) isequal(abl, {'bound', 'noise'}), ablations{iPhz});
-                    
+                                        
+                    % Get betas for 'full model', gamma-ablated, and bn-ablated
                     betaG = betaExplained{iSubject,iPhz}(:,idx_g);
                     betaBN = betaExplained{iSubject,iPhz}(:,idx_bn);
                     betaNull = betaExplained{iSubject,iPhz}(:,idx_null);
                     betaFull = betaExplained{iSubject,iPhz}(:,idx_full);
                     
-                    [barData, errData(1,1:4), errData(2,1:4)] = meanci([betaNull betaFull-betaG betaFull-betaBN betaFull], 0.95);
+                    % Inverse of the above, but same semantics. e.g. 'gamma' bar is now beta value
+                    % for bn - null ('all except gamma added in' instead of 'gamma removed')
+                    [barData, errData(1,1:3), errData(2,1:3)] = meanci([betaBN-betaNull betaG-betaNull betaFull], 0.95);
+                    [barData(4), errData(1,4), errData(3,4)] = meanci(abb{iSubject,iPhz}(:,2), 0.95);
                     
-                    barData(5) = abb{iSubject, iPhz}(2);
-                    errData(:,5) = abb_err{iSubject, iPhz}(2);
-                    
-                    h = bar([1 nan], [barData; nan(1,5)]);
+                    h = bar([1 nan], [barData; nan(1,4)]);
                     drawnow; % populate h.xoffset
                     errorbar(h(1).XData(1) + [h.XOffset], barData, errData(1,:), errData(2,:), '.k');
+                    h(1).FaceColor = color1;
+                    h(2).FaceColor = color2;
+                    h(3).FaceColor = color0;
+                    h(4).FaceColor = [1 1 1];
                     
-                    if iSubject*iPhz == 1, legend({'null', 'gamma', 'bound+noise', 'full', 'true'}); end
+                    if iSubject*iPhz == 1, legend({'-gamma', '-(bound+noise)', 'full', 'true'}); end
             end
             
             title([subjectIds{iSubject} ' :: ' plot_titles{iPhz}]);
             
-            ylim([-.5 .5]);
+            ylim([-1 1]);
         end
     end
 end
+
 end
