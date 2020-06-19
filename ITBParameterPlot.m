@@ -1,11 +1,11 @@
-function [box_fig, hist_fig] = ITBParameterPlot(subjectIds, phases, plot_fields, log_flag, datadir, memodir)
+function [box_fig, hist_fig] = ITBParameterPlot(subjectIds, phases, plot_fields, log_flag, colors, datadir, memodir)
 if nargin < 3, plot_fields = {'prior_C', 'lapse', 'temperature', 'gamma', 'bound', 'noise'}; end
 if nargin < 4, log_flag = false(size(plot_fields)); end
-if nargin < 5, datadir = fullfile(pwd, '..', 'PublishData'); end
-if nargin < 6, memodir = fullfile(datadir, '..', 'Precomputed'); end
+if nargin < 5, colors = lines(length(plot_fields)); end
+if nargin < 6, datadir = fullfile(pwd, '..', 'PublishData'); end
+if nargin < 7, memodir = fullfile(datadir, '..', 'Precomputed'); end
 
 % NOTE: doesn't work across phases w/ different fields!
-
 
 allsamples = zeros(0, length(plot_fields));
 allgroups = [];
@@ -14,16 +14,12 @@ for iSub=1:length(subjectIds)
         [chains, fields{iPhz}, loglikes{iSub,iPhz}, ~, ~, ~, ~] = LoadOrRun(@GetITBPosteriorSamples, ...
             {subjectIds{iSub}, phases{iPhz}, 0, true, 1:12, datadir, memodir}, ...
             fullfile('tmp-mh', ['ITB-cache-' subjectIds{iSub} '-' phases{iPhz} '.mat']));
-
+        
         samples = vertcat(chains{:});
         values{iSub,iPhz} = zeros(size(samples,1), length(plot_fields));
         for iPara=length(plot_fields):-1:1
             iF = cellfun(@(f) contains(f, plot_fields{iPara}, 'ignorecase', true), fields{iPhz});
-            if log_flag(iPara)
-                values{iSub,iPhz}(:,iPara) = log10(samples(:,iF));
-            else
-                values{iSub,iPhz}(:,iPara) = samples(:,iF);
-            end
+            values{iSub,iPhz}(:,iPara) = samples(:,iF);
         end
     end
 end
@@ -32,29 +28,38 @@ end
 range_lo = min(vertcat(values{:}));
 range_hi = max(vertcat(values{:}));
 for iPara=length(plot_fields):-1:1
-    edges(iPara, :) = linspace(range_lo(iPara), range_hi(iPara), 101);
+    if log_flag(iPara)
+        edges(iPara, :) = logspace(log10(range_lo(iPara)), log10(range_hi(iPara)), 101);
+    else
+        edges(iPara, :) = linspace(range_lo(iPara), range_hi(iPara), 101);
+    end
 end
 
 for iSub=length(subjectIds):-1:1
     for iPhz=length(phases):-1:1
         [~, quantiles{iSub,iPhz}, pmfs{iSub,iPhz}] = ...
-            sampleQuantilesReweightChains(values{iSub,iPhz}, loglikes{iSub,iPhz}, [.025 .25 .5 .75 .975], edges);
+            sampleQuantilesReweightChains(values{iSub,iPhz}, loglikes{iSub,iPhz}, [.025 .1587 .25 .5 .75 .8414 .975], edges);
     end
 end
 
-%% Scatters
+%% Scatters @ 68% confidence intervals
 scatter_fig = figure;
 for iPara=1:length(plot_fields)
     subplot(1, length(plot_fields), iPara); hold on;
     for iSub=1:length(subjectIds)
-        [m1, l1, u1] = deal(quantiles{iSub,1}(iPara,3), quantiles{iSub,1}(iPara,1), quantiles{iSub,1}(iPara,5));
-        [m2, l2, u2] = deal(quantiles{iSub,2}(iPara,3), quantiles{iSub,2}(iPara,1), quantiles{iSub,2}(iPara,5));
-        errorbar(m1, m2, m2-l2, u2-m2, m1-l1, u1-m1, '.b');
+        [m1, l1, u1] = deal(quantiles{iSub,1}(iPara,4), quantiles{iSub,1}(iPara,2), quantiles{iSub,1}(iPara,6));
+        [m2, l2, u2] = deal(quantiles{iSub,2}(iPara,5), quantiles{iSub,2}(iPara,2), quantiles{iSub,2}(iPara,6));
+        errorbar(m1, m2, m2-l2, u2-m2, m1-l1, u1-m1, '.', 'Color', colors(iPara, :));
+        if log_flag(iPara)
+            set(gca, 'XScale', 'log', 'YScale', 'log');
+        end
     end
     axis equal; axis square; grid on;
     title(plot_fields{iPara});
     xlabel(phases{1}); ylabel(phases{2});
-    uistack(plot(xlim, xlim, '-k', 'HandleVisibility', 'off'), 'bottom');
+    xl = xlim; yl = ylim;
+    uistack(plot(xl, xl, '-k', 'HandleVisibility', 'off'), 'bottom');
+    xlim(xl); ylim(yl);
 end
 
 %% Marginal histograms figure
@@ -66,14 +71,23 @@ for iSub=1:length(subjectIds)
         subplot(length(subjectIds), length(plot_fields), (iSub-1)*length(plot_fields)+iPara);
         hold on;
         
-        ctrs = (edges(iPara,1:end-1) + edges(iPara,2:end))/2;
+        if log_flag(iPara)
+            ctrs = (log10(edges(iPara,1:end-1)) + log10(edges(iPara,2:end)))/2;
+            xticks = log10(linspace(10.^ctrs(1), 10.^ctrs(end), 20));
+            xlab = 10.^xticks;
+        else
+            ctrs = (edges(iPara,1:end-1) + edges(iPara,2:end))/2;
+            xticks = linspace(ctrs(1), ctrs(end), 20);
+            xlab = xticks;
+        end
         bar(ctrs, pmfs{iSub, 1}(iPara, :), 1, 'FaceAlpha', .5, 'EdgeAlpha', 0);
         bar(ctrs, pmfs{iSub, 2}(iPara, :), 1, 'FaceAlpha', .5, 'EdgeAlpha', 0);
         
-        set(gca, 'YTick', 0);
+        set(gca, 'YTick', 0, 'XTick', xticks);
         if iSub < length(subjectIds)
             set(gca, 'XTickLabel', []);
         else
+            set(gca, 'XTickLabel', arrayfun(@(n) num2str(n,2), xlab, 'uniformoutput', false));
             xlabel(plot_fields{iPara});
         end
         if iPara == 1
@@ -86,25 +100,27 @@ end
 box_fig = figure;
 for iPara=1:length(plot_fields)
     subplot(1, length(plot_fields), iPara); hold on;
-
+    
     % 95% CI as a thin line
     for iSub=1:length(subjectIds)
-        plot(quantiles{iSub,1}(iPara,[1 5]), iSub*[1 1], '-', 'Color', 'r', 'LineWidth', 1);
-        plot(quantiles{iSub,2}(iPara,[1 5]), iSub*[1 1]+.25, '-', 'Color', 'b', 'LineWidth', 1);
+        plot(quantiles{iSub,1}(iPara,[1 7]), iSub*[1 1], '-', 'Color', 'r', 'LineWidth', 1);
+        plot(quantiles{iSub,2}(iPara,[1 7]), iSub*[1 1]+.25, '-', 'Color', 'b', 'LineWidth', 1);
     end
-
+    
     % 50% CI as a thick line
     for iSub=1:length(subjectIds)
-        plot(quantiles{iSub,1}(iPara,[2 4]), iSub*[1 1], '-', 'Color', 'r', 'LineWidth', 2);
-        plot(quantiles{iSub,2}(iPara,[2 4]), iSub*[1 1]+.25, '-', 'Color', 'b', 'LineWidth', 2);
+        plot(quantiles{iSub,1}(iPara,[3 5]), iSub*[1 1], '-', 'Color', 'r', 'LineWidth', 2);
+        plot(quantiles{iSub,2}(iPara,[3 5]), iSub*[1 1]+.25, '-', 'Color', 'b', 'LineWidth', 2);
     end
-
+    
     % Median as a black dot
     for iSub=1:length(subjectIds)
-        plot(quantiles{iSub,1}(iPara,3), iSub, '.', 'Color', 'k');
-        plot(quantiles{iSub,2}(iPara,3), iSub+.25, '.', 'Color', 'k');
+        plot(quantiles{iSub,1}(iPara,4), iSub, '.', 'Color', 'k');
+        plot(quantiles{iSub,2}(iPara,4), iSub+.25, '.', 'Color', 'k');
     end
-
+    
+    if log_flag(iPara), set(gca, 'XScale', 'log'); end
+    
     title(plot_fields{iPara});
     set(gca, 'YTick', 1:length(subjectIds), 'YTickLabel', cellfun(@shortname, subjectIds, 'uniformoutput', false));
     grid on;
