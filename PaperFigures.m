@@ -441,6 +441,24 @@ figureToPanel(pk_fig, figModelSupp, 6, 3, 17);
 [~,~,~,~,fig,cmap] = Model.plotCSSlopes(ps, ps, params, beta_range, THRESHOLD, sens_cat_pts);
 figureToPanel(fig, figModelSupp, 6, 3, 18, cmap);
 
+%% Pre-run MCMC sampling of model parameters
+
+% NOTE: this will take a very very long time. In practice, we run this on a cluster for weeks to
+% actually generate MCMC chains, and subsequent sections are designed to load and plot "whatever is
+% done so far" (setting nSamplesPerChain to 0 will load existing samples but not generate new ones).
+% This section is included here primarily as documentation.
+
+% ITB and IS are ground-truth models (see @GetGroundTruthSimData)
+subjectsToFit = [{'ITB', 'IS'} bothSubjects];
+phasesToFit = {'lshc', 'hslc', 'both'};
+nSamplesPerChain = 2e4;
+nChains = 12;
+for iSub=1:length(subjectsToFit)
+    for iPhz=1:length(phases)
+        GetITBPosteriorSamples(subjectsToFit{iSub}, phases{iPhz}, nSamplesPerChain, nChains, DATADIR, MEMODIR);
+    end
+end
+
 %% Helper function for figure layout
 
 function ax_copy = figureToPanel(figSource, figDest, subM, subN, subI, cmap)
