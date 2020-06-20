@@ -1,9 +1,10 @@
-function [box_fig, hist_fig] = ITBParameterPlot(subjectIds, phases, plot_fields, log_flag, colors, datadir, memodir)
+function [scatter_fig, hist_fig, box_fig] = ITBParameterPlot(subjectIds, phases, plot_fields, log_flag, colors, markers, datadir, memodir)
 if nargin < 3, plot_fields = {'prior_C', 'lapse', 'temperature', 'gamma', 'bound', 'noise'}; end
 if nargin < 4, log_flag = false(size(plot_fields)); end
 if nargin < 5, colors = lines(length(plot_fields)); end
-if nargin < 6, datadir = fullfile(pwd, '..', 'PublishData'); end
-if nargin < 7, memodir = fullfile(datadir, '..', 'Precomputed'); end
+if nargin < 6, markers = repmat('o', 1, length(plot_fields)); end
+if nargin < 7, datadir = fullfile(pwd, '..', 'PublishData'); end
+if nargin < 8, memodir = fullfile(datadir, '..', 'Precomputed'); end
 
 % NOTE: doesn't work across phases w/ different fields!
 
@@ -19,10 +20,18 @@ for iSub=1:length(subjectIds)
         values{iSub,iPhz} = zeros(size(samples,1), length(plot_fields));
         for iPara=length(plot_fields):-1:1
             iF = cellfun(@(f) contains(f, plot_fields{iPara}, 'ignorecase', true), fields{iPhz});
-            values{iSub,iPhz}(:,iPara) = samples(:,iF);
+            if any(iF)
+                values{iSub,iPhz}(:,iPara) = samples(:,iF);
+            else
+                values{iSub,iPhz}(:,iPara) = nan(size(samples,1),1);
+            end
         end
     end
 end
+
+dists = Fitting.defaultDistributions(plot_fields);
+lb = cellfun(@(f) dists.(f).plb, plot_fields);
+ub = cellfun(@(f) dists.(f).pub, plot_fields);
 
 %% Get chain-reweighted moments and quantiles
 range_lo = min(vertcat(values{:}));
@@ -49,17 +58,16 @@ for iPara=1:length(plot_fields)
     for iSub=1:length(subjectIds)
         [m1, l1, u1] = deal(quantiles{iSub,1}(iPara,4), quantiles{iSub,1}(iPara,2), quantiles{iSub,1}(iPara,6));
         [m2, l2, u2] = deal(quantiles{iSub,2}(iPara,5), quantiles{iSub,2}(iPara,2), quantiles{iSub,2}(iPara,6));
-        errorbar(m1, m2, m2-l2, u2-m2, m1-l1, u1-m1, '.', 'Color', colors(iPara, :));
+        errorbar(m1, m2, m2-l2, u2-m2, m1-l1, u1-m1, markers(iPara), 'Color', colors(iPara, :), 'CapSize', 0, 'MarkerFaceColor', colors(iPara,:), 'MarkerEdgeColor', [1 1 1]);
         if log_flag(iPara)
             set(gca, 'XScale', 'log', 'YScale', 'log');
         end
     end
-    axis equal; axis square; grid on;
+    axis equal; axis square; %grid on;
     title(plot_fields{iPara});
     xlabel(phases{1}); ylabel(phases{2});
-    xl = xlim; yl = ylim;
-    uistack(plot(xl, xl, '-k', 'HandleVisibility', 'off'), 'bottom');
-    xlim(xl); ylim(yl);
+    uistack(plot([lb(iPara) ub(iPara)], [lb(iPara) ub(iPara)], '-k', 'HandleVisibility', 'off'), 'bottom');
+    xlim([lb(iPara) ub(iPara)]); ylim([lb(iPara) ub(iPara)]);
 end
 
 %% Marginal histograms figure
@@ -123,7 +131,7 @@ for iPara=1:length(plot_fields)
     
     title(plot_fields{iPara});
     set(gca, 'YTick', 1:length(subjectIds), 'YTickLabel', cellfun(@shortname, subjectIds, 'uniformoutput', false));
-    grid on;
+    %grid on;
 end
 
 end
