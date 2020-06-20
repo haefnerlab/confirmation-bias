@@ -459,6 +459,24 @@ for iSub=1:length(subjectsToFit)
     end
 end
 
+%% Supplemental figure inferred ITB parameter values
+
+subjectsToFit = [{'ITB', 'IS'} bothSubjects];
+fields = {'prior_C', 'lapse', 'temperature', 'signal_scale', 'neggamma', 'bound', 'noise'};
+colors = [lines(4); 0 .5 0; .4 0 .4; .4 0 .4];
+[fig_scatter, fig_histogram, fig_para_box] = ITBParameterPlot(subjectsToFit, {'lshc', 'hslc'}, ...
+    fields, [0 1 1 1 0 1 1], colors, 'oooo^s*', DATADIR, MEMODIR);
+
+% Keep the 'box' style plot; close the other two
+close(fig_scatter);
+close(fig_histogram);
+
+%% Supplemental figure 'Beta Explained' raw data for all subjects and models
+
+[tmp, fig_beta_bar_gt] = BetaExplained({'ITB', 'IS'}, 'gbn', DATADIR, MEMODIR);
+close(tmp);
+[tmp, fig_beta_bar_subjects] = BetaExplained(bothSubjects, 'gbn', DATADIR, MEMODIR);
+close(tmp);
 %% Helper function for figure layout
 
 function ax_copy = figureToPanel(figSource, figDest, subM, subN, subI, cmap)
