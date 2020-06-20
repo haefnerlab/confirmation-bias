@@ -284,7 +284,7 @@ figureToPanel(pk_fig, fig4, 5, 3, 14);
 [~,~,~,~,fig,cmap] = Model.plotCSSlopes(ps, ps, params, beta_range, THRESHOLD);
 figureToPanel(fig, fig4, 5, 3, 15, cmap);
 
-%% Figure 5 - model results
+%% Figure 5 - IS and VB simulation results
 
 fig5 = figure;
 
@@ -451,7 +451,7 @@ figureToPanel(fig, figModelSupp, 6, 3, 18, cmap);
 % ITB and IS are ground-truth models (see @GetGroundTruthSimData)
 subjectsToFit = [{'ITB', 'IS'} bothSubjects];
 phasesToFit = {'lshc', 'hslc', 'both'};
-nSamplesPerChain = 2e4;
+nSamplesPerChain = 1e5;
 nChains = 12;
 for iSub=1:length(subjectsToFit)
     for iPhz=1:length(phases)
@@ -477,9 +477,46 @@ close(fig_histogram);
 close(tmp);
 [tmp, fig_beta_bar_subjects] = BetaExplained(bothSubjects, 'gbn', DATADIR, MEMODIR);
 close(tmp);
+
+%% Model fitting analysis on subjects
+
+fig_fit_results = figure;
+
+% Panels 1 and 2 along top third: scatter plots of the gamma and bound parameters
+fields = {'neggamma', 'bound'};
+colors = [0 .5 0; .4 0 .4];
+[fig_param_scatter, fig_histogram, fig_box] = ITBParameterPlot(bothSubjects, {'lshc', 'hslc'}, ...
+    fields, [0 1 1 0 1 1 1], colors, '^s', DATADIR, MEMODIR);
+close(fig_histogram);
+close(fig_box);
+figureToPanel(fig_param_scatter, fig_fit_results, 2, 2, 1);
+
+fig_beta_scatter = BetaExplained(bothSubjects, '', DATADIR, MEMODIR);
+for iax=1:length(fig_beta_scatter.Children)
+    if isaxes(fig_beta_scatter.Children(iax))
+        % Delete all but 'full model' series. Children(1:2) are subplots, each of which has
+        % Children(1:3) that are 3 errorbar series
+        delete(fig_beta_scatter.Children(iax).Children(1:2));
+    end
+end
+% Panels 3 and 4 along top third: 'Beta Explained' of full model for each condition.
+figureToPanel(fig_beta_scatter, fig_fit_results, 2, 2, 2);
+
+% Bottom 2 sets of panels: another copy of fig_beta_scatter but isolating the gamma and bound terms
+fig_beta_scatter = BetaExplained(bothSubjects, '', DATADIR, MEMODIR);
+for iax=1:length(fig_beta_scatter.Children)
+    if isaxes(fig_beta_scatter.Children(iax))
+        % Delete full-model series
+        delete(fig_beta_scatter.Children(iax).Children(3));
+    end
+end
+% Panels 3 and 4 along top third: 'Beta Explained' of full model for each condition.
+figureToPanel(fig_beta_scatter, fig_fit_results, 2, 1, 2);
+
+
 %% Helper function for figure layout
 
-function ax_copy = figureToPanel(figSource, figDest, subM, subN, subI, cmap)
+function ax_copy = figureToPanel(figSource, figDest, subM, subN, subI, customcmap)
 margin = 0.02;
 widths = (1 - (subN + 1) * margin) / subN;
 heights = (1 - (subM + 1) * margin) / subM;
@@ -488,14 +525,30 @@ left = margin + (col-1) * (widths + margin);
 top = margin + (row-1) * (heights + margin);
 bottom = 1 - top - heights;
 figure(figSource);
-ax = gca;
-ax_copy = copyobj(ax, figDest);
-ax_copy.Position = [left bottom widths heights];
-ax_copy.Parent = figDest;
-close(figSource);
-if exist('cmap', 'var')
-    colormap(ax_copy, cmap);
-    colorbar('peer', ax_copy);
+for iax=1:length(figSource.Children)
+    ax = figSource.Children(iax);
+    if ~isaxes(ax), continue; end
+    ax_copy = copyobj(ax, figDest);
+    new_l = left + widths*ax.Position(1);
+    new_b = bottom + heights*ax.Position(2);
+    new_w = widths*ax.Position(3);
+    new_h = heights*ax.Position(4);
+    ax_copy.Position = [new_l new_b new_w new_h];
+    ax_copy.Parent = figDest;
+    if exist('customcmap', 'var')
+        colormap(ax_copy, customcmap);
+        colorbar('peer', ax_copy);
+    end
 end
+close(figSource);
 drawnow;
+end
+
+function tf = isaxes(ax)
+%https://www.mathworks.com/matlabcentral/answers/300880-what-is-best-practice-to-determine-if-input-is-a-figure-or-axes-handle
+try
+    tf = strcmp(get(ax, 'type'), 'axes');
+catch
+    tf = false;
+end
 end
