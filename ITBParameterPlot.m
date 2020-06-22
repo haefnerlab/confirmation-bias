@@ -12,7 +12,7 @@ allsamples = zeros(0, length(plot_fields));
 allgroups = [];
 for iSub=1:length(subjectIds)
     for iPhz=1:length(phases)
-        [chains, fields{iPhz}, loglikes{iSub,iPhz}, ~, ~, ~, ~] = LoadOrRun(@GetITBPosteriorSamples, ...
+        [chains, fields{iPhz}, ~, logpost{iSub,iPhz}, ~, ~, ~, ~] = LoadOrRun(@GetITBPosteriorSamples, ...
             {subjectIds{iSub}, phases{iPhz}, 0, true, 1:12, datadir, memodir}, ...
             fullfile('tmp-mh', ['ITB-cache-' subjectIds{iSub} '-' phases{iPhz} '.mat']));
         
@@ -47,7 +47,7 @@ end
 for iSub=length(subjectIds):-1:1
     for iPhz=length(phases):-1:1
         [~, quantiles{iSub,iPhz}, pmfs{iSub,iPhz}] = ...
-            sampleQuantilesReweightChains(values{iSub,iPhz}, loglikes{iSub,iPhz}, [.025 .1587 .25 .5 .75 .8414 .975], edges);
+            sampleQuantilesReweightChains(values{iSub,iPhz}, logpost{iSub,iPhz}, [.025 .1587 .25 .5 .75 .8414 .975], edges);
     end
 end
 
@@ -131,7 +131,7 @@ for iPara=1:length(plot_fields)
     
     title(plot_fields{iPara});
     set(gca, 'YTick', 1:length(subjectIds), 'YTickLabel', cellfun(@shortname, subjectIds, 'uniformoutput', false));
-    %grid on;
+    grid on;
 end
 
 end

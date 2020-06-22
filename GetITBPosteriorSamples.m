@@ -1,4 +1,4 @@
-function [samples, fields, loglike, diagnostics, params, sigs, choices] = GetITBPosteriorSamples(subjectOrModel, phaseStr, nSamples, trimBurnin, chains, datadir, memodir)
+function [samples, fields, loglike, logpost, diagnostics, params, sigs, choices] = GetITBPosteriorSamples(subjectOrModel, phaseStr, nSamples, trimBurnin, chains, datadir, memodir)
 %GETITBPOSTERIORSAMPLES helper function that wraps fitting posterior over the 'generic' ITB model.
 
 if nargin < 4, trimBurnin = true; end
@@ -86,16 +86,17 @@ for iC=1:length(chains)
     end
     [samples{iC}, accept(iC), smpl_info(iC)] = Fitting.sampleModelMH(...
         sigs, choices, params, nSamples, distribs, 0, 0, 1, chkpt);
-
+    
     loglike{iC} = smpl_info(iC).loglike(:);
+    logpost{iC} = smpl_info(iC).logpdf(:);
 end
 
-%% Estimate burnin: at least 1k samples, but up to as many as needed to first reach the median likelihood value
+%% Estimate burnin: at least 1k samples, but up to as many as needed to first reach the median posterior value
 if trimBurnin
     for iC=1:length(chains)
-        burnin = max(1000, find(loglike{iC} > median(loglike{iC}), 1));
+        burnin = max(1000, find(logpost{iC} > median(logpost{iC}), 1));
         samples{iC} = samples{iC}(burnin+1:end, :);
-        loglike{iC} = loglike{iC}(burnin+1:end);
+        logpost{iC} = logpost{iC}(burnin+1:end, :);
     end
 end
 

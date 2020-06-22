@@ -64,7 +64,7 @@ for iPara=1:length(fields)
     title([strrep(fields{iPara}, '_', ' ') ' prior']);
     
     if iPara == length(fields)
-        legend({'exp(logpriorpdf)', 'priorpdf'}, 'location', 'best');
+        legend({'exp(logpriorpdf)', 'priorpdf', 'dCDF'}, 'location', 'best');
     end
 end
 

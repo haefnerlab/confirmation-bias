@@ -451,7 +451,7 @@ figureToPanel(fig, figModelSupp, 6, 3, 18, cmap);
 % ITB and IS are ground-truth models (see @GetGroundTruthSimData)
 subjectsToFit = [{'ITB', 'IS'} bothSubjects];
 phasesToFit = {'lshc', 'hslc', 'both'};
-nSamplesPerChain = 1e5;
+nSamplesPerChain = 5e5;
 nChains = 12;
 for iSub=1:length(subjectsToFit)
     for iPhz=1:length(phases)
@@ -459,7 +459,7 @@ for iSub=1:length(subjectsToFit)
     end
 end
 
-%% Supplemental figure inferred ITB parameter values
+%% Supplemental figure: all inferred parameter values
 
 subjectsToFit = [{'ITB', 'IS'} bothSubjects];
 fields = {'prior_C', 'lapse', 'temperature', 'signal_scale', 'neggamma', 'bound', 'noise'};
@@ -471,7 +471,7 @@ colors = [lines(4); 0 .5 0; .4 0 .4; .4 0 .4];
 close(fig_scatter);
 close(fig_histogram);
 
-%% Supplemental figure 'Beta Explained' raw data for all subjects and models
+%% Supplemental bar plots of 'Beta Explained' for all subjects and models
 
 [tmp, fig_beta_bar_gt] = BetaExplained({'ITB', 'IS'}, 'gbn', DATADIR, MEMODIR);
 close(tmp);
@@ -512,7 +512,6 @@ for iax=1:length(fig_beta_scatter.Children)
 end
 % Panels 3 and 4 along top third: 'Beta Explained' of full model for each condition.
 figureToPanel(fig_beta_scatter, fig_fit_results, 2, 1, 2);
-
 
 %% Helper function for figure layout
 

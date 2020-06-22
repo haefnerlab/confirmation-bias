@@ -6,17 +6,17 @@ if nargin < 4, memodir = fullfile(datadir, '..', 'Precomputed'); end
 % phase_names = {'hslc', 'lshc', 'both', 'both'};
 % plot_titles = {'HSLC', 'LSHC', 'Both [HSLC]', 'Both [LSHC]'};
 % data_idxs = [1 1 1 2];
-phase_names = {'hslc', 'lshc'};
-plot_titles = {'HSLC', 'LSHC'};
+phase_names = {'lshc', 'hslc'};
+plot_titles = {'LSHC', 'HSLC'};
 data_idxs = [1 1];
 test_fields = {'gamma', 'bound', 'noise'};
-limits = {[-.2 .5], [-.6 .1]};
+limits = {[-.6 .1], [-.2 .5]};
 
 %% Load posterior samples per subject per condition
 for iSub=length(subjectIds):-1:1
     for iPhz=length(phase_names):-1:1
         % Load posterior samples over all parameters
-        [chains, fields, loglike, ~, params, sigs, choices] = LoadOrRun(@GetITBPosteriorSamples, ...
+        [chains, fields, ~, logpost, ~, params, sigs, choices] = LoadOrRun(@GetITBPosteriorSamples, ...
             {subjectIds{iSub}, phase_names{iPhz}, 0, true, 1:12, datadir, memodir}, ...
             fullfile('tmp-mh', ['ITB-cache-' subjectIds{iSub} '-' phase_names{iPhz} '.mat']), '-verbose');
         samples = vertcat(chains{:});
@@ -41,7 +41,7 @@ for iSub=length(subjectIds):-1:1
         
         % Thin samples since they are generally autocorrelated and this saves on redundant
         % computation effort
-        w = sampleQuantilesReweightChains(samples, loglike, []);
+        w = sampleQuantilesReweightChains(samples, logpost, []);
         thin_idx = round(linspace(1, size(samples,1), min(1000, size(samples,1))));
         samples = samples(thin_idx, :);
         weights{iSub, iPhz} = w(thin_idx) / sum(w(thin_idx));
@@ -290,7 +290,11 @@ for iSub=1:length(subjectIds)
                     h(3).FaceColor = color0;
                     h(4).FaceColor = [1 1 1];
                     
+                    set(gca, 'XTick', []);
+                    
                     if iSub*iPhz == 1, legend({'leak (\gamma) = 0', 'bound = \infty', 'full', 'true'}); end
+                    if iSub == 1, title(phase_names{iPhz}); end
+                    if iPhz == 1, ylabel(subjectIds{iSub}); end
                 case 'gbn-inv'
                     % In 'inverted' case, contribution of each parameter is the beta that is
                     % lost when that parameter is ablated
@@ -320,11 +324,12 @@ for iSub=1:length(subjectIds)
                     h(3).FaceColor = color0;
                     h(4).FaceColor = [1 1 1];
                     
+                    set(gca, 'XTick', []);
+                    
                     if iSub*iPhz == 1, legend({'leak (\gamma) = 0', 'bound = \infty', 'full', 'true'}); end
+                    if iSub == 1, title(phase_names{iPhz}); end
+                    if iPhz == 1, ylabel(subjectIds{iSub}); end
             end
-            
-            title([subjectIds{iSub} ' :: ' plot_titles{iPhz}]);
-
             ylim(limits{iPhz});
         end
     end

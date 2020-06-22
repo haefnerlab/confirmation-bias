@@ -3,7 +3,7 @@ if nargin < 3, phaseNo = 1; end
 if nargin < 4, datadir = fullfile(pwd, '..', 'PublishData'); end
 if nargin < 5, memodir = fullfile(datadir, '..', 'Precomputed'); end
 
-[samples, fields, ~, ~] = GetITBPosteriorSamples(subjectId, fitPhase, 0, true, 1:12, datadir, memodir);
+[samples, fields] = GetITBPosteriorSamples(subjectId, fitPhase, 0, true, 1:12, datadir, memodir);
 samples = vertcat(samples{:});
 
 % Load model simulation OR subject data into a common format
