@@ -443,10 +443,10 @@ figureToPanel(fig, figModelSupp, 6, 3, 18, cmap);
 
 %% Pre-run MCMC sampling of model parameters
 
-% NOTE: this will take a very very long time. In practice, we run this on a cluster for weeks to
-% actually generate MCMC chains, and subsequent sections are designed to load and plot "whatever is
-% done so far" (setting nSamplesPerChain to 0 will load existing samples but not generate new ones).
-% This section is included here primarily as documentation.
+% NOTE: this will take a very very long time. In practice, we run this on a cluster, parallelized
+% across chains, for weeks to actually generate MCMC chains, and subsequent sections are designed to
+% load and plot "whatever is done so far" (setting nSamplesPerChain to 0 will load existing samples
+% but not generate new ones). This section is included here primarily as documentation.
 
 % ITB and IS are ground-truth models (see @GetGroundTruthSimData)
 subjectsToFit = [{'ITB', 'IS'} bothSubjects];
@@ -475,8 +475,15 @@ close(fig_histogram);
 
 [tmp, fig_beta_bar_gt] = BetaExplained({'ITB', 'IS'}, 'gbn', DATADIR, MEMODIR);
 close(tmp);
-[tmp, fig_beta_bar_subjects] = BetaExplained(bothSubjects, 'gbn', DATADIR, MEMODIR);
+[tmp, fig_beta_bar_subjects, betaDiagnostics, phase_names] = BetaExplained(bothSubjects, 'gbn', DATADIR, MEMODIR);
 close(tmp);
+
+% Print out convergence info for ablation tests
+for iPhz=1:length(phase_names)
+    maxRHat = max(cellfun(@(info) max(info.RHat), betaDiagnostics(:,iPhz)));
+    minRHat = min(cellfun(@(info) min(info.RHat), betaDiagnostics(:,iPhz)));
+    fprintf('Phase %s beta rhat in [%.3f %.3f]\n', upper(phase_names{iPhz}), minRHat, maxRHat);
+end
 
 %% Model fitting analysis on subjects
 

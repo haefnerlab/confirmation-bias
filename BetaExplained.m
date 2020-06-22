@@ -1,4 +1,4 @@
-function [fig_scatter, fig_bar] = BetaExplained(subjectIds, barstyle, datadir, memodir)
+function [fig_scatter, fig_bar, betastats, phase_names] = BetaExplained(subjectIds, barstyle, datadir, memodir)
 if nargin < 2, barstyle = 'stacked'; end
 if nargin < 3, datadir = fullfile(pwd, '..', 'PublishData'); end
 if nargin < 4, memodir = fullfile(datadir, '..', 'Precomputed'); end
@@ -40,13 +40,21 @@ for iSub=length(subjectIds):-1:1
         end
         
         % Thin samples since they are generally autocorrelated and this saves on redundant
-        % computation effort
+        % computation effort. Thin each chain down to 500 samples.
+        istart = 1;
+        thin_idx = cell(size(chains));
+        for iChain=1:length(chains)
+            iend = istart + length(logpost{iChain}) - 1;
+            assert(length(logpost{iChain}) >= 500);
+            thin_idx{iChain} = round(linspace(istart, iend, 500));
+            istart = iend+1;
+        end
+        thin_idx = horzcat(thin_idx{:});
         w = sampleQuantilesReweightChains(samples, logpost, []);
-        thin_idx = round(linspace(1, size(samples,1), min(1000, size(samples,1))));
         samples = samples(thin_idx, :);
         weights{iSub, iPhz} = w(thin_idx) / sum(w(thin_idx));
         ntrials(iSub, iPhz) = length(choices);
-        % Within subject x phase, reweight chains. Across subjects, weight by # trials.
+        % Within subject x phase, reweight chains. Across subjects, further weight by # trials.
         weights{iSub, iPhz} = weights{iSub, iPhz} * ntrials(iSub,iPhz);
         
         % Do ablation test on 'test' parameters. Since this involves simulating but not
@@ -57,6 +65,19 @@ for iSub=length(subjectIds):-1:1
         [betaExplained{iSub, iPhz}, ~, ablations{iPhz}] = LoadOrRun(@PKShapeExplained, ...
             {sigs, params, test_fields, fields, samples}, ...
             fullfile('tmp-mh', ['PK-beta-cache-' subjectIds{iSub} '-' phase_names{iPhz} '-' num2str(data_idxs(iPhz)) '-' strjoin(test_fields) '.mat']), '-verbose');
+             
+        assert(size(betaExplained{iSub,iPhz},1) == length(thin_idx), 'Length mismatch! Probably a caching error. Delete PK-beta-cache-* files and/or ITB-cache-* files');
+        
+        % HACK - whereas 'betaExplained' contains ablation analyses on all subsets of parameters, we
+        % only care about analyzing a few cases. Grab their indices here:
+        idx_full = cellfun(@isempty, ablations{iPhz});
+        idx_null = cellfun(@(abl) isequal(abl, test_fields), ablations{iPhz});
+        idx_g = cellfun(@(abl) isequal(abl, {'gamma'}), ablations{iPhz});
+        idx_bn = cellfun(@(abl) isequal(abl, {'bound', 'noise'}), ablations{iPhz});
+        
+        % Compute MCMC stats (e.g. convergence info) on beta values
+        betachains = mat2cell(betaExplained{iSub,iPhz}(:,idx_full | idx_g | idx_bn), 500*ones(length(chains),1), 3);
+        betastats{iSub,iPhz} = MCMCDiagnostics(cellfun(@transpose, betachains, 'uniformoutput', false), {'full', 'g=0', 'b=inf'}', 200);
         
         % Get 'true' slope of exponential PK for this subject x phase
         memo_name = ['Boot-ExpPK-' subjectIds{iSub} '-' phase_names{iPhz} '-fitting.mat'];
@@ -68,11 +89,6 @@ for iSub=length(subjectIds):-1:1
         varAbl{iSub,iPhz} = sum(weights{iSub, iPhz} .* (betaExplained{iSub, iPhz} - meanAbl{iSub,iPhz}).^2) ./ sum(weights{iSub, iPhz});
     end
 end
-
-idx_full = cellfun(@isempty, ablations{iPhz});
-idx_null = cellfun(@(abl) isequal(abl, test_fields), ablations{iPhz});
-idx_g = cellfun(@(abl) isequal(abl, {'gamma'}), ablations{iPhz});
-idx_bn = cellfun(@(abl) isequal(abl, {'bound', 'noise'}), ablations{iPhz});
 
 %% Get stats - estimate population contribution of each of gamma or bound+noise
 
