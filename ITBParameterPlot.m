@@ -6,24 +6,33 @@ if nargin < 6, markers = repmat('o', 1, length(plot_fields)); end
 if nargin < 7, datadir = fullfile(pwd, '..', 'PublishData'); end
 if nargin < 8, memodir = fullfile(datadir, '..', 'Precomputed'); end
 
-% NOTE: doesn't work across phases w/ different fields!
-
-allsamples = zeros(0, length(plot_fields));
-allgroups = [];
 for iSub=1:length(subjectIds)
     for iPhz=1:length(phases)
         [chains, fields{iPhz}, ~, logpost{iSub,iPhz}, ~, ~, ~, ~] = LoadOrRun(@GetITBPosteriorSamples, ...
             {subjectIds{iSub}, phases{iPhz}, 0, true, 1:12, datadir, memodir}, ...
             fullfile('tmp-mh', ['ITB-cache-' subjectIds{iSub} '-' phases{iPhz} '.mat']));
         
+        % Do thinning down to 500 samples per chain
         samples = vertcat(chains{:});
-        values{iSub,iPhz} = zeros(size(samples,1), length(plot_fields));
+        istart = 1;
+        thin_idx = cell(size(chains));
+        for iChain=1:length(chains)
+            iend = istart + length(logpost{iSub,iPhz}{iChain}) - 1;
+            assert(length(logpost{iSub,iPhz}{iChain}) >= 500);
+            thin_idx{iChain} = round(linspace(istart, iend, 500));
+            istart = iend+1;
+        end
+        thin_idx = horzcat(thin_idx{:});
+        thin_samples = samples(thin_idx, :);
+
+        % Convert from [S x #params] all-samples to [S x length(plot_fields)] values we care about
+        values{iSub,iPhz} = zeros(size(thin_samples,1), length(plot_fields));
         for iPara=length(plot_fields):-1:1
             iF = cellfun(@(f) contains(f, plot_fields{iPara}, 'ignorecase', true), fields{iPhz});
             if any(iF)
-                values{iSub,iPhz}(:,iPara) = samples(:,iF);
+                values{iSub,iPhz}(:,iPara) = thin_samples(:,iF);
             else
-                values{iSub,iPhz}(:,iPara) = nan(size(samples,1),1);
+                values{iSub,iPhz}(:,iPara) = nan(size(thin_samples,1),1);
             end
         end
     end
@@ -44,10 +53,22 @@ for iPara=length(plot_fields):-1:1
     end
 end
 
+% [1 7] are 95% interval, [2 6] are 68% interval. [3 5] are 50% interval, and [4] is median
+quants = [.025 .1587 .25 .5 .75 .8414 .975];
 for iSub=length(subjectIds):-1:1
     for iPhz=length(phases):-1:1
-        [~, quantiles{iSub,iPhz}, pmfs{iSub,iPhz}] = ...
-            sampleQuantilesReweightChains(values{iSub,iPhz}, logpost{iSub,iPhz}, [.025 .1587 .25 .5 .75 .8414 .975], edges);
+        % EXPERIMENTAL: reweight chains by average density. Call helper to get adjusted quantiles and PMFs
+        % [~, quantiles{iSub,iPhz}, pmfs{iSub,iPhz}] = ...
+        %     sampleQuantilesReweightChains(values{iSub,iPhz}, logpost{iSub,iPhz}, quants, edges);
+        
+        % STANDARD: get quantiles and PMFs the old fashioned way
+        for iQ=length(quants):-1:1
+            quantiles{iSub,iPhz}(:,iQ) = quantile(values{iSub,iPhz}, quants(iQ));
+        end
+
+        for iPara=length(plot_fields):-1:1
+            pmfs{iSub,iPhz}(iPara,:) = histcounts(values{iSub,iPhz}(:,iPara), edges(iPara,:));
+        end
     end
 end
 
@@ -131,6 +152,11 @@ for iPara=1:length(plot_fields)
     
     title(plot_fields{iPara});
     set(gca, 'YTick', 1:length(subjectIds), 'YTickLabel', cellfun(@shortname, subjectIds, 'uniformoutput', false));
+    if log_flag(iPara)
+        xl = xlim;
+        set(gca, 'XMinorGrid', 'off', 'xtick', 10.^(ceil(log10(xl(1))):floor(log10(xl(2)))))
+    end
+    ylim([0.75 length(subjectIds)+0.5]);
     grid on;
 end
 

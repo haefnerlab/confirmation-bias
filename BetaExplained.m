@@ -50,12 +50,13 @@ for iSub=length(subjectIds):-1:1
             istart = iend+1;
         end
         thin_idx = horzcat(thin_idx{:});
-        w = sampleQuantilesReweightChains(samples, logpost, []);
         samples = samples(thin_idx, :);
-        weights{iSub, iPhz} = w(thin_idx) / sum(w(thin_idx));
         ntrials(iSub, iPhz) = length(choices);
-        % Within subject x phase, reweight chains. Across subjects, further weight by # trials.
-        weights{iSub, iPhz} = weights{iSub, iPhz} * ntrials(iSub,iPhz);
+        % EXPERIMENTAL: Within subject x phase, reweight chains by average density. Across subjects, weight by # trials.
+        % w = sampleQuantilesReweightChains(samples, logpost, []);
+        % weights{iSub, iPhz} = w(thin_idx) / sum(w(thin_idx)) * ntrials(iSub,iPhz);
+        % STANDARD: Weight all samples per subject by # trials; this only impacts across-subject stats
+        weights{iSub, iPhz} = ones(length(thin_idx),1) * ntrials(iSub,iPhz);
         
         % Do ablation test on 'test' parameters. Since this involves simulating but not
         % marginalizing over the model simulations, set model to 'itb' rather than 'itb-int' for
