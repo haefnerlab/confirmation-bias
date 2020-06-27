@@ -449,22 +449,22 @@ figureToPanel(fig, figModelSupp, 6, 3, 18, cmap);
 % but not generate new ones). This section is included here primarily as documentation.
 
 % ITB and IS are ground-truth models (see @GetGroundTruthSimData)
-subjectsToFit = [{'ITB', 'IS'} bothSubjects];
+subjectsToPlot = [{'ITB', 'IS'} bothSubjects];
 phasesToFit = {'lshc', 'hslc', 'both'};
 nSamplesPerChain = 5e5;
 nChains = 12;
-for iSub=1:length(subjectsToFit)
+for iSub=1:length(subjectsToPlot)
     for iPhz=1:length(phases)
-        GetITBPosteriorSamples(subjectsToFit{iSub}, phases{iPhz}, nSamplesPerChain, nChains, DATADIR, MEMODIR);
+        GetITBPosteriorSamples(subjectsToPlot{iSub}, phases{iPhz}, nSamplesPerChain, nChains, DATADIR, MEMODIR);
     end
 end
 
 %% Supplemental figure: all inferred parameter values
 
-subjectsToFit = [{'ITB', 'IS'} bothSubjects];
+subjectsToPlot = [{'ITB', 'IS'} bothSubjects];
 fields = {'prior_C', 'lapse', 'temperature', 'signal_scale', 'neggamma', 'bound', 'noise'};
 colors = [lines(4); 0 .5 0; .4 0 .4; .4 0 .4];
-[fig_scatter, fig_histogram, fig_para_box] = ITBParameterPlot(subjectsToFit, {'lshc', 'hslc'}, ...
+[fig_scatter, fig_histogram, fig_para_box] = ITBParameterPlot(subjectsToPlot, {'lshc', 'hslc'}, ...
     fields, [0 1 1 1 0 1 1], colors, 'oooo^s*', DATADIR, MEMODIR);
 
 % Keep the 'box' style plot; close the other two
@@ -481,8 +481,9 @@ close(tmp);
 % Print out convergence info for ablation tests
 for iPhz=1:length(phase_names)
     maxRHat = max(cellfun(@(info) max(info.RHat), betaDiagnostics(:,iPhz)));
+    medRHat = median(cellfun(@(info) max(info.RHat), betaDiagnostics(:,iPhz)));
     minRHat = min(cellfun(@(info) min(info.RHat), betaDiagnostics(:,iPhz)));
-    fprintf('Phase %s beta rhat in [%.3f %.3f]\n', upper(phase_names{iPhz}), minRHat, maxRHat);
+    fprintf('Phase %s beta rhat in [%.3f %.3f %.3f]\n', upper(phase_names{iPhz}), minRHat, medRHat, maxRHat);
 end
 
 %% Model fitting analysis on subjects
