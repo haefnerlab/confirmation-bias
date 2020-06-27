@@ -97,18 +97,14 @@ end
 assert(isequal(test_fields, {'gamma', 'bound', 'noise'}));
 
 for iPhz=1:length(phase_names)
-    allBetaExp = vertcat(betaExplained{:,iPhz});
-    allABB = vertcat(abb{:,iPhz});
+    meanBetaExp = cellfun(@mean, betaExplained(:,iPhz), 'UniformOutput', false);
+    meanBetaExp = vertcat(meanBetaExp{:});
+    meanBetaTrue = cellfun(@(abb_boot) mean(abb_boot(:,2)), abb(:,iPhz));
     
-    allWeights = vertcat(weights{:,iPhz});
-    allBetaTrue = allABB(round(linspace(1,size(allABB,1), length(allWeights))),2);
-    allBetaG = allBetaExp(:, idx_g);
-    allBetaBN = allBetaExp(:, idx_bn);
-    
-    lmG{iPhz} = fitlm(allBetaTrue, allBetaG, 'Weights', allWeights, 'Intercept', false);
+    lmG{iPhz} = fitlm(meanBetaTrue, meanBetaExp(:,idx_g), 'Weights', ntrials(:,iPhz), 'Intercept', false);
     idxG = 1-lmG{iPhz}.Coefficients.Estimate(1);
     errG = 1-lmG{iPhz}.coefCI;
-    lmBN{iPhz} = fitlm(allBetaTrue, allBetaBN, 'Weights', allWeights, 'Intercept', false);
+    lmBN{iPhz} = fitlm(meanBetaTrue, meanBetaExp(:,idx_bn), 'Weights', ntrials(:,iPhz), 'Intercept', false);
     idxBN = 1-lmBN{iPhz}.Coefficients.Estimate(1);
     errBN = 1-lmBN{iPhz}.coefCI;
     
@@ -259,6 +255,7 @@ pause(0.1);
 
 % GBN = gamma/bound/noise. inv = inverted.
 if ~ismember(lower(barstyle), {'gbn', 'gbn-inv', 'separate'})
+    fig_bar = [];
     return
 end
 
