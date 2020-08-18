@@ -9,3 +9,7 @@
 *.sbatch
 *.fig
 *.pdf
++Model/figures/*
+cmdstan/*
+matlabstan/*
+stan-samples/*
