@@ -1,7 +1,7 @@
-function [param_set, stim_set, choice_set, trial_set, SubjectData] = GetSubjectDataForFitting(subjectId, kernel_kappa, base_params, sub_thresh, datadir)
+function [param_set, stim_set, choice_set, trial_set, SubjectData] = GetSubjectDataForFitting(subjectId, kernel_kappa, base_params, sub_thresh, datadir, memodir)
 if ~exist('sub_thresh', 'var'), sub_thresh = true; end
 if ~exist('datadir', 'var'), datadir=fullfile(pwd, '../PublishData'); end
-memodir = fullfile(datadir, '../Precomputed');
+if ~exist('memodir', 'var'), memodir = fullfile(datadir, '../Precomputed'); end
 
 % These 'phase' flags double as indices here. So stim_set{1} will contain HSLC (ratio phase) data,
 % and stim_set{2} will contain LSHC (noise phase) data.
