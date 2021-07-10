@@ -152,7 +152,12 @@ elseif ~isempty(messageFun)
     lpo_grid_edges = [-inf lpo_grid_edges +inf];
     % Construct probability mass histogram
     [trials, frames] = size(data);
-    results.pr_lpo = zeros(trials, 2*halfgrid+1, frames);
+    % (Maybe) save space by doing LPO updates 'online' over frames
+    if params.save_lpo
+        results.pr_lpo = zeros(trials, 2*halfgrid+1, frames);
+    else
+        results.pr_lpo = zeros(trials, 2*halfgrid+1, 1);
+    end
     % Initialize to a delta distribution. TODO (?) some width or jitter to starting point if prior_C
     % doesn't fall in the center of a bin?
     log_prior_bin = find(log(prior_C) - log(1 - prior_C) > lpo_grid_edges, 1, 'last');
@@ -160,7 +165,11 @@ elseif ~isempty(messageFun)
     
     % Do propagation of PMF over frames.
     for f=1:frames
-        results.pr_lpo(:, :, f+1) = messageFun(params, data(:, f), lpo_grid_edges, results.pr_lpo(:, :, f));
+        if params.save_lpo
+            results.pr_lpo(:, :, f+1) = messageFun(params, data(:, f), lpo_grid_edges, results.pr_lpo(:, :, f));
+        else
+            results.pr_lpo(:, :, 1) = messageFun(params, data(:, f), lpo_grid_edges, results.pr_lpo(:, :, 1));
+        end
     end
     
     % Enforce sanity of PMFs one more time, just in case.
