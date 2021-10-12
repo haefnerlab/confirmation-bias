@@ -7,3 +7,12 @@
 *.err.txt
 *.out.txt
 *.sbatch
+*.sb
+*.sh
+*.out
+*.fig
+*.pdf
++Model/figures/*
+cmdstan/*
+matlabstan/*
+stan-samples/*
