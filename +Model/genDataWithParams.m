@@ -1,4 +1,4 @@
-function [data, categories,seed] = genDataWithParams(params)
+function [data, categories, seed] = genDataWithParams(params)
 %Model.GENDATAWITHPARAMS generates a set of 'trials' (each is a 1xframes vector of real
 %numbers), with statistics matching the given sampling params.
 

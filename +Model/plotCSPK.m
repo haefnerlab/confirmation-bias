@@ -19,12 +19,8 @@ if ~exist('clickpts', 'var')
     [x, y] = getpts(img_ax);
     npts = length(x);
     
-    sens_pts = round(100*interp1(1:length(sensory_infos), sensory_infos, x, 'linear', 'extrap'))/100;
-    cat_pts = round(100*interp1(1:length(category_infos), category_infos, y, 'linear', 'extrap'))/100;
-    
-    % 'snap' selected points to the given 'category_info' and 'sensory_info' grids.
-    sens_pts = arrayfun(@(l) closest(sensory_infos, l), sens_pts);
-    cat_pts = arrayfun(@(l) closest(category_infos, l), cat_pts);
+    sens_pts = x;
+    cat_pts = y;
 else
     sens_pts = clickpts(:, 1);
     cat_pts = clickpts(:, 2);
@@ -48,15 +44,7 @@ for i=1:length(sens_pts)
     s = sens_pts(i);
     c = cat_pts(i);
     
-    params.category_info = c;
-    params.sensory_info = s;
-    params.p_match = c;
-    params.var_s = Model.getEvidenceVariance(s);
-    
-    if isfield(params, 'gamma_min') && ~isempty(params.gamma_min)
-        params.gamma = params.gamma_min + (params.gamma_max - params.gamma_min) * (1-c) * 2;
-    end
-
+    params = Model.setCategorySensoryInfo(params, c, s);
     [weights, errors, para] = Model.plotPK(params, pk_hprs, {}, [], false);
     
     if isequal(pk_colormap, 'beta')
@@ -78,9 +66,7 @@ for i=1:length(sens_pts)
     errors = errors / mean(weights(1:end-1));
     weights = weights / mean(weights(1:end-1));
     
-    idx_s = length(sensory_infos) * (s-min(sensory_infos)) / (max(sensory_infos) - min(sensory_infos));
-    idx_c = length(category_infos) * (c-min(category_infos)) / (max(category_infos) - min(category_infos));
-    scatter(img_ax, idx_s, idx_c, 30, colors(i,:), 'filled');
+    scatter(img_ax, s, c, 30, colors(i,:), 'filled');
     hold(pk_ax, 'on');
     errorbar(pk_ax, 1:params.frames, weights(1:end-1), errors(1:end-1), 'Color', colors(i,:), 'LineWidth', 2);
 end

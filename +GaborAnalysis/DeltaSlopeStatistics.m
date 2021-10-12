@@ -4,7 +4,7 @@ function [slopes, pvalues] = DeltaSlopeStatistics(subjectIds, phases, type, nboo
 %there being a significant difference between the two phases.
 
 if ~exist('nboot', 'var'), nboot = 10000; end
-if ~exist('datadir', 'var'), datadir = fullfile(pwd, '..', 'RawData'); end
+if ~exist('datadir', 'var'), datadir = fullfile(pwd, '..', 'PublishData'); end
 if ~exist('is_naive', 'var'), is_naive = true(size(subjectIds)); end
 
 memodir = fullfile(datadir, '..', 'Precomputed');
@@ -82,7 +82,7 @@ switch type
 end
 
 figure;
-edges = range(1):.005:range(2);
+edges = range(1):.015:range(2);
 edgediff = edges(2) - edges(1);
 all_slopes_diff = zeros(length(subjectIds), nboot);
 all_slopes_diff_medians = zeros(length(subjectIds), 1);

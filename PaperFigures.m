@@ -27,7 +27,7 @@ naiveBothSubjects = intersect(naiveRatioSubjects, naiveNoiseSubjects);
 % Re-order so that informed subjects are at the end
 ratioSubjects = [naiveRatioSubjects informedSubjects];
 noiseSubjects = [naiveNoiseSubjects informedSubjects];
-bothSubjects = [intersect(naiveRatioSubjects, naiveNoiseSubjects) informedSubjects];
+bothSubjects = sort([intersect(naiveRatioSubjects, naiveNoiseSubjects) informedSubjects]);
 is_naive = ismember(bothSubjects, naiveBothSubjects);
 
 % Compute population-level psycho metrics
@@ -229,7 +229,7 @@ title('Ratio Condition');
 set(gca, 'XTick', 1:length(xValSubjects), 'XTickLabel', xValSubjects);
 xtickangle(45);
 
-%% Figure 4 - insufficiency of ITB model
+%% Figure 4 - simulation of hierarchical ITB model
 
 fig4 = figure;
 
@@ -240,7 +240,7 @@ beta_range = [-0.5 .15];
 pk_hprs = [1 0 0];
 
 % Case 1: no bound, no leak (aka ideal observer)
-params = Model.newModelParams('model', 'itb', 'trials', 10000, 'bound', inf, 'gamma', 0);
+params = Model.newModelParams('model', 'itb', 'trials', 10000, 'temperature', 0.05, 'bound', inf, 'gamma', 0, 'noise', 0.35);
 [~, sens_cat_pts] = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
 [cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, pk_hprs, 'beta', beta_range, flipud(sens_cat_pts));
 figureToPanel(cs_fig, fig4, 5, 3, 1, parula);
@@ -249,7 +249,7 @@ figureToPanel(pk_fig, fig4, 5, 3, 2);
 figureToPanel(fig, fig4, 5, 3, 3, cmap);
 
 % Case 2: bound but no leak (Kiani et al 2008)
-params = Model.newModelParams('model', 'itb', 'trials', 10000, 'bound', .8, 'gamma', 0);
+params = Model.newModelParams('model', 'itb', 'trials', 10000, 'temperature', 0.05, 'bound', 1.2, 'gamma', 0, 'noise', 0.35);
 [~, sens_cat_pts] = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
 [cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, pk_hprs, 'beta', beta_range, flipud(sens_cat_pts));
 figureToPanel(cs_fig, fig4, 5, 3, 4, parula);
@@ -258,7 +258,7 @@ figureToPanel(pk_fig, fig4, 5, 3, 5);
 figureToPanel(fig, fig4, 5, 3, 6, cmap);
 
 % Case 3: leak but no bound
-params = Model.newModelParams('model', 'itb', 'trials', 10000, 'bound', inf, 'gamma', .1);
+params = Model.newModelParams('model', 'itb', 'trials', 10000, 'temperature', 0.05, 'bound', inf, 'gamma', .1, 'noise', 0.35);
 [~, sens_cat_pts] = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
 [cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, pk_hprs, 'beta', beta_range, flipud(sens_cat_pts));
 figureToPanel(cs_fig, fig4, 5, 3, 7, parula);
@@ -267,7 +267,7 @@ figureToPanel(pk_fig, fig4, 5, 3, 8);
 figureToPanel(fig, fig4, 5, 3, 9, cmap);
 
 % Case 4: both leak and bound
-params = Model.newModelParams('model', 'itb', 'trials', 10000, 'bound', .8, 'gamma', .1);
+params = Model.newModelParams('model', 'itb', 'trials', 10000, 'temperature', 0.05, 'bound', 1.2, 'gamma', .1, 'noise', 0.35);
 [~, sens_cat_pts] = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
 [cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, pk_hprs, 'beta', beta_range, flipud(sens_cat_pts));
 figureToPanel(cs_fig, fig4, 5, 3, 10, parula);
@@ -276,7 +276,7 @@ figureToPanel(pk_fig, fig4, 5, 3, 11);
 figureToPanel(fig, fig4, 5, 3, 12, cmap);
 
 % Case 5: like previous but now gamma changes with category info
-params = Model.newModelParams('model', 'itb', 'trials', 10000, 'bound', .8, 'gamma_min', 0, 'gamma_max', .5);
+params = Model.newModelParams('model', 'itb', 'trials', 10000, 'temperature', 0.05, 'bound', 1.2, 'gammafun', @(ci,si) (1-ci), 'noise', 0.35);
 [~, sens_cat_pts] = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
 [cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, pk_hprs, 'beta', beta_range, flipud(sens_cat_pts));
 figureToPanel(cs_fig, fig4, 5, 3, 13, parula);
@@ -284,7 +284,7 @@ figureToPanel(pk_fig, fig4, 5, 3, 14);
 [~,~,~,~,fig,cmap] = Model.plotCSSlopes(ps, ps, params, beta_range, THRESHOLD);
 figureToPanel(fig, fig4, 5, 3, 15, cmap);
 
-%% Figure 5 - model results
+%% Figure 5 - IS and VB simulation results
 
 fig5 = figure;
 
@@ -298,7 +298,7 @@ disp('Loading/Running ideal observer');
 figureToPanel(ideal_fig, fig5, 2, 4, 5, parula);
 
 % Sampling model with gamma = 0.1
-params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', 0.1, 'temperature', 0.1, 'trials', 10000, 'updates', 5, 'samples', 5);
+params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', 0.1, 'temperature', 0.05, 'trials', 10000, 'updates', 5, 'samples', 5);
 beta_range = [-.32 .1]; % min and max beta expected (to get maximum use of colorbar range)
 disp('Loading/Running sampling model, getting threshold points for PKs');
 sens_cat_pts = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
@@ -310,7 +310,7 @@ disp('Loading/Running sampling model, gettings slopes over CS-Space');
 figureToPanel(fig, fig5, 2, 4, 4, cmap);
 
 % Variational model with gamma = 0.1
-params = Model.newModelParams('model', 'vb-czx', 'var_x', 0.1, 'gamma', 0.1, 'temperature', 0.1, 'trials', 10000, 'updates', 5, 'step_size', 0.05);
+params = Model.newModelParams('model', 'vb-czx', 'var_x', 0.1, 'gamma', 0.1, 'temperature', 0.05, 'trials', 10000, 'updates', 5, 'step_size', 0.05);
 beta_range = [-.32 .1]; % min and max beta expected (to get maximum use of colorbar range)
 disp('Loading/Running variational model, getting threshold points for PKs');
 sens_cat_pts = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
@@ -331,12 +331,12 @@ ps = 0.51:0.02:0.99;
 % >> Uncomment for sampling model <<
 lo_gamma = 0.1;
 hi_gamma = 0.5;
-params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', hi_gamma, 'temperature', 0.1, 'trials', 10000, 'updates', 5, 'samples', 5);
+params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', hi_gamma, 'temperature', 0.05, 'trials', 10000, 'updates', 5, 'samples', 5);
 
 % >> Uncomment for variational model <<
 % lo_gamma = 0.1;
 % hi_gamma = 0.5;
-% params = Model.newModelParams('model', 'vb-czx', 'var_x', 0.1, 'gamma', hi_gamma, 'temperature', 0.1, 'trials', 10000, 'updates', 5, 'step_size', 0.05);
+% params = Model.newModelParams('model', 'vb-czx', 'var_x', 0.1, 'gamma', hi_gamma, 'temperature', 0.05, 'trials', 10000, 'updates', 5, 'step_size', 0.05);
 
 % First panel: percent correct with high gamma (low gamma was done in Fig 3)
 [correct_hi, cs_fig] = Model.plotCategorySensorySpace(ps, ps, params);
@@ -380,7 +380,7 @@ ps = 0.51:0.02:0.99;
 % --- SAMPLING ---
 
 % Replicate sampling model results above (gamma = 0)
-params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', 0, 'temperature', 0.1, 'trials', 10000, 'updates', 5, 'samples', 5);
+params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', 0, 'temperature', 0.05, 'trials', 10000, 'updates', 5, 'samples', 5);
 beta_range = [-0.4 -eps]; % min and max beta expected (to get maximum use of colorbar range)
 sens_cat_pts = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
 [cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, sens_cat_pts);
@@ -390,7 +390,7 @@ figureToPanel(pk_fig, figModelSupp, 6, 3, 2);
 figureToPanel(fig, figModelSupp, 6, 3, 3, cmap);
 
 % Same with gamma = 0.1
-params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', 0.1, 'temperature', 0.1, 'trials', 10000, 'updates', 5, 'samples', 5);
+params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', 0.1, 'temperature', 0.05, 'trials', 10000, 'updates', 5, 'samples', 5);
 beta_range = [-.43 .1]; % min and max beta expected (to get maximum use of colorbar range)
 sens_cat_pts = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
 [cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, sens_cat_pts);
@@ -400,7 +400,7 @@ figureToPanel(pk_fig, figModelSupp, 6, 3, 5);
 figureToPanel(fig, figModelSupp, 6, 3, 6, cmap);
 
 % Same with gamma = 0.2
-params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', 0.2, 'temperature', 0.1, 'trials', 10000, 'updates', 5, 'samples', 5);
+params = Model.newModelParams('model', 'is', 'var_x', 0.1, 'gamma', 0.2, 'temperature', 0.05, 'trials', 10000, 'updates', 5, 'samples', 5);
 beta_range = [-.4 .23]; % min and max beta expected (to get maximum use of colorbar range)
 sens_cat_pts = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
 [cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, sens_cat_pts);
@@ -412,7 +412,7 @@ figureToPanel(fig, figModelSupp, 6, 3, 9, cmap);
 % --- VB-CZX ---
 
 % Replicate vb model results above (gamma = 0)
-params = Model.newModelParams('model', 'vb-czx', 'var_x', 0.1, 'gamma', 0, 'temperature', 0.1, 'trials', 10000, 'updates', 5, 'step_size', 0.05);
+params = Model.newModelParams('model', 'vb-czx', 'var_x', 0.1, 'gamma', 0, 'temperature', 0.05, 'trials', 10000, 'updates', 5, 'step_size', 0.05);
 beta_range = [-0.5 -eps]; % min and max beta expected (to get maximum use of colorbar range)
 sens_cat_pts = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
 [cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, sens_cat_pts);
@@ -422,7 +422,7 @@ figureToPanel(pk_fig, figModelSupp, 6, 3, 11);
 figureToPanel(fig, figModelSupp, 6, 3, 12, cmap);
 
 % Same with gamma = 0.1
-params = Model.newModelParams('model', 'vb-czx', 'var_x', 0.1, 'gamma', 0.1, 'temperature', 0.1, 'trials', 10000, 'updates', 5, 'step_size', 0.05);
+params = Model.newModelParams('model', 'vb-czx', 'var_x', 0.1, 'gamma', 0.1, 'temperature', 0.05, 'trials', 10000, 'updates', 5, 'step_size', 0.05);
 beta_range = [-.4 .1]; % min and max beta expected (to get maximum use of colorbar range)
 sens_cat_pts = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
 [cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, sens_cat_pts);
@@ -432,7 +432,7 @@ figureToPanel(pk_fig, figModelSupp, 6, 3, 14);
 figureToPanel(fig, figModelSupp, 6, 3, 15, cmap);
 
 % Same with gamma = 0.2
-params = Model.newModelParams('model', 'vb-czx', 'var_x', 0.1, 'gamma', 0.2, 'temperature', 0.1, 'trials', 10000, 'updates', 5, 'step_size', 0.05);
+params = Model.newModelParams('model', 'vb-czx', 'var_x', 0.1, 'gamma', 0.2, 'temperature', 0.05, 'trials', 10000, 'updates', 5, 'step_size', 0.05);
 beta_range = [-.26 .2]; % min and max beta expected (to get maximum use of colorbar range)
 sens_cat_pts = Model.getThresholdPoints(ps, params, THRESHOLD, 5);
 [cs_fig, pk_fig] = Model.plotCSPK(ps, ps, params, [0 0 0], 'beta', beta_range, sens_cat_pts);
@@ -441,9 +441,89 @@ figureToPanel(pk_fig, figModelSupp, 6, 3, 17);
 [~,~,~,~,fig,cmap] = Model.plotCSSlopes(ps, ps, params, beta_range, THRESHOLD, sens_cat_pts);
 figureToPanel(fig, figModelSupp, 6, 3, 18, cmap);
 
+%% Pre-run MCMC sampling of model parameters
+
+% NOTE: this will take a very very long time. In practice, we run this on a cluster, parallelized
+% across chains, for weeks to actually generate MCMC chains, and subsequent sections are designed to
+% load and plot "whatever is done so far" (setting nSamplesPerChain to 0 will load existing samples
+% but not generate new ones). This section is included here primarily as documentation.
+
+% ITB and IS are ground-truth models (see @GetGroundTruthSimData)
+subjectsToPlot = [{'ITB', 'IS'} bothSubjects];
+phasesToFit = {'lshc', 'hslc', 'both'};
+nSamplesPerChain = 5e5;
+nChains = 12;
+for iSub=1:length(subjectsToPlot)
+    for iPhz=1:length(phases)
+        GetITBPosteriorSamples(subjectsToPlot{iSub}, phases{iPhz}, nSamplesPerChain, nChains, DATADIR, MEMODIR);
+    end
+end
+
+%% Supplemental figure: all inferred parameter values
+
+subjectsToPlot = [{'ITB', 'IS'} bothSubjects];
+fields = {'prior_C', 'lapse', 'temperature', 'signal_scale', 'neggamma', 'bound', 'noise'};
+colors = [lines(4); 0 .5 0; .4 0 .4; .4 0 .4];
+[fig_scatter, fig_histogram, fig_para_box] = ITBParameterPlot(subjectsToPlot, {'lshc', 'hslc'}, ...
+    fields, [0 1 1 1 0 1 1], colors, 'oooo^s*', DATADIR, MEMODIR);
+
+% Keep the 'box' style plot; close the other two
+close(fig_scatter);
+close(fig_histogram);
+
+%% Supplemental bar plots of 'Beta Explained' for all subjects and models
+
+[tmp, fig_beta_bar_gt] = BetaExplained({'ITB', 'IS'}, 'gbn', DATADIR, MEMODIR);
+close(tmp);
+[tmp, fig_beta_bar_subjects, betaDiagnostics, phase_names] = BetaExplained(bothSubjects, 'gbn', DATADIR, MEMODIR);
+close(tmp);
+
+% Print out convergence info for ablation tests
+for iPhz=1:length(phase_names)
+    maxRHat = max(cellfun(@(info) max(info.RHat), betaDiagnostics(:,iPhz)));
+    medRHat = median(cellfun(@(info) max(info.RHat), betaDiagnostics(:,iPhz)));
+    minRHat = min(cellfun(@(info) min(info.RHat), betaDiagnostics(:,iPhz)));
+    fprintf('Phase %s beta rhat in [%.3f %.3f %.3f]\n', upper(phase_names{iPhz}), minRHat, medRHat, maxRHat);
+end
+
+%% Model fitting analysis on subjects
+
+fig_fit_results = figure;
+
+% Panels 1 and 2 along top third: scatter plots of the gamma and bound parameters
+fields = {'neggamma', 'bound'};
+colors = [0 .5 0; .4 0 .4];
+[fig_param_scatter, fig_histogram, fig_box] = ITBParameterPlot(bothSubjects, {'lshc', 'hslc'}, ...
+    fields, [0 1 1 0 1 1 1], colors, '^s', DATADIR, MEMODIR);
+close(fig_histogram);
+close(fig_box);
+figureToPanel(fig_param_scatter, fig_fit_results, 2, 2, 1);
+
+fig_beta_scatter = BetaExplained(bothSubjects, '', DATADIR, MEMODIR);
+for iax=1:length(fig_beta_scatter.Children)
+    if isaxes(fig_beta_scatter.Children(iax))
+        % Delete all but 'full model' series. Children(1:2) are subplots, each of which has
+        % Children(1:3) that are 3 errorbar series
+        delete(fig_beta_scatter.Children(iax).Children(1:2));
+    end
+end
+% Panels 3 and 4 along top third: 'Beta Explained' of full model for each condition.
+figureToPanel(fig_beta_scatter, fig_fit_results, 2, 2, 2);
+
+% Bottom 2 sets of panels: another copy of fig_beta_scatter but isolating the gamma and bound terms
+fig_beta_scatter = BetaExplained(bothSubjects, '', DATADIR, MEMODIR);
+for iax=1:length(fig_beta_scatter.Children)
+    if isaxes(fig_beta_scatter.Children(iax))
+        % Delete full-model series
+        delete(fig_beta_scatter.Children(iax).Children(3));
+    end
+end
+% Panels 3 and 4 along top third: 'Beta Explained' of full model for each condition.
+figureToPanel(fig_beta_scatter, fig_fit_results, 2, 1, 2);
+
 %% Helper function for figure layout
 
-function ax_copy = figureToPanel(figSource, figDest, subM, subN, subI, cmap)
+function ax_copy = figureToPanel(figSource, figDest, subM, subN, subI, customcmap)
 margin = 0.02;
 widths = (1 - (subN + 1) * margin) / subN;
 heights = (1 - (subM + 1) * margin) / subM;
@@ -452,14 +532,30 @@ left = margin + (col-1) * (widths + margin);
 top = margin + (row-1) * (heights + margin);
 bottom = 1 - top - heights;
 figure(figSource);
-ax = gca;
-ax_copy = copyobj(ax, figDest);
-ax_copy.Position = [left bottom widths heights];
-ax_copy.Parent = figDest;
-close(figSource);
-if exist('cmap', 'var')
-    colormap(ax_copy, cmap);
-    colorbar('peer', ax_copy);
+for iax=1:length(figSource.Children)
+    ax = figSource.Children(iax);
+    if ~isaxes(ax), continue; end
+    ax_copy = copyobj(ax, figDest);
+    new_l = left + widths*ax.Position(1);
+    new_b = bottom + heights*ax.Position(2);
+    new_w = widths*ax.Position(3);
+    new_h = heights*ax.Position(4);
+    ax_copy.Position = [new_l new_b new_w new_h];
+    ax_copy.Parent = figDest;
+    if exist('customcmap', 'var')
+        colormap(ax_copy, customcmap);
+        colorbar('peer', ax_copy);
+    end
 end
+close(figSource);
 drawnow;
+end
+
+function tf = isaxes(ax)
+%https://www.mathworks.com/matlabcentral/answers/300880-what-is-best-practice-to-determine-if-input-is-a-figure-or-axes-handle
+try
+    tf = strcmp(get(ax, 'type'), 'axes');
+catch
+    tf = false;
+end
 end

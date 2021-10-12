@@ -14,7 +14,7 @@ function [perSubjectFigs, combinedFig] = DeltaPK(subjectIDs, phases, per_subject
 
 if nargin < 3, per_subject_plots = false; end
 if nargin < 4, method = 'reg-lr'; end
-if nargin < 5, datadir = fullfile(pwd, '..', 'RawData'); end
+if nargin < 5, datadir = fullfile(pwd, '..', 'PublishData'); end
 
 memodir = fullfile(datadir, '..', 'Precomputed');
 if ~exist(memodir, 'dir'), mkdir(memodir); end

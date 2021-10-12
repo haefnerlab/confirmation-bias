@@ -49,7 +49,8 @@ else
     
     % Run BADS with lower and upper bounds on variables.
     opts = bads('defaults');
-    opts.UncertaintyHandling = 1;
+    opts.UncertaintyHandling = true;
+    opts.NonlinearScaling = false;
     % bernoulli trials with p=.5 have variance .25. Divide variance by # indpendent trials, then
     % take sqrt for noise 'sigma'
     opts.NoiseSize = sqrt(.25 / params.trials);
@@ -67,9 +68,7 @@ end
 
 function correct = percent_correct(params, variables, values)
 % Run sampling model on current setting of variables.
-for i=1:length(variables)
-    params.(variables{i}) = values(i);
-end
+params = Fitting.setParamsFields(params, variables, values);
 
 % TODO - smarter resetting of seed
 params.seed = randi(1000000000);
@@ -87,6 +86,8 @@ if strcmpi(variable, 'p_match')
     lb = 0.5;
 elseif strcmpi(variable, 'var_s')
     lb = 0;
+elseif strcmpi(variable, 'neggamma')
+    lb = -1;
 elseif strcmpi(variable, 'gamma')
     lb = 0;
 elseif strcmpi(variable, 'prior_C')
@@ -103,6 +104,8 @@ if strcmpi(variable, 'p_match')
     ub = 1;
 elseif strcmpi(variable, 'var_s')
     ub = 10;
+elseif strcmpi(variable, 'neggamma')
+    ub = 1;
 elseif strcmpi(variable, 'gamma')
     ub = 1;
 elseif strcmpi(variable, 'prior_C')

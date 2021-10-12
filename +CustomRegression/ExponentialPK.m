@@ -48,10 +48,9 @@ responses = 1.0 * responses(:);
 
 compute_error = nargout > 2;
 
-% Initialize with expfit to unconstrained PK
-[w, ~, e] = CustomRegression.PsychophysicalKernel(data, responses==1, 1, 0, 0, 0);
-ab = CustomRegression.expFit(w(1:end-1), e(1:end-1));
-init_guess = [ab/2 0] + randn(1,3)/10;
+% % Initialize from GLM fit
+w = glmfit(data, responses, 'binomial');
+init_guess = [max(0.001, min(1, mean(w(2:end)))) 0 min(2, max(-2, w(1)))];
 
 % Fit weights using 'fminunc', only computing the hessian (which is slow) if errors are requested.
 options = optimoptions('fminunc', ...

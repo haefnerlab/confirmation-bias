@@ -14,7 +14,7 @@ function [grid, combined] = PlotGrid(subjectIDs, thresholds, phase, plot_types, 
 % - datadir: (optional) override the default place to look for data files.
 
 if nargin < 4, plot_types = {'staircase', 'pm', 'pk'}; end
-if nargin < 5, datadir = fullfile(pwd, '..', 'RawData'); end
+if nargin < 5, datadir = fullfile(pwd, '..', 'PublishData'); end
 
 memodir = fullfile(datadir, '..', 'Precomputed');
 if ~exist(memodir, 'dir'), mkdir(memodir); end

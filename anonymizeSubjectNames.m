@@ -1,6 +1,6 @@
 function anonymizeSubjectNames
 
-datadir = fullfile(pwd, '..', 'RawData');
+datadir = fullfile(pwd, '..', 'PublishData');
 datafiles = dir(fullfile(datadir, '*-subjectIDs.mat'));
 
 for i=1:length(datafiles)

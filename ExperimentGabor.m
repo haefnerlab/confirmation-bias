@@ -3,7 +3,7 @@ function GaborData = ExperimentGabor(GaborData, varargin)
 directory = fullfile(pwd, '..');
 settings = LoadSettings(directory);
 
-datadir = fullfile(directory, 'RawData');
+datadir = fullfile(directory, 'PublishData');
 if ~exist(datadir, 'dir'), mkdir(datadir); end
 
 subjectID = getSubjectId(datadir, 'gaborV2');

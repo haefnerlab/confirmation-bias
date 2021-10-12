@@ -22,22 +22,10 @@ variables_grid = cell(size(variables));
 % 'ngrid' dimension
 correct_grid = zeros([size(ss) size(variables_grid{1})]);
 parfor idx=1:numel(variables_grid{1}) * numel(ss)
-    params_copy = params;
-    
     % Get indices into [ss cc] and [variables_grid] separately
     [cs_i, vg_i] = ind2sub([numel(ss) numel(variables_grid{1})], idx);
     
-    % Set data-generating parameters.
-    params_copy.sensory_info = ss(cs_i);
-    params_copy.category_info = cc(cs_i);
-    % Set variances for this pair of category- & sensory-info values. (That is, assume that the
-    % model 'knows' the environment statistics)
-    params_copy.var_s = Model.getEvidenceVariance(ss(cs_i));
-    params_copy.p_match = cc(cs_i);
-    
-    if isfield(params, 'gamma_min') && ~isempty(params.gamma_min)
-        params.gamma = params.gamma_min + (params.gamma_max - params.gamma_min) * (1-cc(cs_i)) * 2;
-    end
+    params_copy = Model.setCategorySensoryInfo(params, cc(cs_i), ss(cs_i));
     
     % Look up value for each grid-search variable based on vg_i.
     values = arrayfun(@(v) variables_grid{v}(vg_i), 1:length(variables));
@@ -64,7 +52,7 @@ for s_i=1:length(sensory_infos)
         optim_vars = zeros(size(variables));
         for v=1:length(variables)
             hi = upper_bound(variables{v});
-            lo = lower_bound(variables{v});
+            lo = lower_bound(variables);
             % p is the fraction of the range [lo, hi] where the optimal value resides. Must subract
             % 1 in numerator and denominator because matlab is 1-indexed =(
             p = (max_subs{v} - 1) / (ngrid - 1);
@@ -82,9 +70,7 @@ end
 
 function correct = percent_correct(params, variables, values)
 % Run sampling model on current setting of variables.
-for i=1:length(variables)
-    params.(variables{i}) = values(i);
-end
+params = Fitting.setParamsFields(params, variables, values);
 
 % TODO - smarter resetting of seed
 params.seed = randi(1000000000);
@@ -104,6 +90,8 @@ elseif strcmpi(variable, 'var_s')
     lb = 0;
 elseif strcmpi(variable, 'var_x')
     lb = 0;
+elseif strcmpi(variable, 'neggamma')
+    lb = -1;
 elseif strcmpi(variable, 'gamma')
     lb = 0;
 elseif strcmpi(variable, 'prior_C')
@@ -122,6 +110,8 @@ elseif strcmpi(variable, 'var_s')
     ub = 10;
 elseif strcmpi(variable, 'var_x')
     ub = 10;
+elseif strcmpi(variable, 'neggamma')
+    ub = 1;
 elseif strcmpi(variable, 'gamma')
     ub = 1;
 elseif strcmpi(variable, 'prior_C')
